@@ -1,98 +1,154 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
 
 export default function HomeScreen() {
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.headerCard}>
+          <Text style={styles.eyebrow}>Hospital OPD</Text>
+          <Text style={styles.title}>Smart care dashboard</Text>
+          <Text style={styles.subtitle}>
+            Appointment and queue management for a smoother patient journey.
+          </Text>
+        </View>
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
+        <View style={styles.grid}>
+          <Pressable style={styles.card}>
+            <Text style={styles.cardLabel}>Appointments</Text>
+            <Text style={styles.cardNumber}>128</Text>
+            <Text style={styles.cardMeta}>Scheduled today</Text>
+          </Pressable>
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
+          <Pressable style={styles.card}>
+            <Text style={styles.cardLabel}>Queue</Text>
+            <Text style={styles.cardNumber}>18</Text>
+            <Text style={styles.cardMeta}>Patients waiting</Text>
+          </Pressable>
 
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+          <Pressable style={styles.card}>
+            <Text style={styles.cardLabel}>Doctors</Text>
+            <Text style={styles.cardNumber}>12</Text>
+            <Text style={styles.cardMeta}>On duty</Text>
+          </Pressable>
+
+          <Pressable style={styles.card}>
+            <Text style={styles.cardLabel}>Reports</Text>
+            <Text style={styles.cardNumber}>06</Text>
+            <Text style={styles.cardMeta}>New updates</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Today’s focus</Text>
+          <View style={styles.listItem}>
+            <Text style={styles.listDot}>•</Text>
+            <Text style={styles.listText}>Complete patient registration checks.</Text>
+          </View>
+          <View style={styles.listItem}>
+            <Text style={styles.listDot}>•</Text>
+            <Text style={styles.listText}>Verify doctor availability for the next queue.</Text>
+          </View>
+          <View style={styles.listItem}>
+            <Text style={styles.listDot}>•</Text>
+            <Text style={styles.listText}>Send appointment reminders to patients.</Text>
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
   safeArea: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
+    backgroundColor: '#f4f7fb',
   },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
+  content: {
+    padding: 20,
+    gap: 18,
   },
-  title: {
-    textAlign: 'center',
+  headerCard: {
+    backgroundColor: '#1d4ed8',
+    borderRadius: 22,
+    padding: 22,
+    gap: 8,
   },
-  code: {
+  eyebrow: {
+    color: '#dbeafe',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  title: {
+    color: '#ffffff',
+    fontSize: 30,
+    fontWeight: '700',
+  },
+  subtitle: {
+    color: '#dbeafe',
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  card: {
+    width: '48%',
+    backgroundColor: '#ffffff',
+    borderRadius: 18,
+    padding: 16,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  cardLabel: {
+    color: '#475569',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  cardNumber: {
+    marginTop: 10,
+    color: '#0f172a',
+    fontSize: 28,
+    fontWeight: '700',
+  },
+  cardMeta: {
+    marginTop: 4,
+    color: '#64748b',
+    fontSize: 12,
+  },
+  section: {
+    backgroundColor: '#ffffff',
+    borderRadius: 18,
+    padding: 18,
+    gap: 12,
+  },
+  sectionTitle: {
+    color: '#0f172a',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  listItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  listDot: {
+    color: '#1d4ed8',
+    fontSize: 18,
+    lineHeight: 22,
+  },
+  listText: {
+    flex: 1,
+    color: '#334155',
+    fontSize: 14,
+    lineHeight: 22,
   },
 });
