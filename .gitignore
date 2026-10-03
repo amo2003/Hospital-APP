@@ -5,3 +5,11 @@
 **/.env
 **/.env.*
 !**/.env.example
+
+# Build output and disposable test data
+**/dist/
+**/.expo/
+**/tests/.cache/
+**/playwright-report/
+**/test-results/
+**/artifacts/ui/
