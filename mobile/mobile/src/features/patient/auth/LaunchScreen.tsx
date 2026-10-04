@@ -12,6 +12,7 @@ export default function LaunchScreen() {
     if (navigated.current) return;
     try {
       await Storage.clearSession();
+      await Storage.clearNurseSession();
       const path = await Storage.getUserPath();
       navigated.current = true;
       router.replace(
@@ -154,7 +155,7 @@ export function StaffHandoffScreen() {
       >
         OR
       </Text>
-      <Button title="Nurse" arrow onPress={() => setRole("Nurse")} />
+      <Button title="Nurse" arrow onPress={() => router.replace("/nurse/login")} />
       {role && (
         <Text
           style={[
