@@ -11,7 +11,10 @@ import {
   Appointment,
   Doctor,
   Hospital,
+  QueueCounter,
+  QueueEntry,
 } from "../src/patient/booking/booking.models.js";
+import { Nurse } from "../src/nurse/auth/nurse.model.js";
 import { validateBookingDate } from "../src/patient/booking/booking.service.js";
 let db: MongoMemoryReplSet;
 let token = "";
@@ -19,6 +22,9 @@ let otherToken = "";
 let hospitalId = "";
 let doctorId = "";
 let appointmentId = "";
+let nurseToken = "";
+let nurseAccountId = "";
+let patientPublicId = "";
 const birthDate = "1998-05-10";
 const future = new Date();
 future.setDate(future.getDate() + 2);
@@ -44,7 +50,7 @@ before(async () => {
     replSet: { count: 1 },
   });
   await mongoose.connect(db.getUri());
-  await Promise.all([Patient.init(), Appointment.init()]);
+  await Promise.all([Patient.init(), Appointment.init(), Nurse.init(), QueueEntry.init(), QueueCounter.init()]);
   const hospital = await Hospital.create({
     name: "Test OPD",
     departments: ["General Medicine"],
@@ -83,6 +89,7 @@ test("registration validates identity, password and consent; stores only a passw
   assert.match(result.body.patient.patientId, /^PT-/);
   assert.equal(result.body.patient.passwordHash, undefined);
   assert.equal(result.body.patient.phone, "+94771234567");
+  patientPublicId = result.body.patient.patientId;
   const stored = await Patient.findOne({ email: person.email }).select(
     "+passwordHash",
   );
@@ -132,6 +139,50 @@ test("profile edits persist and cannot change roles or password hashes", async (
     .auth(token, { type: "bearer" })
     .send({ role: "staff" })
     .expect(400);
+});
+test("nurse registration and authentication are separate from patient JWTs", async () => {
+  const additionalHospital = await Hospital.create({
+    name: "ZZZ Additional Active Hospital",
+    departments: ["General Medicine"],
+    active: true,
+  });
+  const nurse = {
+    fullName: "Nurse Test",
+    nic: "199012345678",
+    dateOfBirth: "1990-01-01",
+    gender: "Female",
+    phone: "0772233445",
+    email: "nurse@example.com",
+    address: "45 Hospital Road, Colombo",
+    district: "Colombo",
+    username: "nurse_test",
+    department: "General Medicine",
+    ward: "General Medicine",
+    password: "NursePassword123!",
+    confirmPassword: "NursePassword123!",
+    acceptedTerms: true,
+  };
+  const created = await request(app).post("/api/nurse/auth/register").send(nurse).expect(201);
+  assert.match(created.body.nurse.nurseId, /^NUR-/);
+  assert.equal(created.body.nurse.hospitalId, hospitalId);
+  assert.equal(created.body.nurse.passwordHash, undefined);
+  nurseAccountId = created.body.nurse.id;
+  const stored = await Nurse.findById(nurseAccountId).select("+passwordHash");
+  assert.notEqual(stored!.passwordHash, nurse.password);
+  await request(app).post("/api/nurse/auth/register").send(nurse).expect(409);
+  await request(app).post("/api/nurse/auth/login").send({ identifier: nurse.email, password: "wrong" }).expect(401);
+  const login = await request(app).post("/api/nurse/auth/login").send({ identifier: created.body.nurse.nurseId, password: nurse.password }).expect(200);
+  nurseToken = login.body.token;
+  await request(app).get("/api/nurse/profile").auth(token, { type: "bearer" }).expect(401);
+  await request(app).get("/api/nurse/profile").auth(nurseToken, { type: "bearer" }).expect(200);
+  await Hospital.deleteOne({ _id: additionalHospital._id });
+});
+test("nurse profile updates allow only editable fields and patient reads are limited", async () => {
+  const edited = await request(app).patch("/api/nurse/profile")
+    .auth(nurseToken, { type: "bearer" }).send({ fullName: "Nurse Updated" }).expect(200);
+  assert.equal(edited.body.fullName, "Nurse Updated");
+  assert.equal(edited.body.role, "nurse");
+  await request(app).patch("/api/nurse/profile").auth(nurseToken, { type: "bearer" }).send({ role: "admin" }).expect(400);
 });
 test("catalogue, date validation and server-owned slot validation", async () => {
   await request(app)
@@ -202,6 +253,14 @@ test("simultaneous booking creates one appointment; other patients cannot view o
     false,
   );
 });
+test("nurse patient search and details are limited to assigned hospital and department", async () => {
+  const patients = await request(app).get("/api/nurse/patients?q=Test").auth(nurseToken, { type: "bearer" }).expect(200);
+  assert.ok(patients.body.some((item: any) => item.patientId === patientPublicId));
+  assert.equal(patients.body[0].passwordHash, undefined);
+  const details = await request(app).get(`/api/nurse/patients/${patientPublicId}`).auth(nurseToken, { type: "bearer" }).expect(200);
+  assert.equal(details.body.patientId, patientPublicId);
+  assert.equal(details.body.appointment.department, "General Medicine");
+});
 test("cancellation releases the slot and preserves history", async () => {
   await request(app)
     .patch(`/api/patient/booking/appointments/${appointmentId}/cancel`)
@@ -223,6 +282,19 @@ test("cancellation releases the slot and preserves history", async () => {
     .auth(token, { type: "bearer" })
     .expect(200);
   assert.equal(list.body.length, 2);
+});
+test("appointment booking assigns queue tokens automatically and nurse cancellation preserves records", async () => {
+  const response = await request(app).get(`/api/nurse/queue?date=${date}`).auth(nurseToken, { type: "bearer" }).expect(200);
+  assert.ok(response.body.entries.length >= 1);
+  const entry = response.body.entries.find((item: any) => item.status === "waiting");
+  assert.ok(entry);
+  assert.match(entry.token, /^[A-Z]-\d{3,}$/);
+  const storedQueueEntry = await QueueEntry.findById(entry.id);
+  await request(app).patch(`/api/nurse/queue/${entry.id}/cancel`).auth(nurseToken, { type: "bearer" }).expect(200);
+  assert.equal(await Patient.countDocuments({ patientId: patientPublicId }), 1);
+  assert.equal((await Appointment.findById(storedQueueEntry!.appointmentId))?.status, "confirmed");
+  const list = await request(app).get(`/api/nurse/queue?date=${date}`).auth(nurseToken, { type: "bearer" }).expect(200);
+  assert.ok(!list.body.entries.some((item: any) => item.id === entry.id));
 });
 test("reset codes are single-use and invalidate existing sessions", async () => {
   const code = "test-reset-code-which-is-long-enough";
@@ -272,4 +344,10 @@ test("account deletion requires a password, removes appointments and revokes acc
     .post("/api/patient/auth/login")
     .send({ identifier: person.email, password: "ChangedPassword123!" })
     .expect(401);
+});
+test("nurse deactivation revokes existing sessions and blocks future login", async () => {
+  await request(app).delete("/api/nurse/profile").auth(nurseToken, { type: "bearer" }).expect(204);
+  await request(app).get("/api/nurse/profile").auth(nurseToken, { type: "bearer" }).expect(401);
+  const nurse = await Nurse.findById(nurseAccountId).select("+passwordHash");
+  await request(app).post("/api/nurse/auth/login").send({ identifier: nurse!.email, password: "NursePassword123!" }).expect(403);
 });

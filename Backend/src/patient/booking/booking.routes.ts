@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { Appointment, Doctor, Hospital } from "./booking.models.js";
+import { Appointment, Doctor, Hospital, QueueEntry, QueueCounter } from "./booking.models.js";
 import { Patient } from "../auth/patient.model.js";
 import { ApiError } from "../shared/errors.js";
 import { slotIsFuture, validateBookingDate } from "./booking.service.js";
@@ -96,11 +96,27 @@ bookingRoutes.post("/appointments", async (req, res) => {
       { session },
     );
     if (!patient) throw new ApiError(401, "Please sign in again.");
-    return (
+    const created = (
       await Appointment.create([{ ...data, patientId: patient._id }], {
         session,
       })
     )[0];
+    const counter = await QueueCounter.findOneAndUpdate(
+      { hospitalId: data.hospitalId, date: data.date, department: data.department },
+      { $inc: { sequence: 1 } },
+      { new: true, upsert: true, session, setDefaultsOnInsert: true },
+    );
+    const prefix = data.department.replace(/[^a-z0-9]/gi, "").slice(0, 1).toUpperCase() || "Q";
+    await QueueEntry.create([{
+      appointmentId: created._id,
+      patientId: patient._id,
+      hospitalId: data.hospitalId,
+      department: data.department,
+      date: data.date,
+      sequence: counter.sequence,
+      token: `${prefix}-${String(counter.sequence).padStart(3, "0")}`,
+    }], { session });
+    return created;
   });
   await appointment.populate([
     { path: "hospitalId", select: "name" },
@@ -120,5 +136,9 @@ bookingRoutes.patch("/appointments/:id/cancel", async (req, res) => {
     throw new ApiError(400, "Past appointments cannot be cancelled.");
   appointment.status = "cancelled";
   await appointment.save();
+  await QueueEntry.updateOne(
+    { appointmentId: appointment._id, status: "waiting" },
+    { $set: { status: "cancelled" } },
+  );
   res.json(appointment);
 });
