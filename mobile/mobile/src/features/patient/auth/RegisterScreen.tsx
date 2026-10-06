@@ -1,3 +1,4 @@
+import { filterName, filterNic } from "./validation";
 import { Text } from "../i18n/LanguageProvider";
 import { useState } from "react";
 import { Modal, Pressable, View } from "react-native";
@@ -23,52 +24,30 @@ import {
 import { Icon } from "../shared/icons";
 import { LanguagePicker } from "./LanguagePicker";
 import DateField from "../shared/DateField";
-export const districts = [
-  "Ampara",
-  "Anuradhapura",
-  "Badulla",
-  "Batticaloa",
-  "Colombo",
-  "Galle",
-  "Gampaha",
-  "Hambantota",
-  "Jaffna",
-  "Kalutara",
-  "Kandy",
-  "Kegalle",
-  "Kilinochchi",
-  "Kurunegala",
-  "Mannar",
-  "Matale",
-  "Matara",
-  "Monaragala",
-  "Mullaitivu",
-  "Nuwara Eliya",
-  "Polonnaruwa",
-  "Puttalam",
-  "Ratnapura",
-  "Trincomalee",
-  "Vavuniya",
-];
-export function parseBirthDate(value: string) {
-  const parts = value.trim().split(/[\/\s-]+/);
-  return parts.length === 3 && parts[0].length !== 4
-    ? `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`
-    : value.trim();
-}
+import {
+  districts,
+  parseBirthDate,
+  registrationErrors,
+  registrationSteps,
+  type RegistrationErrors,
+} from "./validation";
+import { usePatient } from "../shared/session";
+export { districts } from "./validation";
+export { parseBirthDate } from "./validation";
 export default function RegisterScreen() {
+  const { googleOnboarding, setGoogleOnboarding, signIn } = usePatient();
   const [step, setStep] = useState(0);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState("");
   const [policy, setPolicy] = useState("");
   const [data, setData] = useState<Registration>({
-    fullName: "",
+    fullName: googleOnboarding?.name || "",
     nic: "",
     dateOfBirth: "",
     gender: "Male",
     phone: "",
-    email: "",
+    email: googleOnboarding?.email || "",
     address: "",
     district: "",
     username: "",
@@ -81,78 +60,50 @@ export default function RegisterScreen() {
     value: Registration[K],
   ) {
     setData((old) => ({ ...old, [key]: value }));
-  }
-  async function next() {
     setError("");
-    if (step === 0) {
-      const date = parseBirthDate(data.dateOfBirth);
-      const parsed = new Date(date);
-      if (
-        data.fullName.trim().length < 2 ||
-        !/^(\d{9}[VX]|\d{12}|[A-Z][A-Z0-9]{5,19})$/i.test(data.nic.trim()) ||
-        !genderChosen
-      ) {
-        setError(
-          "Enter your full name, a valid NIC or passport number, and select your gender.",
-        );
-        return;
-      }
-      if (
-        !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
-        isNaN(parsed.getTime()) ||
-        parsed.toISOString().slice(0, 10) !== date ||
-        parsed >= new Date() ||
-        parsed.getFullYear() < 1900
-      ) {
-        setError("Enter a valid date of birth as DD / MM / YYYY.");
-        return;
-      }
-      setStep(1);
+  }
+  const [touched, setTouched] = useState<
+    Partial<Record<keyof RegistrationErrors, boolean>>
+  >({});
+  const [attempted, setAttempted] = useState(false);
+  const errors = registrationErrors(data, confirm, genderChosen);
+  const fieldError = (key: keyof RegistrationErrors) =>
+    attempted || touched[key] ? errors[key] : undefined;
+  const validation = (key: keyof RegistrationErrors) => ({
+    error: fieldError(key),
+    onBlur: () => setTouched((old) => ({ ...old, [key]: true })),
+  });
+  async function next() {
+    if (busy) return;
+    setError("");
+    setAttempted(true);
+    if (registrationSteps[step].some((key) => errors[key])) return;
+    if (step < 2) {
+      setStep(step + 1);
+      setAttempted(false);
       return;
     }
-    if (step === 1) {
-      if (
-        !/^(0\d{9}|\+94\d{9})$/.test(data.phone.replace(/[\s()-]/g, "")) ||
-        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim()) ||
-        data.address.trim().length < 5 ||
-        !data.district
-      ) {
-        setError(
-          "Enter a valid Sri Lankan phone number, email, home address, and district.",
-        );
-        return;
-      }
-      setStep(2);
-      return;
-    }
-    if (
-      !/^[a-z0-9_]{3,30}$/i.test(data.username) ||
-      data.password.length < 8 ||
-      data.password.length > 72 ||
-      !/[a-z]/i.test(data.password) ||
-      !/\d/.test(data.password)
-    ) {
-      setError(
-        "Use a username of 3–30 letters, numbers or underscores, and a password of 8–72 characters including a letter and a number.",
-      );
-      return;
-    }
-    if (data.password !== confirm) {
-      setError("Passwords do not match.");
-      return;
-    }
-    if (!data.acceptedTerms) {
-      setError(
-        "Please read and accept the Terms of Service and Privacy Policy.",
-      );
+    const invalidStep = registrationSteps.findIndex((keys) =>
+      keys.some((key) => errors[key]),
+    );
+    if (invalidStep !== -1) {
+      setStep(invalidStep);
       return;
     }
     setBusy(true);
     try {
-      const { patient } = await api.register({
+      const { patient, token } = await api.register({
         ...data,
+        ...(googleOnboarding
+          ? { googleRegistrationToken: googleOnboarding.proofToken }
+          : {}),
         dateOfBirth: parseBirthDate(data.dateOfBirth),
       });
+      if (token) {
+        await signIn(token, patient);
+        router.replace("/patient/home");
+        return;
+      }
       await Storage.setUserPath("patient");
       router.replace({
         pathname: "/account-created",
@@ -169,12 +120,45 @@ export default function RegisterScreen() {
     }
   }
   const back = () => {
+    if (busy) return;
+    setAttempted(false);
     setError("");
     if (step) setStep(step - 1);
-    else router.replace("/login");
+    else {
+      setGoogleOnboarding(null);
+      router.replace("/login");
+    }
   };
   return (
     <Screen footer={<LanguagePicker />}>
+      {googleOnboarding && (
+        <View
+          style={[
+            s.notice,
+            {
+              marginTop: 12,
+              flexDirection: "column",
+              alignItems: "flex-start",
+            },
+          ]}
+        >
+          <Text style={s.body}>
+            Google verified. Complete your patient details and choose a CarePlus
+            password for account recovery.
+          </Text>
+          <Text translate={false} style={s.body}>
+            {googleOnboarding.email}
+          </Text>
+          <Pressable
+            onPress={() => {
+              setGoogleOnboarding(null);
+              router.replace("/login");
+            }}
+          >
+            <Text style={s.link}>Use another Google account</Text>
+          </Pressable>
+        </View>
+      )}
       <Header
         title="Create your account"
         subtitle={
@@ -195,23 +179,27 @@ export default function RegisterScreen() {
             icon="user"
             placeholder="Enter your full name"
             value={data.fullName}
-            onChangeText={(v) => update("fullName", v)}
+            {...validation("fullName")}
+            onChangeText={(v) => update("fullName", filterName(v))}
             autoComplete="name"
           />
           <Field
             label="NIC / Passport No"
             icon="id"
-            placeholder="Enter your NIC or passport number"
+            placeholder="12 digits or 9 digits followed by V"
             value={data.nic}
-            onChangeText={(v) => update("nic", v)}
+            {...validation("nic")}
+            onChangeText={(v) => update("nic", filterNic(v))}
             autoCapitalize="characters"
           />
           <DateField
             label="Date of Birth"
             value={data.dateOfBirth}
+            error={fieldError("dateOfBirth")}
             onChange={(v) => update("dateOfBirth", v)}
           />
           <Text style={s.label}>Gender</Text>
+          <ErrorMessage message={fieldError("gender") || ""} />
           <View
             style={[
               s.row,
@@ -259,15 +247,19 @@ export default function RegisterScreen() {
             placeholder="Enter your phone number"
             keyboardType="phone-pad"
             value={data.phone}
+            {...validation("phone")}
             onChangeText={(v) => update("phone", v)}
           />
           <Field
             label="Email Address"
+            editable={!googleOnboarding}
             icon="mail"
             placeholder="Enter your email address"
             keyboardType="email-address"
             autoCapitalize="none"
+            autoCorrect={false}
             value={data.email}
+            {...validation("email")}
             onChangeText={(v) => update("email", v)}
           />
           <Field
@@ -276,12 +268,14 @@ export default function RegisterScreen() {
             placeholder="Enter your home address"
             multiline
             value={data.address}
+            {...validation("address")}
             onChangeText={(v) => update("address", v)}
           />
           <Select
             label="District / City"
             placeholder="Select your district / city"
             value={data.district}
+            error={fieldError("district")}
             options={districts.map((v) => ({ value: v, label: v }))}
             onChange={(v) => update("district", v)}
           />
@@ -293,15 +287,18 @@ export default function RegisterScreen() {
             icon="user"
             placeholder="Choose a username"
             autoCapitalize="none"
+            autoCorrect={false}
             value={data.username}
+            {...validation("username")}
             onChangeText={(v) => update("username", v)}
           />
           <Field
             label="Password"
             icon="lock"
-            placeholder="Create a password"
+            placeholder="At least 8 characters, a letter and a number"
             password
             value={data.password}
+            {...validation("password")}
             onChangeText={(v) => update("password", v)}
             autoComplete="new-password"
           />
@@ -311,6 +308,7 @@ export default function RegisterScreen() {
             placeholder="Confirm your password"
             password
             value={confirm}
+            {...validation("confirm")}
             onChangeText={setConfirm}
             autoComplete="new-password"
           />
@@ -353,6 +351,7 @@ export default function RegisterScreen() {
               </Text>
             </Text>
           </View>
+          <ErrorMessage message={fieldError("acceptedTerms") || ""} />
         </>
       )}
       <ErrorMessage message={error} />
@@ -376,7 +375,13 @@ export default function RegisterScreen() {
           <Button title="Back" outline disabled={busy} onPress={back} />
         )}
       </View>
-      <Pressable style={s.centerLink} onPress={() => router.replace("/login")}>
+      <Pressable
+        style={s.centerLink}
+        onPress={() => {
+          setGoogleOnboarding(null);
+          router.replace("/login");
+        }}
+      >
         <Text style={{ color: C.blue, fontSize: 13 }}>
           Already have an account?{" "}
           <Text style={{ fontWeight: "700" }}>Login</Text>

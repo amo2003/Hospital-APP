@@ -29,6 +29,7 @@ export default function GoogleButtonView({
           justifyContent: "center",
           minHeight: 49,
           paddingHorizontal: 45,
+          paddingVertical: 12,
           opacity: disabled || busy ? 0.6 : 1,
         },
       ]}
@@ -45,6 +46,7 @@ export default function GoogleButtonView({
             fontSize: 14,
             fontWeight: "600",
             textAlign: "center",
+            flexShrink: 1,
           }}
         >
           Continue with Google
