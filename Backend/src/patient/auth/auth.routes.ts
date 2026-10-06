@@ -3,13 +3,18 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { createHash, randomBytes } from "node:crypto";
 import nodemailer from "nodemailer";
-import { OAuth2Client } from "google-auth-library";
+import {
+  googleProof,
+  readGoogleProof,
+  verifyGoogleIdentity,
+} from "./google.service.js";
 import { z } from "zod";
 import { Patient, publicPatient } from "./patient.model.js";
 import {
   normalizePhone,
   passwordSchema,
   registrationSchema,
+  emailSchema,
 } from "./validation.js";
 import { ApiError } from "../shared/errors.js";
 import { authenticate } from "./auth.middleware.js";
@@ -35,18 +40,42 @@ authRoutes.post("/register", async (req, res) => {
   const { password, acceptedTerms, ...data } = registrationSchema.parse(
     req.body,
   );
+  const proofToken = z
+    .string()
+    .max(4000)
+    .optional()
+    .parse(req.body.googleRegistrationToken);
+  const identity = proofToken
+    ? readGoogleProof(proofToken, "register")
+    : undefined;
+  if (identity && identity.email !== data.email)
+    throw new ApiError(400, "Use the email verified by Google.");
   const patient = await Patient.create({
     ...data,
+    ...(identity ? { googleSubject: identity.sub } : {}),
     passwordHash: await bcrypt.hash(password, 12),
     consentAt: new Date(),
   });
-  res.status(201).json({ patient: publicPatient(patient) });
+  res
+    .status(201)
+    .json(identity ? session(patient) : { patient: publicPatient(patient) });
 });
 authRoutes.post("/login", async (req, res) => {
   const { identifier, password } = z
     .object({
-      identifier: z.string().trim().min(1).max(254),
-      password: z.string().min(1).max(72),
+      identifier: z
+        .string()
+        .trim()
+        .min(1)
+        .max(254)
+        .refine((value) => {
+          if (value.includes("@")) return emailSchema.safeParse(value).success;
+          if (/^[+\d\s()-]+$/.test(value))
+            return /^\+94\d{9}$/.test(normalizePhone(value));
+          // Keep existing username login support for API clients.
+          return /^[a-z0-9_]{3,30}$/i.test(value);
+        }, "Enter a valid email address or Sri Lankan phone number."),
+      password: z.string().min(1, "Enter your password.").max(72),
     })
     .parse(req.body);
   const patient = await Patient.findOne({
@@ -64,38 +93,65 @@ authRoutes.post("/google", async (req, res) => {
   const { idToken } = z
     .object({ idToken: z.string().min(10).max(10000) })
     .parse(req.body);
-  const audience = process.env.GOOGLE_CLIENT_IDS?.split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  if (!audience?.length)
-    throw new ApiError(
-      503,
-      "Google sign-in is not configured yet. Please use email or phone.",
-    );
-  let identity;
-  try {
-    identity = (
-      await new OAuth2Client().verifyIdToken({ idToken, audience })
-    ).getPayload();
-  } catch {
-    throw new ApiError(401, "Google sign-in could not be verified.");
+  const identity = await verifyGoogleIdentity(idToken);
+  const linked = await Patient.findOne({ googleSubject: identity.sub });
+  if (linked) {
+    res.json({ status: "signed-in", ...session(linked) });
+    return;
   }
-  if (!identity?.email_verified || !identity.email)
-    throw new ApiError(401, "Use a verified Google email address.");
-  const patient = await Patient.findOne({
-    email: identity.email.toLowerCase(),
-  });
-  if (!patient)
+  const existing = await Patient.findOne({ email: identity.email }).select(
+    "+googleSubject",
+  );
+  if (existing?.googleSubject)
     throw new ApiError(
       409,
-      "Please create your patient account using this Google email first.",
+      "This patient account is linked to a different Google account. Sign in with your CarePlus password.",
     );
-  res.json(session(patient));
+  const purpose = existing ? "link" : "register";
+  res.json({
+    status: existing ? "link-required" : "registration-required",
+    proofToken: googleProof(identity, purpose),
+    email: identity.email,
+    name: identity.name,
+  });
+});
+authRoutes.post("/google/link", async (req, res) => {
+  const { proofToken, password } = z
+    .object({
+      proofToken: z.string().max(4000),
+      password: z.string().min(1).max(72),
+    })
+    .parse(req.body);
+  const identity = readGoogleProof(proofToken, "link");
+  const patient = await Patient.findOne({ email: identity.email }).select(
+    "+passwordHash +googleSubject",
+  );
+  if (!patient || !(await bcrypt.compare(password, patient.passwordHash)))
+    throw new ApiError(401, "Your password is incorrect.");
+  if (patient.googleSubject && patient.googleSubject !== identity.sub)
+    throw new ApiError(
+      409,
+      "This patient account is linked to a different Google account. Sign in with your CarePlus password.",
+    );
+  // Conditional write protects linking against a simultaneous request with a different Google identity.
+  const updated = await Patient.findOneAndUpdate(
+    {
+      _id: patient._id,
+      passwordHash: patient.passwordHash,
+      $or: [
+        { googleSubject: { $exists: false } },
+        { googleSubject: identity.sub },
+      ],
+    },
+    { $set: { googleSubject: identity.sub } },
+    { returnDocument: "after" },
+  );
+  if (!updated)
+    throw new ApiError(409, "Account changed. Please sign in again.");
+  res.json(session(updated));
 });
 authRoutes.post("/forgot-password", async (req, res) => {
-  const { email } = z
-    .object({ email: z.email().toLowerCase() })
-    .parse(req.body);
+  const { email } = z.object({ email: emailSchema }).parse(req.body);
   if (
     !process.env.SMTP_HOST ||
     !process.env.SMTP_USER ||
