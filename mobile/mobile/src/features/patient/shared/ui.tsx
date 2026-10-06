@@ -19,6 +19,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import Svg, { Path } from "react-native-svg";
 import { Icon, type IconName } from "./icons";
+import { BottomLeaves } from "./BottomLeaves";
 export const C = {
   navy: "#102e57",
   blue: "#086ab9",
@@ -100,9 +101,7 @@ export function Leaves({ small = false }: { small?: boolean }) {
           opacity: small ? 0.5 : 1,
         }}
       />
-      <Image
-        source={assets.bottom}
-        resizeMode="contain"
+      <BottomLeaves
         style={{
           position: "absolute",
           width: small ? 95 : "60%",
@@ -133,9 +132,7 @@ export function Screen({
         {decoration && (
           <>
             <Wave />
-            <Image
-              source={assets.bottom}
-              resizeMode="contain"
+            <BottomLeaves
               style={{
                 position: "absolute",
                 width: 95,
@@ -282,6 +279,7 @@ export function Field({
           autoCorrect={password ? false : undefined}
           {...props}
           accessibilityLabel={t(label)}
+          accessibilityHint={error ? t(error) : props.accessibilityHint}
           placeholder={props.placeholder ? t(props.placeholder) : undefined}
           value={
             props.editable === false &&
@@ -311,7 +309,11 @@ export function Field({
           </Pressable>
         )}
       </View>
-      {error && <Text style={s.error}>{error}</Text>}
+      {error && (
+        <Text accessibilityRole="alert" style={s.error}>
+          {error}
+        </Text>
+      )}
     </View>
   );
 }
@@ -322,6 +324,7 @@ export function Select({
   options,
   onChange,
   icon = "pin",
+  error,
 }: {
   label: string;
   placeholder: string;
@@ -329,6 +332,7 @@ export function Select({
   options: { label: string; value: string }[];
   onChange: (value: string) => void;
   icon?: IconName;
+  error?: string;
 }) {
   const [open, setOpen] = useState(false);
   const { t } = useLanguage();
@@ -338,7 +342,7 @@ export function Select({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t(label)}
-        style={s.inputBox}
+        style={[s.inputBox, !!error && { borderColor: "#d24c4c" }]}
         onPress={() => setOpen(true)}
       >
         <Icon name={icon} />
@@ -352,6 +356,11 @@ export function Select({
         </Text>
         <Icon name="chevron" size={19} />
       </Pressable>
+      {!!error && (
+        <Text accessibilityRole="alert" style={s.error}>
+          {error}
+        </Text>
+      )}
       <Modal
         visible={open}
         transparent
@@ -469,10 +478,10 @@ export function ServiceCard() {
         { flexDirection: "row", gap: 14, alignItems: "center", padding: 13 },
       ]}
     >
-      <View style={s.iconTile}>
+      <View style={[s.iconTile, { flexShrink: 0 }]}>
         <Icon name="cross" />
       </View>
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={{ color: C.navy, fontWeight: "700", fontSize: 13 }}>
           OPD Appointment &{"\n"}Queue Management
         </Text>

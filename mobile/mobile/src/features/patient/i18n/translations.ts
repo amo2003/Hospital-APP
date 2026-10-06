@@ -1,5 +1,135 @@
 // English source copy -> Sinhala and Tamil. Patient-entered names and identifiers remain unchanged.
 export const translations: Record<string, readonly [string, string]> = {
+  "12 digits or 9 digits followed by V": [
+    "ඉලක්කම් 12ක් හෝ ඉලක්කම් 9කට පසුව V",
+    "12 இலக்கங்கள் அல்லது 9 இலக்கங்களுக்குப் பின்னர் V",
+  ],
+  "Enter a name of 2–100 characters using letters and spaces only.": [
+    "අකුරු සහ හිස්තැන් පමණක් භාවිත කර අක්ෂර 2–100ක නමක් ඇතුළත් කරන්න.",
+    "எழுத்துகள் மற்றும் இடைவெளிகளை மட்டும் பயன்படுத்தி 2–100 எழுத்துகள் கொண்ட பெயரை உள்ளிடவும்.",
+  ],
+  "Enter 12 digits or 9 digits followed by V.": [
+    "ඉලක්කම් 12ක් හෝ ඉලක්කම් 9කට පසුව V ඇතුළත් කරන්න.",
+    "12 இலக்கங்கள் அல்லது 9 இலக்கங்களுக்குப் பின்னர் V ஐ உள்ளிடவும்.",
+  ],
+  "Enter a valid email address phone number.": [
+    "වලංගු විද්‍යුත් තැපැල් ලිපිනයක් හෝ දුරකථන අංකයක් ඇතුළත් කරන්න.",
+    "செல்லுபடியான மின்னஞ்சல் முகவரி அல்லது தொலைபேசி எண்ணை உள்ளிடவும்.",
+  ],
+  "Enter a valid NIC or passport number.": [
+    "වලංගු ජාතික හැඳුනුම්පත් හෝ ගමන් බලපත්‍ර අංකයක් ඇතුළත් කරන්න.",
+    "செல்லுபடியான தேசிய அடையாள அட்டை அல்லது கடவுச்சீட்டு எண்ணை உள்ளிடவும்.",
+  ],
+  "Enter a valid email address, such as name@example.com.": [
+    "name@example.com වැනි වලංගු විද්‍යුත් තැපැල් ලිපිනයක් ඇතුළත් කරන්න.",
+    "name@example.com போன்ற செல்லுபடியான மின்னஞ்சல் முகவரியை உள்ளிடவும்.",
+  ],
+  "Enter a valid mobile number: 0771234567 or +94771234567.": [
+    "වලංගු ජංගම දුරකථන අංකයක් ඇතුළත් කරන්න: 0771234567 හෝ +94771234567.",
+    "செல்லுபடியான கைபேசி எண்ணை உள்ளிடவும்: 0771234567 அல்லது +94771234567.",
+  ],
+  "Enter a valid email address or Sri Lankan phone number.": [
+    "වලංගු විද්‍යුත් තැපැල් ලිපිනයක් හෝ ශ්‍රී ලංකා දුරකථන අංකයක් ඇතුළත් කරන්න.",
+    "செல்லுபடியான மின்னஞ்சல் முகவரி அல்லது இலங்கை தொலைபேசி எண்ணை உள்ளிடவும்.",
+  ],
+  "Enter your password.": [
+    "ඔබේ මුරපදය ඇතුළත් කරන්න.",
+    "உங்கள் கடவுச்சொல்லை உள்ளிடவும்.",
+  ],
+  "Confirm your password.": [
+    "ඔබේ මුරපදය නැවත ඇතුළත් කරන්න.",
+    "உங்கள் கடவுச்சொல்லை மீண்டும் உள்ளிடவும்.",
+  ],
+  "Use at least 8 characters, including a letter and a number.": [
+    "අකුරක් සහ අංකයක් ඇතුළුව අවම වශයෙන් අක්ෂර 8ක් භාවිත කරන්න.",
+    "ஒரு எழுத்தும் எண்ணும் உட்பட குறைந்தது 8 எழுத்துகளைப் பயன்படுத்தவும்.",
+  ],
+  "Password is too long. Use at most 72 UTF-8 bytes.": [
+    "මුරපදය දිග වැඩියි. UTF-8 බයිට් 72කට නොවැඩි කෙටි මුරපදයක් භාවිත කරන්න.",
+    "கடவுச்சொல் மிக நீளமானது. அதிகபட்சம் 72 UTF-8 பைட்டுகளைப் பயன்படுத்தவும்.",
+  ],
+  "Enter a name of 2–100 characters using letters, spaces, apostrophes or hyphens.":
+    [
+      "අකුරු, හිස්තැන්, අපෝස්ට්‍රොෆි හෝ යටි ඉරි නොවන කෙටි ඉරි භාවිතයෙන් අක්ෂර 2–100ක නමක් ඇතුළත් කරන්න.",
+      "எழுத்துகள், இடைவெளிகள், மேற்குறிகள் அல்லது இணைப்புக்குறிகளுடன் 2–100 எழுத்துகள் கொண்ட பெயரை உள்ளிடவும்.",
+    ],
+  "Choose a valid birth date from 1900 to today.": [
+    "1900 සිට අද දක්වා වලංගු උපන් දිනයක් තෝරන්න.",
+    "1900 முதல் இன்று வரையிலான செல்லுபடியான பிறந்த தேதியைத் தேர்ந்தெடுக்கவும்.",
+  ],
+  "Select your gender.": [
+    "ඔබේ ස්ත්‍රී පුරුෂ භාවය තෝරන්න.",
+    "உங்கள் பாலினத்தைத் தேர்ந்தெடுக்கவும்.",
+  ],
+  "Enter a home address of 5–300 characters.": [
+    "අක්ෂර 5–300ක නිවසේ ලිපිනයක් ඇතුළත් කරන්න.",
+    "5–300 எழுத்துகள் கொண்ட வீட்டு முகவரியை உள்ளிடவும்.",
+  ],
+  "Select your district.": [
+    "ඔබේ දිස්ත්‍රික්කය තෝරන්න.",
+    "உங்கள் மாவட்டத்தைத் தேர்ந்தெடுக்கவும்.",
+  ],
+  "Use 3–30 letters, numbers or underscores for your username.": [
+    "පරිශීලක නාමය සඳහා අකුරු, අංක හෝ යටි ඉරි 3–30ක් භාවිත කරන්න.",
+    "பயனர்பெயருக்கு 3–30 எழுத்துகள், எண்கள் அல்லது அடிக்கோடுகளைப் பயன்படுத்தவும்.",
+  ],
+  "Paste the complete reset code from your email.": [
+    "විද්‍යුත් තැපෑලෙන් ලැබුණු සම්පූර්ණ මුරපද යළි සැකසීමේ කේතය ඇතුළත් කරන්න.",
+    "உங்கள் மின்னஞ்சலில் உள்ள முழுமையான மீட்டமைப்புக் குறியீட்டை ஒட்டவும்.",
+  ],
+  "Link your Google account": [
+    "ඔබේ Google ගිණුම සම්බන්ධ කරන්න",
+    "உங்கள் Google கணக்கை இணைக்கவும்",
+  ],
+  "An account already uses this email. Enter your CarePlus password once to connect Google sign-in.":
+    [
+      "මෙම ඊමේල් ලිපිනයට ගිණුමක් පවතී. Google සම්බන්ධ කිරීමට ඔබේ CarePlus මුරපදය ඇතුළත් කරන්න.",
+      "இந்த மின்னஞ்சலில் ஏற்கனவே கணக்கு உள்ளது. Google உள்நுழைவை இணைக்க உங்கள் CarePlus கடவுச்சொல்லை உள்ளிடவும்.",
+    ],
+  "Link and Sign In": ["සම්බන්ධ කර පිවිසෙන්න", "இணைத்து உள்நுழைக"],
+  "Google verified. Complete your patient details and choose a CarePlus password for account recovery.":
+    [
+      "Google ගිණුම තහවුරු කර ඇත. රෝගී තොරතුරු සම්පූර්ණ කර ගිණුම නැවත ලබාගැනීම සඳහා CarePlus මුරපදයක් තෝරන්න.",
+      "Google கணக்கு சரிபார்க்கப்பட்டது. நோயாளர் விவரங்களை நிறைவு செய்து கணக்கு மீட்புக்கான CarePlus கடவுச்சொல்லைத் தேர்க.",
+    ],
+  "Use another Google account": [
+    "වෙනත් Google ගිණුමක් භාවිත කරන්න",
+    "வேறு Google கணக்கைப் பயன்படுத்துக",
+  ],
+  "Google verification expired. Please continue with Google again.": [
+    "Google තහවුරු කිරීම කල් ඉකුත් වී ඇත. නැවත Google සමඟ ඉදිරියට යන්න.",
+    "Google சரிபார்ப்பு காலாவதியானது. மீண்டும் Google மூலம் தொடர்க.",
+  ],
+  "Use the email verified by Google.": [
+    "Google මගින් තහවුරු කළ ඊමේල් ලිපිනය භාවිත කරන්න.",
+    "Google சரிபார்த்த மின்னஞ்சலைப் பயன்படுத்தவும்.",
+  ],
+  "Google sign-in requires the CarePlus development build or APK. It is not available in Expo Go.":
+    [
+      "Google පිවිසුමට CarePlus development build හෝ APK අවශ්‍යයි. Expo Go තුළ එය ලබාගත නොහැක.",
+      "Google உள்நுழைவிற்கு CarePlus development build அல்லது APK தேவை. Expo Go இல் கிடைக்காது.",
+    ],
+  "Google could not be loaded. Check your connection and try again.": [
+    "Google පූරණය කළ නොහැක. සම්බන්ධතාව පරීක්ෂා කර නැවත උත්සාහ කරන්න.",
+    "Google ஐ ஏற்ற முடியவில்லை. இணைப்பைச் சரிபார்த்து மீண்டும் முயல்க.",
+  ],
+  "Google sign-in could not be loaded.": [
+    "Google පිවිසුම පූරණය කළ නොහැක.",
+    "Google உள்நுழைவை ஏற்ற முடியவில்லை.",
+  ],
+  "Update Google Play Services to use Google sign-in.": [
+    "Google පිවිසුම භාවිතයට Google Play Services යාවත්කාලීන කරන්න.",
+    "Google உள்நுழைவிற்கு Google Play Services ஐ புதுப்பிக்கவும்.",
+  ],
+  "This patient account is linked to a different Google account. Sign in with your CarePlus password.":
+    [
+      "මෙම රෝගී ගිණුම වෙනත් Google ගිණුමකට සම්බන්ධයි. CarePlus මුරපදයෙන් පිවිසෙන්න.",
+      "இந்த நோயாளர் கணக்கு வேறு Google கணக்குடன் இணைக்கப்பட்டுள்ளது. CarePlus கடவுச்சொல்லுடன் உள்நுழைக.",
+    ],
+  "Account changed. Please sign in again.": [
+    "ගිණුම වෙනස් වී ඇත. නැවත පිවිසෙන්න.",
+    "கணக்கு மாற்றப்பட்டது. மீண்டும் உள்நுழைக.",
+  ],
   "Show password": ["මුරපදය පෙන්වන්න", "கடவுச்சொல்லைக் காட்டு"],
   "Hide password": ["මුරපදය සඟවන්න", "கடவுச்சொல்லை மறை"],
   "Please check the entered details.": [
@@ -68,10 +198,7 @@ export const translations: Record<string, readonly [string, string]> = {
     "விரைவான சேவை. நலமான சமூகம்.",
   ],
   "Email or Phone": ["ඊමේල් හෝ දුරකථන අංකය", "மின்னஞ்சல் அல்லது தொலைபேசி"],
-  "Enter Email or Phone": [
-    "ඊමේල් හෝ දුරකථන අංකය ඇතුළත් කරන්න",
-    "மின்னஞ்சல் அல்லது தொலைபேசியை உள்ளிடவும்",
-  ],
+  "Enter Email or Phone": ["ඊමේල් / දුරකථන අංකය", "மின்னஞ்சல் / தொலைபேசி"],
   Password: ["මුරපදය", "கடவுச்சொல்"],
   "Remember me": ["මාව මතක තබාගන්න", "என்னை நினைவில் கொள்க"],
   "Forgot Password?": ["මුරපදය අමතකද?", "கடவுச்சொல் மறந்துவிட்டதா?"],
