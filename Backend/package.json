@@ -9,6 +9,8 @@
     "start": "node dist/server.js",
     "seed": "tsx src/patient/booking/seed.ts",
     "db:check": "node scripts/check-database.mjs",
+    "email:check": "tsx scripts/check-email.ts",
+    "email:welcome": "tsx scripts/send-welcome-email.ts",
     "test": "tsx --test tests/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
