@@ -32,7 +32,9 @@ export default function GoogleSignInButton({
     setBusy(true);
     try {
       // Keep the module unloaded in Expo Go, where its native implementation is absent.
+      // @ts-ignore
       const { GoogleSignin, isSuccessResponse, isErrorWithCode, statusCodes } =
+        // @ts-ignore
         await import("@react-native-google-signin/google-signin");
       try {
         GoogleSignin.configure({
@@ -52,7 +54,7 @@ export default function GoogleSignInButton({
             "Google did not return an identity token. Check the OAuth configuration.",
           );
         await onCredential(response.data.idToken);
-      } catch (error) {
+      } catch (error: any) {
         if (isErrorWithCode(error)) {
           if (error.code === statusCodes.SIGN_IN_CANCELLED) return;
           if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE)

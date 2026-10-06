@@ -194,29 +194,49 @@ export default function HomeScreen() {
         )}
       </View>
       <View style={[s.row, { marginTop: 15 }]}>
-        {["Your Queue", "Estimated Waiting Time"].map((label) => (
-          <View
-            key={label}
-            style={[s.card, { flex: 1, padding: 14, alignItems: "center" }]}
+        <Pressable
+          onPress={() => router.push("/patient/queue")}
+          style={[s.card, { flex: 1, padding: 14, alignItems: "center" }]}
+        >
+          <Text style={{ color: C.muted, fontSize: 11, fontWeight: "600" }}>
+            Your Queue
+          </Text>
+          <Text
+            style={{
+              color: C.navy,
+              fontSize: 26,
+              fontWeight: "700",
+              marginVertical: 7,
+            }}
           >
-            <Text style={{ color: C.muted, fontSize: 11, fontWeight: "600" }}>
-              {label}
-            </Text>
-            <Text
-              style={{
-                color: C.navy,
-                fontSize: 28,
-                fontWeight: "700",
-                marginVertical: 7,
-              }}
-            >
-              --
-            </Text>
-            <Text style={{ color: C.blue, fontSize: 10 }}>
-              Not available yet
-            </Text>
-          </View>
-        ))}
+            A-019
+          </Text>
+          <Text style={{ color: "#00a884", fontSize: 11, fontWeight: "600" }}>
+            5 ahead • Live
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => router.push("/patient/queue-details")}
+          style={[s.card, { flex: 1, padding: 14, alignItems: "center" }]}
+        >
+          <Text style={{ color: C.muted, fontSize: 11, fontWeight: "600" }}>
+            Estimated Waiting Time
+          </Text>
+          <Text
+            style={{
+              color: C.navy,
+              fontSize: 26,
+              fontWeight: "700",
+              marginVertical: 7,
+            }}
+          >
+            25 min
+          </Text>
+          <Text style={{ color: C.blue, fontSize: 11, fontWeight: "600" }}>
+            Updated 9:41 AM
+          </Text>
+        </Pressable>
       </View>
       <Text
         style={[s.title, { fontSize: 18, marginTop: 23, marginBottom: 12 }]}
@@ -235,7 +255,7 @@ export default function HomeScreen() {
             {
               title: "Appointment\nHistory",
               icon: "id",
-              path: "/patient/appointments",
+              path: "/patient/appointment-history",
             },
             {
               title: "Notifications",

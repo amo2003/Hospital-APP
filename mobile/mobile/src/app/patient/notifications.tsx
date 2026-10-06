@@ -1,1 +1,1 @@
-export { NotificationsScreen as default } from "@/features/patient/shared/IntegrationScreen";
+export { PatientNotificationsScreen as default } from '@/features/queue-notification';
