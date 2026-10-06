@@ -18,6 +18,9 @@ import {
   Hospital,
 } from "../src/patient/booking/booking.models.js";
 import { validateBookingDate } from "../src/patient/booking/booking.service.js";
+import { mailDelivery } from "../src/patient/notifications/mail.service.js";
+import { deliverNextWelcomeEmail } from "../src/patient/notifications/welcome-email.worker.js";
+import { welcomeEmail } from "../src/patient/notifications/welcome-email.js";
 let db: MongoMemoryReplSet;
 let token = "";
 let otherToken = "";
@@ -462,4 +465,208 @@ test("account deletion requires a password, removes appointments and revokes acc
     .post("/api/patient/auth/login")
     .send({ identifier: person.email, password: "ChangedPassword123!" })
     .expect(401);
+});
+
+test("registration queues welcome email atomically; delivery is private and claimed once", async () => {
+  // All mail is intercepted; these tests never send to any real recipient.
+  await Patient.updateMany({}, { $unset: { welcomeEmail: 1 } });
+  const keys = [
+    "SMTP_HOST",
+    "SMTP_PORT",
+    "SMTP_USER",
+    "SMTP_PASSWORD",
+    "SMTP_FROM",
+  ];
+  const saved = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+  const sent: any[] = [];
+  const delivery = mock.method(mailDelivery, "send", async (message) => {
+    sent.push(message);
+  });
+  const data = {
+    ...person,
+    email: "welcome@example.com",
+    nic: "199812340001",
+    phone: "0771234001",
+    username: "welcome_patient",
+  };
+  try {
+    delete process.env.SMTP_HOST;
+    const result = await request(app)
+      .post("/api/patient/auth/register")
+      .send(data)
+      .expect(201);
+    assert.equal(result.body.patient.welcomeEmail, undefined);
+    const pending = await Patient.findById(result.body.patient.id).select(
+      "+welcomeEmail",
+    );
+    assert.equal(pending!.welcomeEmail!.status, "pending");
+    assert.equal(pending!.welcomeEmail!.attempts, 0);
+    assert.equal(await deliverNextWelcomeEmail(), false);
+    assert.equal(sent.length, 0);
+    await request(app)
+      .post("/api/patient/auth/register")
+      .send(data)
+      .expect(409);
+    assert.equal(
+      await Patient.countDocuments({ "welcomeEmail.status": "pending" }),
+      1,
+    );
+    Object.assign(process.env, {
+      SMTP_HOST: "smtp.test",
+      SMTP_PORT: "587",
+      SMTP_USER: "test",
+      SMTP_PASSWORD: "test-only",
+      SMTP_FROM: "CarePlus <sender@careplus.test>",
+    });
+    const results = await Promise.all([
+      deliverNextWelcomeEmail(),
+      deliverNextWelcomeEmail(),
+    ]);
+    assert.deepEqual(results.sort(), [false, true]);
+    assert.equal(sent.length, 1);
+    assert.equal(sent[0].to.address, data.email);
+    assert.ok(sent[0].text.includes(result.body.patient.patientId));
+    assert.ok(sent[0].text.includes(data.fullName));
+    assert.ok(sent[0].text.includes(data.username));
+    assert.ok(sent[0].html.includes("Book Appointment"));
+    for (const privateValue of [
+      data.password,
+      data.nic,
+      data.dateOfBirth,
+      data.address,
+      data.phone,
+    ]) {
+      assert.equal(sent[0].text.includes(privateValue), false);
+      assert.equal(sent[0].html.includes(privateValue), false);
+    }
+    const delivered = await Patient.findById(result.body.patient.id).select(
+      "+welcomeEmail",
+    );
+    assert.equal(delivered!.welcomeEmail!.status, "sent");
+    assert.ok(delivered!.welcomeEmail!.sentAt);
+    assert.equal(await deliverNextWelcomeEmail(), false);
+    await Patient.deleteOne({ _id: result.body.patient.id });
+  } finally {
+    delivery.mock.restore();
+    for (const key of keys) {
+      if (saved[key] === undefined) delete process.env[key];
+      else process.env[key] = saved[key];
+    }
+  }
+});
+
+test("welcome delivery retries, recovers expired claims, and stops after five failures", async () => {
+  const keys = ["SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD", "SMTP_FROM"];
+  const saved = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+  Object.assign(process.env, {
+    SMTP_HOST: "smtp.test",
+    SMTP_USER: "test",
+    SMTP_PASSWORD: "test-only",
+    SMTP_FROM: "sender@careplus.test",
+  });
+  const delivery = mock.method(mailDelivery, "send", async () => {
+    throw new Error("SMTP unavailable");
+  });
+  const warning = mock.method(console, "warn", () => {});
+  try {
+    const result = await request(app)
+      .post("/api/patient/auth/register")
+      .send({
+        ...person,
+        email: "retry@example.com",
+        nic: "199812340002",
+        phone: "0771234002",
+        username: "retry_patient",
+      })
+      .expect(201);
+    const id = result.body.patient.id;
+    const now = new Date();
+    assert.equal(await deliverNextWelcomeEmail(now), true);
+    const retry = await Patient.findById(id).select("+welcomeEmail");
+    assert.equal(retry!.welcomeEmail!.status, "pending");
+    assert.equal(retry!.welcomeEmail!.attempts, 1);
+    assert.equal(await deliverNextWelcomeEmail(now), false);
+    // Simulate a worker crash while holding a claim; a new worker may resume it.
+    await Patient.updateOne(
+      { _id: id },
+      {
+        $set: {
+          "welcomeEmail.status": "sending",
+          "welcomeEmail.claimId": "crashed",
+          "welcomeEmail.lockedUntil": new Date(now.getTime() - 1000),
+        },
+      },
+    );
+    delivery.mock.mockImplementation(async () => {});
+    assert.equal(await deliverNextWelcomeEmail(now), true);
+    assert.equal(
+      (await Patient.findById(id).select("+welcomeEmail"))!.welcomeEmail!
+        .status,
+      "sent",
+    );
+    await Patient.updateOne(
+      { _id: id },
+      {
+        $set: {
+          "welcomeEmail.status": "pending",
+          "welcomeEmail.attempts": 0,
+          "welcomeEmail.nextAttemptAt": now,
+        },
+      },
+    );
+    delivery.mock.mockImplementation(async () => {
+      throw new Error("SMTP unavailable");
+    });
+    for (let attempt = 0; attempt < 5; attempt++) {
+      assert.equal(
+        await deliverNextWelcomeEmail(
+          new Date(now.getTime() + attempt * 20 * 60_000),
+        ),
+        true,
+      );
+    }
+    const failed = await Patient.findById(id).select("+welcomeEmail");
+    assert.equal(failed!.welcomeEmail!.status, "failed");
+    assert.equal(failed!.welcomeEmail!.attempts, 5);
+    assert.equal(
+      await deliverNextWelcomeEmail(new Date(now.getTime() + 24 * 60 * 60_000)),
+      false,
+    );
+    assert.ok(await Patient.findById(id)); // Mail failure does not delete/block the account.
+    await Patient.deleteOne({ _id: id });
+  } finally {
+    delivery.mock.restore();
+    warning.mock.restore();
+    for (const key of keys) {
+      if (saved[key] === undefined) delete process.env[key];
+      else process.env[key] = saved[key];
+    }
+  }
+});
+
+test("welcome email escapes dynamic HTML and only uses a configured HTTPS app link", () => {
+  const previous = process.env.PATIENT_APP_URL;
+  try {
+    process.env.PATIENT_APP_URL = "javascript:alert(1)";
+    const recipient = {
+      patientId: "PT-TEST",
+      fullName: '<img src=x onerror="alert(1)">',
+      username: "patient",
+      email: "patient@example.com",
+      phone: "+94771234567",
+    };
+    const message = welcomeEmail(recipient);
+    assert.ok(message.html.includes("&lt;img"));
+    assert.equal(message.html.includes("<img"), false);
+    assert.equal(message.html.includes("javascript:"), false);
+    process.env.PATIENT_APP_URL = "https://careplus.test/login";
+    assert.ok(
+      welcomeEmail(recipient).html.includes(
+        'href="https://careplus.test/login"',
+      ),
+    );
+  } finally {
+    if (previous === undefined) delete process.env.PATIENT_APP_URL;
+    else process.env.PATIENT_APP_URL = previous;
+  }
 });
