@@ -17,6 +17,7 @@ const schema = new Schema(
     district: { type: String, required: true },
     username: { type: String, required: true, unique: true },
     passwordHash: { type: String, required: true, select: false },
+    googleSubject: { type: String, unique: true, sparse: true, select: false },
     tokenVersion: { type: Number, default: 0 },
     consentAt: { type: Date, required: true },
     resetHash: { type: String, select: false },
