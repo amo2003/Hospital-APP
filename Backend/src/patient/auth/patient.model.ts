@@ -22,9 +22,28 @@ const schema = new Schema(
     consentAt: { type: Date, required: true },
     resetHash: { type: String, select: false },
     resetExpires: { type: Date, select: false },
+    welcomeEmail: {
+      type: new Schema(
+        {
+          status: {
+            type: String,
+            enum: ["pending", "sending", "sent", "failed"],
+            required: true,
+          },
+          attempts: { type: Number, default: 0 },
+          nextAttemptAt: { type: Date, default: Date.now },
+          lockedUntil: Date,
+          claimId: String,
+          sentAt: Date,
+        },
+        { _id: false },
+      ),
+      select: false,
+    },
   },
   { timestamps: true },
 );
+schema.index({ "welcomeEmail.status": 1, "welcomeEmail.nextAttemptAt": 1 });
 export const Patient = mongoose.model("Patient", schema);
 export function publicPatient(patient: any) {
   const {

@@ -2,7 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { createHash, randomBytes } from "node:crypto";
-import nodemailer from "nodemailer";
+import { mailConfigured, mailDelivery } from "../notifications/mail.service.js";
 import {
   googleProof,
   readGoogleProof,
@@ -55,6 +55,7 @@ authRoutes.post("/register", async (req, res) => {
     ...(identity ? { googleSubject: identity.sub } : {}),
     passwordHash: await bcrypt.hash(password, 12),
     consentAt: new Date(),
+    welcomeEmail: { status: "pending", attempts: 0, nextAttemptAt: new Date() },
   });
   res
     .status(201)
@@ -152,11 +153,7 @@ authRoutes.post("/google/link", async (req, res) => {
 });
 authRoutes.post("/forgot-password", async (req, res) => {
   const { email } = z.object({ email: emailSchema }).parse(req.body);
-  if (
-    !process.env.SMTP_HOST ||
-    !process.env.SMTP_USER ||
-    !process.env.SMTP_PASSWORD
-  )
+  if (!mailConfigured())
     throw new ApiError(
       503,
       "Password reset email is not configured. Please contact the hospital.",
@@ -168,22 +165,11 @@ authRoutes.post("/forgot-password", async (req, res) => {
     patient.resetExpires = new Date(Date.now() + 15 * 60_000);
     await patient.save();
     try {
-      await nodemailer
-        .createTransport({
-          host: process.env.SMTP_HOST,
-          port: Number(process.env.SMTP_PORT || 587),
-          secure: process.env.SMTP_PORT === "465",
-          auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASSWORD,
-          },
-        })
-        .sendMail({
-          from: process.env.SMTP_FROM,
-          to: email,
-          subject: "Reset your CarePlus password",
-          text: `Your CarePlus reset code is:\n${code}\n\nPaste this code in the app within 15 minutes. If you did not request this, ignore this email.`,
-        });
+      await mailDelivery.send({
+        to: email,
+        subject: "Reset your CarePlus password",
+        text: `Your CarePlus reset code is:\n${code}\n\nPaste this code in the app within 15 minutes. If you did not request this, ignore this email.`,
+      });
     } catch {
       /* Keep registered addresses and reset credentials private. */
     }
