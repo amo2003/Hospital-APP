@@ -7,12 +7,14 @@ type DateFieldProps = {
   value: string;
   onChange: (value: string) => void;
   editable?: boolean;
+  error?: string;
 };
 export default function DateField({
   label,
   value,
   onChange,
   editable = true,
+  error,
 }: DateFieldProps) {
   const { language, t } = useLanguage();
   const now = new Date();
@@ -20,7 +22,13 @@ export default function DateField({
   return (
     <View style={{ marginBottom: 20 }}>
       <Text style={s.label}>{label}</Text>
-      <View style={[s.inputBox, !editable && { backgroundColor: "#eff5fa" }]}>
+      <View
+        style={[
+          s.inputBox,
+          !editable && { backgroundColor: "#eff5fa" },
+          !!error && { borderColor: "#d24c4c" },
+        ]}
+      >
         <Icon name="calendar" />
         <input
           type="date"
@@ -54,6 +62,11 @@ export default function DateField({
           }}
         />
       </View>
+      {!!error && (
+        <Text accessibilityRole="alert" style={s.error}>
+          {error}
+        </Text>
+      )}
     </View>
   );
 }
