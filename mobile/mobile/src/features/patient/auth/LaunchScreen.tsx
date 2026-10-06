@@ -155,7 +155,7 @@ export function StaffHandoffScreen() {
         OR
       </Text>
       <Button title="Nurse" arrow onPress={() => setRole("Nurse")} />
-      {role && (
+      {!!role && (
         <Text
           style={[
             s.body,
