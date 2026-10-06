@@ -1,3 +1,11 @@
+export type GoogleOnboarding = {
+  proofToken: string;
+  email: string;
+  name: string;
+};
+export type GoogleAuthResult =
+  | { status: "signed-in"; token: string; patient: Patient }
+  | (GoogleOnboarding & { status: "registration-required" | "link-required" });
 export type Patient = {
   id: string;
   patientId: string;

@@ -9,6 +9,7 @@ import type {
   Patient,
   Registration,
   Slot,
+  GoogleAuthResult,
 } from "./types";
 const configuredBase = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "");
 // Expo Go exposes the Metro host. Use it only for an unconfigured development build.
@@ -78,8 +79,13 @@ async function request<T>(
   }
 }
 export const api = {
-  register: (data: Registration) =>
-    request<{ patient: Patient }>("/auth/register", "POST", data, false),
+  register: (data: Registration & { googleRegistrationToken?: string }) =>
+    request<{ patient: Patient; token?: string }>(
+      "/auth/register",
+      "POST",
+      data,
+      false,
+    ),
   login: (identifier: string, password: string) =>
     request<{ token: string; patient: Patient }>(
       "/auth/login",
@@ -88,10 +94,12 @@ export const api = {
       false,
     ),
   google: (idToken: string) =>
+    request<GoogleAuthResult>("/auth/google", "POST", { idToken }, false),
+  linkGoogle: (proofToken: string, password: string) =>
     request<{ token: string; patient: Patient }>(
-      "/auth/google",
+      "/auth/google/link",
       "POST",
-      { idToken },
+      { proofToken, password },
       false,
     ),
   forgot: (email: string) =>

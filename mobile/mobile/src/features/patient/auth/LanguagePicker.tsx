@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useLanguage, type Language } from "../i18n/LanguageProvider";
 export function LanguagePicker() {

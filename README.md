@@ -77,7 +77,8 @@ Existing assets in `assets/images` supply the CarePlus logo, leaves, and hospita
 - Booking checks hospital/department/doctor relationships, doctor weekdays, future slots, and a 90-day booking window using Sri Lankan time. Database indexes prevent simultaneous reservations of the same doctor slot or two appointments for one patient at the same time.
 - Appointment history, cancellation, profile editing, logout, and password-confirmed account deletion are connected to the API. Deletion removes that patient's appointments in a transaction.
 - Password reset emails contain a 15-minute, single-use code; resetting the password invalidates existing sessions. Configure SMTP before using this feature.
-- Google sign-in verifies the provider's ID token on the backend. Register patient details with the same verified Google email first. Configure platform OAuth IDs and redirects before using it. Native OAuth needs a configured app build; do not expect it to work in an unconfigured Expo Go session. See [Expo authentication](https://docs.expo.dev/versions/v57.0.0/sdk/auth-session/).
+- Successful patient registration automatically queues a welcome email with account details and next steps. Delivery retries without blocking registration. See [patient email setup](docs/PATIENT_EMAIL_SETUP.md) for SMTP configuration and delivery status.
+- Google sign-in supports linked-account login, new patient registration, and password-confirmed linking of existing accounts. Android/iOS use native Google sign-in; web uses Google's official browser button. Follow [Google authentication setup](docs/GOOGLE_AUTH_SETUP.md) to configure client IDs, signing certificates, and a native development build/APK. Google sign-in does not run inside Expo Go.
 
 ## Team integration boundaries
 

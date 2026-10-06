@@ -2,6 +2,7 @@
 
 import { Image } from "react-native";
 import { assets } from "@/features/patient/shared/ui";
+import { BottomLeaves } from "@/features/patient/shared/BottomLeaves";
 export function TopLeftLeaves() {
   return (
     <Image
@@ -19,9 +20,7 @@ export function TopLeftLeaves() {
 }
 export function BottomRightLeaves() {
   return (
-    <Image
-      source={assets.bottom}
-      resizeMode="contain"
+    <BottomLeaves
       style={{
         position: "absolute",
         bottom: 0,

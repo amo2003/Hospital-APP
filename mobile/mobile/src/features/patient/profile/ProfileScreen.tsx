@@ -1,3 +1,4 @@
+import { filterName, filterNic } from "../auth/validation";
 import { Text } from "../i18n/LanguageProvider";
 import { useState } from "react";
 import { Modal, Pressable, View } from "react-native";
@@ -171,7 +172,7 @@ export default function ProfileScreen() {
             label="Full Name"
             value={data.fullName}
             editable={editing}
-            onChangeText={(v) => update("fullName", v)}
+            onChangeText={(v) => update("fullName", filterName(v))}
           />
           <DateField
             label="Date of Birth"
@@ -197,7 +198,7 @@ export default function ProfileScreen() {
             label="NIC / Passport No"
             value={data.nic}
             editable={editing}
-            onChangeText={(v) => update("nic", v)}
+            onChangeText={(v) => update("nic", filterNic(v))}
           />
           <Field
             label="Email"
