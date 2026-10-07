@@ -8,7 +8,8 @@ import {
 import { Text, useLanguage } from "../i18n/LanguageProvider";
 import { useState } from "react";
 import { Modal, Pressable, View } from "react-native";
-import { Redirect, router } from "expo-router";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
+import { LanguagePicker } from "../auth/LanguagePicker";
 import { Storage } from "@/utils/storage";
 import { api, messageOf } from "../shared/api";
 import { usePatient } from "../shared/session";
@@ -19,7 +20,6 @@ import {
   ErrorMessage,
   Field,
   Header,
-  Notice,
   Screen,
   Select,
   s,
@@ -29,6 +29,7 @@ import { districts, parseBirthDate } from "../auth/RegisterScreen";
 import DateField from "../shared/DateField";
 import ProfilePhotoPicker, { PatientAvatar } from "./ProfilePhotoPicker";
 import type { Patient } from "../shared/types";
+import MedicalSection from "./MedicalSection";
 export default function ProfileScreen() {
   const { patient } = usePatient();
   return patient ? (
@@ -39,9 +40,14 @@ export default function ProfileScreen() {
 }
 function PatientProfileScreen() {
   const { t } = useLanguage();
+  const { tab: requestedTab } = useLocalSearchParams<{ tab?: string }>();
   const { patient, setPatient, signOut } = usePatient();
   const [data, setData] = useState(patient!);
-  const [tab, setTab] = useState("Personal");
+  const tab =
+    requestedTab === "Settings" || requestedTab === "Medical"
+      ? requestedTab
+      : "Personal";
+  const setTab = (value: string) => router.setParams({ tab: value });
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -340,13 +346,21 @@ function PatientProfileScreen() {
           )}
         </>
       ) : tab === "Medical" ? (
-        <Notice>
-          Your medical records will be available when the hospital medical
-          records service is connected.
-        </Notice>
+        <MedicalSection
+          patient={patient!}
+          onBusyChange={setBusy}
+          onSaved={(result) => {
+            setPatient(result);
+            setData((old) => ({
+              ...old,
+              medicalDetails: result.medicalDetails,
+            }));
+          }}
+        />
       ) : (
         <View style={{ gap: 15 }}>
           <Text style={s.title}>Language</Text>
+          <LanguagePicker />
           <Button
             title="Reset Password"
             outline
