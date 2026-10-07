@@ -18,6 +18,7 @@ import {
 } from "../shared/ui";
 import { Icon, type IconName } from "../shared/icons";
 import { dateLabel, isUpcoming, timeLabel } from "./BookingScreen";
+import { PatientAvatar } from "../profile/ProfilePhotoPicker";
 export default function HomeScreen() {
   const { patient } = usePatient();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -111,7 +112,7 @@ export default function HomeScreen() {
             onPress={() => router.push("/patient/profile")}
             style={[s.iconTile, { width: 52, height: 52, borderRadius: 28 }]}
           >
-            <Icon name="user" size={26} />
+            <PatientAvatar uri={patient?.profileImage} size={52} />
           </Pressable>
         </View>
       </LinearGradient>

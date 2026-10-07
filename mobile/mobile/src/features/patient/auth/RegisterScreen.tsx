@@ -22,7 +22,6 @@ import {
   s,
 } from "../shared/ui";
 import { Icon } from "../shared/icons";
-import { LanguagePicker } from "./LanguagePicker";
 import DateField from "../shared/DateField";
 import {
   districts,
@@ -130,7 +129,7 @@ export default function RegisterScreen() {
     }
   };
   return (
-    <Screen footer={<LanguagePicker />}>
+    <Screen>
       {googleOnboarding && (
         <View
           style={[
@@ -414,7 +413,7 @@ export function AccountCreatedScreen() {
     username?: string;
   }>();
   return (
-    <Screen footer={<LanguagePicker />}>
+    <Screen>
       <Leaves small />
       <CheckHero
         title={"Account Created\nSuccessfully!"}
