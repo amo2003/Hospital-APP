@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { z } from "zod";
-import { Appointment, Doctor, Hospital, QueueEntry, QueueCounter } from "./booking.models.js";
+import { Appointment, Doctor, DoctorQueueCounter, Hospital, QueueEntry, QueueCounter } from "./booking.models.js";
 import { Patient } from "../auth/patient.model.js";
 import { ApiError } from "../shared/errors.js";
-import { slotIsFuture, validateBookingDate } from "./booking.service.js";
+import { OPD_SLOTS, localToday, slotIsFuture, validateBookingDate } from "./booking.service.js";
+import { allocateDoctorNumber, patientQueue } from "./patient-queue.js";
 export const bookingRoutes = Router();
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, "Invalid record ID.");
 bookingRoutes.get("/hospitals", async (_req, res) => {
@@ -36,7 +37,7 @@ bookingRoutes.get("/slots", async (req, res) => {
   );
   res.json(
     working
-      ? doctor.slots.map((time) => ({
+      ? OPD_SLOTS.map((time) => ({
           time,
           available:
             slotIsFuture(date, time) && !busy.some((a) => a.time === time),
@@ -45,12 +46,26 @@ bookingRoutes.get("/slots", async (req, res) => {
   );
 });
 bookingRoutes.get("/appointments", async (req, res) => {
+  const { scope } = z.object({ scope: z.enum(["today", "all"]).optional() }).parse(req.query);
   res.json(
-    await Appointment.find({ patientId: req.patient!._id })
+    await Appointment.find({ patientId: req.patient!._id, ...(scope === "today" ? { date: localToday() } : {}) })
       .populate("hospitalId", "name")
       .populate("doctorId", "name specialty")
       .sort({ date: -1, time: -1 }),
   );
+});
+bookingRoutes.get("/queue", async (req, res) => {
+  const { appointmentId } = z.object({ appointmentId: objectId.optional() }).parse(req.query);
+  const appointment = await Appointment.findOne({
+    patientId: req.patient!._id,
+    ...(appointmentId ? { _id: appointmentId } : { status: "confirmed", date: { $gte: localToday() } }),
+  }).sort({ date: 1, time: 1 });
+  if (!appointment) {
+    if (appointmentId) throw new ApiError(404, "Appointment not found.");
+    res.json(null);
+    return;
+  }
+  res.json(await patientQueue(appointment, req.patient!));
 });
 bookingRoutes.post("/appointments", async (req, res) => {
   const data = z
@@ -82,13 +97,14 @@ bookingRoutes.post("/appointments", async (req, res) => {
     !doctor.weekdays.includes(
       new Date(`${data.date}T12:00:00+05:30`).getUTCDay(),
     ) ||
-    !doctor.slots.includes(data.time) ||
+    !OPD_SLOTS.includes(data.time) ||
     !slotIsFuture(data.date, data.time)
   )
     throw new ApiError(
       400,
       "This appointment slot is unavailable. Please choose another.",
     );
+  await DoctorQueueCounter.updateOne({ _id: `${data.doctorId}:${data.date}` }, { $setOnInsert: { sequence: 0, revision: 0 } }, { upsert: true });
   const appointment = await Appointment.db.transaction(async (session) => {
     const patient = await Patient.findOneAndUpdate(
       { _id: req.patient!._id },
@@ -96,8 +112,9 @@ bookingRoutes.post("/appointments", async (req, res) => {
       { session },
     );
     if (!patient) throw new ApiError(401, "Please sign in again.");
+    const doctorQueueNumber = await allocateDoctorNumber(data.doctorId, data.date, session);
     const created = (
-      await Appointment.create([{ ...data, patientId: patient._id }], {
+      await Appointment.create([{ ...data, patientId: patient._id, doctorQueueNumber }], {
         session,
       })
     )[0];
