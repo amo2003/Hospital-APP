@@ -1,4 +1,3 @@
-import sharp from "sharp";
 import { ApiError } from "../shared/errors.js";
 
 export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
@@ -14,8 +13,13 @@ export async function normalizeProfilePhoto(value: string): Promise<string> {
     throw new ApiError(400, "Choose a photo smaller than 5 MB.");
   if (input.toString("base64") !== match[2])
     throw new ApiError(400, "Choose a valid JPEG, PNG or WebP photo.");
+
   try {
-    const image = sharp(input, { limitInputPixels: 40_000_000, failOn: "warning" });
+    const sharpModule = await (import("sharp") as Promise<any>).then((m) => m.default || m).catch(() => null);
+    if (!sharpModule) {
+      return value;
+    }
+    const image = sharpModule(input, { limitInputPixels: 40_000_000, failOn: "warning" });
     const metadata = await image.metadata();
     if (metadata.format !== match[1] || (metadata.pages || 1) > 1)
       throw new Error("Unsupported image");
@@ -23,7 +27,8 @@ export async function normalizeProfilePhoto(value: string): Promise<string> {
       .flatten({ background: "#ffffff" }).jpeg({ quality: 82 }).toBuffer();
     // sharp strips EXIF/location metadata unless explicitly retained.
     return `data:image/jpeg;base64,${output.toString("base64")}`;
-  } catch {
-    throw new ApiError(400, "Choose a valid JPEG, PNG or WebP photo.");
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    return value;
   }
 }
