@@ -137,7 +137,7 @@ export default function DoctorDashboardScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Notifications"
                 style={styles.headerIconBtn}
-                onPress={() => {}}
+                onPress={() => router.push("/doctor/notifications")}
               >
                 <Icon name="bell" color="#fff" size={21} />
                 {waitingCount > 0 && <View style={styles.notificationDot} />}
@@ -388,7 +388,7 @@ export default function DoctorDashboardScreen() {
         <Pressable
           accessibilityRole="button"
           style={styles.tabItem}
-          onPress={() => {}}
+          onPress={() => router.push("/doctor/notifications")}
         >
           <Icon name="bell" color={C.muted} size={20} />
           <Text style={styles.tabLabel}>Notifications</Text>

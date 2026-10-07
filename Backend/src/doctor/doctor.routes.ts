@@ -8,6 +8,7 @@ import { appointmentTimeHasPassed, resolveDoctorDecision } from "../patient/book
 import { Patient } from "../patient/auth/patient.model.js";
 import { ApiError } from "../patient/shared/errors.js";
 import { authenticateDoctor } from "./doctor.middleware.js";
+import { Notification } from "../patient/notifications/notification.model.js";
 
 export const doctorRoutes = Router();
 
@@ -174,6 +175,75 @@ const getTodayDate = () =>
   }).format(new Date());
 
 const getDoctorDecision = resolveDoctorDecision;
+
+doctorRoutes.get("/notifications", authenticateDoctor, async (req, res, next) => {
+  try {
+    const doctor = req.doctor!;
+    if (!doctor.doctorCatalogId) return res.json([]);
+    const todayDate = getTodayDate();
+    const recentCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const appointments = await Appointment.find({
+      doctorId: doctor.doctorCatalogId,
+      $or: [{ date: todayDate }, { updatedAt: { $gte: recentCutoff } }],
+    }).sort({ time: 1 });
+    const alerts: Array<{
+      id: string;
+      type: "checkin" | "queue" | "schedule";
+      title: string;
+      time: Date;
+      description: string;
+      iconType: "dot" | "queue" | "schedule";
+      status: string;
+    }> = [];
+    for (const appointment of appointments) {
+      const decision = getDoctorDecision(appointment);
+      if (decision === "pending") {
+        alerts.push({
+          id: `${appointment._id}-request`,
+          type: "checkin",
+          title: "Appointment Request",
+          time: appointment.updatedAt || appointment.createdAt,
+          description: `${appointment.appointmentId} is waiting for your confirmation.`,
+          iconType: "dot",
+          status: appointment.status,
+        });
+      } else if (decision === "accepted") {
+        alerts.push({
+          id: `${appointment._id}-approved`,
+          type: "checkin",
+          title: "Appointment Approved",
+          time: appointment.updatedAt || appointment.createdAt,
+          description: `${appointment.appointmentId} was approved for ${appointment.date} at ${appointment.time}.`,
+          iconType: "dot",
+          status: appointment.status,
+        });
+      } else if (appointment.status === "completed") {
+        alerts.push({
+          id: `${appointment._id}-completed`,
+          type: "queue",
+          title: "Consultation Completed",
+          time: appointment.updatedAt || appointment.createdAt,
+          description: `${appointment.appointmentId} was marked completed.`,
+          iconType: "queue",
+          status: appointment.status,
+        });
+      } else if (appointment.status === "cancelled" || decision === "rejected") {
+        alerts.push({
+          id: `${appointment._id}-cancelled`,
+          type: "schedule",
+          title: "Appointment Cancelled",
+          time: appointment.updatedAt || appointment.createdAt,
+          description: `${appointment.appointmentId} is no longer in the queue.`,
+          iconType: "schedule",
+          status: appointment.status,
+        });
+      }
+    }
+    res.json(alerts.sort((a, b) => b.time.getTime() - a.time.getTime()));
+  } catch (error) {
+    next(error);
+  }
+});
 
 // GET /api/doctor/dashboard
 // Returns real OPD summary stats, next patient, and today's schedule for authenticated doctor
@@ -468,6 +538,25 @@ doctorRoutes.patch(
       appointment.doctorDecision = decision;
       await appointment.save();
 
+      await Notification.updateOne(
+        {
+          patientId: appointment.patientId,
+          seedKey: `appointment:${appointment._id}:doctor-${decision}`,
+        },
+        {
+          $setOnInsert: {
+            type: "appointment",
+            title: decision === "accepted" ? "Appointment Confirmed" : "Appointment Declined",
+            description: decision === "accepted"
+              ? `Your appointment on ${appointment.date} at ${appointment.time} was confirmed by the doctor.`
+              : `Your appointment on ${appointment.date} at ${appointment.time} was declined by the doctor.`,
+            action: "appointment-reminder",
+            read: false,
+          },
+        },
+        { upsert: true },
+      );
+
       // If rejected, safely cancel any active queue entry
       if (decision === "rejected") {
         await QueueEntry.updateMany(
@@ -580,6 +669,27 @@ doctorRoutes.patch(
 
       appointment.status = status;
       await appointment.save();
+
+      if (status === "completed" || status === "cancelled") {
+        await Notification.updateOne(
+          {
+            patientId: appointment.patientId,
+            seedKey: `appointment:${appointment._id}:status-${status}`,
+          },
+          {
+            $setOnInsert: {
+              type: "queue",
+              title: status === "completed" ? "Appointment Completed" : "Appointment Cancelled",
+              description: status === "completed"
+                ? "Your doctor has completed the consultation."
+                : "Your appointment was cancelled and removed from the queue.",
+              action: "queue",
+              read: false,
+            },
+          },
+          { upsert: true },
+        );
+      }
 
       // Queue synchronization:
       if (status === "completed") {

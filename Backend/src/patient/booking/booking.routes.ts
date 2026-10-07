@@ -7,6 +7,7 @@ import { OPD_SLOTS, localToday, slotIsFuture, validateBookingDate, resolveDoctor
 import { allocateDoctorNumber, patientQueue } from "./patient-queue.js";
 import { PaymentSlip } from "../payments/payment.models.js";
 import { queueAppointmentEmail } from "../notifications/appointment-email.js";
+import { Notification } from "../notifications/notification.model.js";
 export const bookingRoutes = Router();
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, "Invalid record ID.");
 bookingRoutes.get("/hospitals", async (_req, res) => {
@@ -174,6 +175,15 @@ bookingRoutes.post("/appointments", async (req, res) => {
       date: data.date,
       sequence,
       token: `${prefix}-${String(sequence).padStart(3, "0")}`,
+    }], { session });
+    await Notification.create([{
+      patientId: patient._id,
+      seedKey: `appointment:${created._id}:booked`,
+      type: "appointment",
+      title: "Appointment Booked",
+      description: `${doctor.name} appointment booked for ${data.date} at ${data.time}. Waiting for doctor confirmation.`,
+      action: "appointment-reminder",
+      read: false,
     }], { session });
     await queueAppointmentEmail("booking", { id: created._id, patientId: patient._id, email: patient.email,
       name: patient.fullName, reference: created.appointmentId, doctor: doctor.name, hospital: hospital.name,

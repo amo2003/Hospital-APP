@@ -1,5 +1,5 @@
 import { Text, useLanguage } from "../i18n/LanguageProvider";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -16,9 +16,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { router, usePathname } from "expo-router";
+import { router, useFocusEffect, usePathname } from "expo-router";
 import Svg, { Path } from "react-native-svg";
 import { Icon, type IconName } from "./icons";
+import { api } from "./api";
 import { LanguagePicker } from "../auth/LanguagePicker";
 import { BottomLeaves } from "./BottomLeaves";
 export const C = {
@@ -537,6 +538,69 @@ export function Row({ label, value }: { label: string; value: string }) {
     </View>
   );
 }
+
+const notificationChangeListeners = new Set<() => void>();
+
+export function notifyNotificationChange() {
+  notificationChangeListeners.forEach((listener) => listener());
+}
+
+export function useUnreadNotificationCount() {
+  const [count, setCount] = useState(0);
+  const refresh = useCallback(() => {
+    api.notifications()
+      .then((items) => setCount(items.filter((item) => !item.read).length))
+      .catch(() => {});
+  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+      const timer = setInterval(refresh, 15000);
+      return () => clearInterval(timer);
+    }, [refresh]),
+  );
+  useEffect(() => {
+    notificationChangeListeners.add(refresh);
+    return () => {
+      notificationChangeListeners.delete(refresh);
+    };
+  }, [refresh]);
+  return count;
+}
+
+export function NotificationBell({ color, size = 21 }: { color?: string; size?: number }) {
+  const count = useUnreadNotificationCount();
+  return (
+    <View style={{ position: "relative", width: size + 14, height: size + 12, overflow: "visible", zIndex: 10 }}>
+      <Icon name="bell" color={color} size={size} />
+      {count > 0 && (
+        <View
+          style={{
+            position: "absolute",
+            top: -5,
+            right: -8,
+            minWidth: 17,
+            height: 17,
+            paddingHorizontal: 4,
+            borderRadius: 9,
+            backgroundColor: "#e53935",
+            borderWidth: 1.5,
+            borderColor: "#fff",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 20,
+            elevation: 5,
+          }}
+        >
+          <Text translate={false} style={{ color: "#fff", fontSize: 9, fontWeight: "800" }}>
+            {count > 99 ? "99+" : count}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 export function BottomTabs({
   active,
 }: {
@@ -567,7 +631,7 @@ export function BottomTabs({
             borderRadius: 10,
           }}
         >
-          <Icon name={tab.icon} size={21} />
+          {tab.key === "notifications" ? <NotificationBell size={21} /> : <Icon name={tab.icon} size={21} />}
           <Text style={{ fontSize: 9, fontWeight: "600", color: C.navy, textAlign: "center", paddingHorizontal: 3 }}>
             {tab.label}
           </Text>

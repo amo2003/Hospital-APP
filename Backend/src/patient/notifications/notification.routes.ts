@@ -24,3 +24,13 @@ notificationRoutes.patch("/:id/read", async (req, res) => {
   if (!notification) throw new ApiError(404, "Notification not found.");
   res.json(notification);
 });
+
+notificationRoutes.delete("/:id", async (req, res) => {
+  const id = objectId.parse(req.params.id);
+  const result = await Notification.deleteOne({
+    _id: id,
+    patientId: req.patient!._id,
+  });
+  if (!result.deletedCount) throw new ApiError(404, "Notification not found.");
+  res.status(204).send();
+});
