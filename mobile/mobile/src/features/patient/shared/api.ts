@@ -12,6 +12,7 @@ import type {
   GoogleAuthResult,
   PatientQueue,
 } from "./types";
+import type { PatientNotificationRecord } from "../../queue-notification/types";
 const configuredBase = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "");
 // Expo Go exposes the Metro host. Use it only for an unconfigured development build.
 const devHost =
@@ -137,6 +138,10 @@ export const api = {
     request<PatientQueue | null>(
       `/booking/queue${appointmentId ? `?appointmentId=${encodeURIComponent(appointmentId)}` : ""}`,
     ),
+  notifications: () =>
+    request<PatientNotificationRecord[]>("/notifications"),
+  markNotificationRead: (id: string) =>
+    request<PatientNotificationRecord>(`/notifications/${id}/read`, "PATCH"),
   book: (data: {
     hospitalId: string;
     department: string;

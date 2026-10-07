@@ -27,6 +27,16 @@ export interface PatientNotificationItem {
   iconType: 'dot' | 'reminder' | 'delay' | 'confirmed';
 }
 
+export interface PatientNotificationRecord {
+  _id: string;
+  type: PatientNotificationItem['type'];
+  title: string;
+  description: string;
+  action: 'queue' | 'appointment-reminder' | null;
+  read: boolean;
+  createdAt: string;
+}
+
 export interface AppointmentHistoryItem {
   id: string;
   department: string;

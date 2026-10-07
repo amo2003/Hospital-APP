@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import type { SendMailOptions } from "nodemailer";
 
 export function mailConfig() {
   const host =
@@ -84,7 +85,7 @@ export function mailErrorCode(error: unknown) {
 }
 
 export const mailDelivery = {
-  async send(message: nodemailer.SendMailOptions): Promise<void> {
+  async send(message: SendMailOptions): Promise<void> {
     const transport = createMailTransport();
     try {
       const result = await transport.sendMail({

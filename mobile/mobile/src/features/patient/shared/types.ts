@@ -67,6 +67,7 @@ export type PatientQueue = {
   serverTime: string;
   patientsAhead: number;
   nowServing: number | null;
+  estimatedWaitMinutes: number;
   entries: {
     queueNumber: number;
     isYou: boolean;

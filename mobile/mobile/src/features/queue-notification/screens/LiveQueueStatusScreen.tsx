@@ -1,6 +1,7 @@
 import { Text } from "../../patient/i18n/LanguageProvider";
-import React, { useState } from 'react';
+import React from 'react';
 import {
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -11,13 +12,17 @@ import { QueueHeader } from '../components/QueueHeader';
 import { QueueBottomWaves } from '../components/QueueBottomWaves';
 import { ScreenSwitcher } from '../components/ScreenSwitcher';
 import { BottomTabs } from '@/features/patient/shared/ui';
+import { Button } from '@/features/patient/shared/ui';
+import { usePatientQueue } from '@/features/patient/booking/usePatientQueue';
 
 export function LiveQueueStatusScreen() {
-  const [nowServing] = useState('A-014');
-  const [myToken] = useState('A-019');
-  const [patientsAhead] = useState(5);
-  const [estimatedWait] = useState('25 minutes');
-  const [lastUpdated] = useState('Updated 9:41 AM');
+  const { queue, loading, error, retry } = usePatientQueue();
+  const nowServing = queue?.nowServing ? `Q-${String(queue.nowServing).padStart(3, '0')}` : '--';
+  const myToken = queue ? `Q-${String(queue.queueNumber).padStart(3, '0')}` : '--';
+  const estimatedWait = queue ? `${queue.estimatedWaitMinutes} minutes` : '--';
+  const progressPercent = queue?.queueNumber
+    ? Math.min(100, Math.max(8, (queue.nowServing || 0) / queue.queueNumber * 100))
+    : 0;
 
   return (
     <View style={styles.container}>
@@ -31,10 +36,17 @@ export function LiveQueueStatusScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {loading && <ActivityIndicator color="#0c3564" />}
+        {!!error && <Text style={styles.errorText}>{error}</Text>}
+        {!!error && <Button title="Retry" outline onPress={retry} />}
+        {!loading && !error && !queue && (
+          <Text style={styles.emptyText}>You have no active appointments in a queue.</Text>
+        )}
+        {queue && <>
         {/* Doctor & Room Card */}
         <View style={styles.doctorCard}>
-          <Text style={styles.doctorEyebrow}>GENERAL OPD • DR. PRIYA SHARMA</Text>
-          <Text style={styles.doctorTitle}>Token {myToken} • Room 03</Text>
+          <Text style={styles.doctorEyebrow}>{queue.appointment.department} • {queue.appointment.doctorId?.name || 'Doctor'}</Text>
+          <Text style={styles.doctorTitle}>Token {myToken} • {queue.appointment.hospitalId?.name || 'CarePlus Hospital'}</Text>
         </View>
 
         {/* Twin Status Cards */}
@@ -50,7 +62,7 @@ export function LiveQueueStatusScreen() {
           <View style={styles.statusBox}>
             <Text style={styles.statusBoxLabel}>YOUR TOKEN</Text>
             <Text style={styles.statusBoxToken}>{myToken}</Text>
-            <Text style={styles.statusBoxSub}>{patientsAhead} patients ahead</Text>
+            <Text style={styles.statusBoxSub}>{queue.patientsAhead} patients ahead</Text>
           </View>
         </View>
 
@@ -59,7 +71,7 @@ export function LiveQueueStatusScreen() {
           <Text style={styles.cardSmallLabel}>ESTIMATED WAITING TIME</Text>
           <View style={styles.waitRow}>
             <Text style={styles.waitBigNumber}>{estimatedWait}</Text>
-            <Text style={styles.waitUpdated}>{lastUpdated}</Text>
+            <Text style={styles.waitUpdated}>Updated {new Date(queue.serverTime).toLocaleTimeString()}</Text>
           </View>
         </View>
 
@@ -67,7 +79,7 @@ export function LiveQueueStatusScreen() {
         <View style={styles.card}>
           <Text style={styles.progressHeader}>Queue Progress</Text>
           <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: '68%' }]} />
+            <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
           </View>
           <View style={styles.progressLabels}>
             <Text style={styles.progressLabelLeft}>{nowServing} <Text>now serving</Text></Text>
@@ -103,6 +115,7 @@ export function LiveQueueStatusScreen() {
         </TouchableOpacity>
 
         <Text style={styles.footerNotice}>Live position updates automatically.</Text>
+        </>}
       </ScrollView>
 
       {/* Curved Blue Waves & Bottom Tabs */}
@@ -306,5 +319,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
     textAlign: 'center',
     marginTop: 4,
+  },
+  emptyText: {
+    color: '#65809f',
+    fontSize: 13,
+    textAlign: 'center',
+    paddingVertical: 24,
+  },
+  errorText: {
+    color: '#b42318',
+    fontSize: 13,
+    textAlign: 'center',
+    marginVertical: 12,
   },
 });
