@@ -1,4 +1,4 @@
-import { Text } from "../patient/i18n/LanguageProvider";
+import { Text, useLanguage } from "../patient/i18n/LanguageProvider";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { router } from "expo-router";
@@ -8,7 +8,6 @@ import { nurseApi, nurseMessageOf } from "./api";
 import { Button, C, ErrorMessage, Field, Screen, Select, s } from "../patient/shared/ui";
 import { districts } from "../patient/auth/RegisterScreen";
 import { Icon } from "../patient/shared/icons";
-import { LanguagePicker } from "../patient/auth/LanguagePicker";
 
 const departments = ["General OPD", "General Medicine", "Cardiology", "Dermatology", "Paediatrics", "Emergency", "Surgical Ward"];
 const toIsoDate = (value: string) => {
@@ -19,6 +18,7 @@ const toIsoDate = (value: string) => {
 };
 
 export default function NurseRegistrationScreen() {
+  const { t } = useLanguage();
   const [step, setStep] = useState(0);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -57,23 +57,23 @@ export default function NurseRegistrationScreen() {
   }
 
   return (
-    <Screen footer={<LanguagePicker />}>
+    <Screen>
       <LinearGradient colors={["#07345e", "#102e57"]} style={{ marginHorizontal: -24, marginTop: -25, marginBottom: 19, paddingHorizontal: 24, paddingTop: 55, paddingBottom: 30, borderBottomLeftRadius: 43, borderBottomRightRadius: 43 }}>
         <View style={[s.row, { justifyContent: "space-between", marginBottom: 13 }]}>
-          <Pressable accessibilityLabel="Back" onPress={() => step ? setStep(step - 1) : router.replace("/nurse/login")} style={{ width: 36, height: 36, borderRadius: 19, backgroundColor: "#ffffff25", alignItems: "center", justifyContent: "center" }}><Icon name="back" size={19} color="#fff" /></Pressable>
+          <Pressable accessibilityLabel={t("Back")} onPress={() => step ? setStep(step - 1) : router.replace("/nurse/login")} style={{ width: 36, height: 36, borderRadius: 19, backgroundColor: "#ffffff25", alignItems: "center", justifyContent: "center" }}><Icon name="back" size={19} color="#fff" /></Pressable>
           <View style={{ flex: 1, alignItems: "center", marginRight: 30 }}>
-            <Text style={{ color: "#fff", fontSize: 17, fontWeight: "700" }}>Create Nurse Account</Text>
-            <Text style={{ color: "#d5e6f5", fontSize: 11, marginTop: 4 }}>Step {step + 1} of 3 - { ["Personal Details", "Contact Details", "Account Setup"][step] }</Text>
+            <Text style={{ color: "#fff", fontSize: 17, fontWeight: "700", textAlign: "center" }}>Create Nurse Account</Text>
+            <Text style={{ color: "#d5e6f5", fontSize: 11, marginTop: 4, textAlign: "center" }}>Step {step + 1} of 3 - { ["Personal Details", "Contact Details", "Account Setup"][step] }</Text>
           </View>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: 4 }}>
           {["Personal", "Contact", "Account"].map((label, index) => <View key={label} style={{ flex: 1, alignItems: "center", flexDirection: "row", justifyContent: "center" }}>
             {index > 0 && <View style={{ position: "absolute", width: "100%", height: 1, backgroundColor: index <= step ? "#d9efff" : "#7694b1", left: "-50%" }} />}
-            <View style={{ zIndex: 1, alignItems: "center" }}>
+            <View style={{ zIndex: 1, alignItems: "center", flex: 1, paddingHorizontal: 3 }}>
               <View style={{ width: 30, height: 30, borderRadius: 16, backgroundColor: index <= step ? "#fff" : "#21496e", borderWidth: 1, borderColor: "#d8eafb", alignItems: "center", justifyContent: "center" }}>
                 {index < step ? <Icon name="check" size={17} /> : <Text style={{ color: index === step ? C.blue : "#d5e6f5", fontSize: 12, fontWeight: "700" }}>{index + 1}</Text>}
               </View>
-              <Text style={{ color: "#e0edf8", fontSize: 9, marginTop: 4 }}>{label}</Text>
+              <Text style={{ color: "#e0edf8", fontSize: 9, marginTop: 4, textAlign: "center" }}>{label}</Text>
             </View>
           </View>)}
         </View>
@@ -85,7 +85,7 @@ export default function NurseRegistrationScreen() {
           <Field label="Date of Birth" icon="calendar" placeholder="DD / MM / YYYY" value={data.dateOfBirth} onChangeText={(v) => update("dateOfBirth", v)} />
           <Select label="Department / Ward" icon="calendar" placeholder="Select department" value={data.department} options={departments.map((value) => ({ label: value, value }))} onChange={(v) => { update("department", v); update("ward", v); }} />
           <Text style={[s.label, { fontSize: 13, marginBottom: 7 }]}>Gender</Text>
-          <View style={[s.row, { justifyContent: "space-between", marginBottom: 8 }]}>
+          <View style={[s.row, { justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 8 }]}>
             {(["Female", "Male", "Other"] as const).map((gender) => <Pressable key={gender} accessibilityRole="radio" accessibilityState={{ checked: data.gender === gender }} onPress={() => update("gender", gender)} style={[s.row, { gap: 5, paddingVertical: 8 }]}>
               <View style={{ width: 20, height: 20, borderRadius: 11, borderWidth: 1, borderColor: C.blue, alignItems: "center", justifyContent: "center" }}>{data.gender === gender && <View style={{ width: 11, height: 11, borderRadius: 6, backgroundColor: C.blue }} />}</View>
               <Text style={{ color: C.navy, fontSize: 12 }}>{gender}</Text>
@@ -111,8 +111,8 @@ export default function NurseRegistrationScreen() {
           <View style={{ flex: 1 }}><Button title={step === 2 ? "Create Account" : "Next"} onPress={next} loading={busy} /></View>
         </View>
       </View>
-      {step > 0 && <Pressable style={s.centerLink} onPress={() => router.replace("/nurse/login")}><Text style={{ color: C.muted, fontSize: 11 }}>Already have an account? <Text style={s.link}>Login</Text></Text></Pressable>}
-      {step === 0 && <Pressable style={s.centerLink} onPress={() => router.replace("/nurse/login")}><Text style={{ color: C.muted, fontSize: 11 }}>Already have an account? <Text style={s.link}>Login</Text></Text></Pressable>}
+      {step > 0 && <Pressable style={s.centerLink} onPress={() => router.replace("/nurse/login")}><Text style={{ color: C.muted, fontSize: 11, textAlign: "center" }}>Already have an account? <Text style={s.link}>Login</Text></Text></Pressable>}
+      {step === 0 && <Pressable style={s.centerLink} onPress={() => router.replace("/nurse/login")}><Text style={{ color: C.muted, fontSize: 11, textAlign: "center" }}>Already have an account? <Text style={s.link}>Login</Text></Text></Pressable>}
     </Screen>
   );
 }
