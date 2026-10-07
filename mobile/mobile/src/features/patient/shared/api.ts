@@ -45,15 +45,16 @@ async function request<T>(
     );
   const token = authenticated ? await Storage.getUserToken() : null;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
+  const multipart = body instanceof FormData;
+  const timeout = setTimeout(() => controller.abort(), multipart ? 60000 : 15000);
   try {
     const response = await fetch(`${base}/patient${path}`, {
       method,
       headers: {
-        "Content-Type": "application/json",
+        ...(multipart ? {} : { "Content-Type": "application/json" }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : multipart ? body : JSON.stringify(body),
       signal: controller.signal,
     });
     const data =
@@ -142,7 +143,11 @@ export const api = {
     doctorId: string;
     date: string;
     time: string;
+    expectedFeeLkr?: number;
+    slipId?: string;
   }) => request<Appointment>("/booking/appointments", "POST", data),
+  uploadPaymentSlip: (doctorId: string, form: FormData) =>
+    request<{ id: string; filename: string; uploadedAt: string }>(`/payments/slips/${doctorId}`, "POST", form),
   cancel: (id: string) =>
     request<Appointment>(`/booking/appointments/${id}/cancel`, "PATCH"),
 };

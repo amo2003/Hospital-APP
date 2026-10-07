@@ -443,7 +443,7 @@ export function Steps({
           <Text
             style={{
               color: C.navy,
-              fontSize: labels.length === 4 ? 9 : 11,
+                fontSize: labels.length >= 4 ? 9 : 11,
               textAlign: "center",
               fontWeight: "600",
               marginTop: 5,
