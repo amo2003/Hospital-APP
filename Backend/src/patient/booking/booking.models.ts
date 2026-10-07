@@ -20,7 +20,10 @@ export const Doctor = mongoose.model(
       required: true,
     },
     weekdays: [Number],
-    slots: { type: [String], default: () => [...OPD_SLOTS] },
+    slots: {
+      type: [String],
+      default: () => ["09:00", "10:00", "12:00", "16:00", "18:00"],
+    },
     active: { type: Boolean, default: true },
   }),
 );
@@ -46,6 +49,11 @@ const schema = new Schema(
       type: String,
       enum: ["confirmed", "cancelled", "completed"],
       default: "confirmed",
+    },
+    doctorDecision: {
+      type: String,
+      enum: ["pending", "accepted", "rejected"],
+      default: "pending",
     },
   },
   { timestamps: true },

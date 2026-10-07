@@ -5,7 +5,7 @@ import { nurseProfileSchema } from "./auth/validation.js";
 import { Appointment, QueueEntry, QueueCounter } from "../patient/booking/booking.models.js";
 import { Patient } from "../patient/auth/patient.model.js";
 import { ApiError } from "../patient/shared/errors.js";
-import { localToday } from "../patient/booking/booking.service.js";
+import { localToday, resolveDoctorDecision } from "../patient/booking/booking.service.js";
 
 export const nurseRoutes = Router();
 
@@ -144,6 +144,7 @@ nurseRoutes.get("/queue", async (req, res) => {
   filter.hospitalId = req.nurse!.hospitalId;
 
   let entries = await QueueEntry.find(filter)
+    .populate("appointmentId", "doctorDecision status")
     .populate("patientId", "patientId fullName gender")
     .populate("hospitalId", "name")
     .sort({ department: 1, sequence: 1 }).lean();
@@ -157,6 +158,7 @@ nurseRoutes.get("/queue", async (req, res) => {
       fallbackFilter.department = req.nurse!.accessDepartment;
     }
     entries = await QueueEntry.find(fallbackFilter)
+      .populate("appointmentId", "doctorDecision status")
       .populate("patientId", "patientId fullName gender")
       .populate("hospitalId", "name")
       .sort({ department: 1, sequence: 1 }).lean();
@@ -167,10 +169,20 @@ nurseRoutes.get("/queue", async (req, res) => {
       date: queueDate,
       status: { $ne: "cancelled" },
     })
+      .populate("appointmentId", "doctorDecision status")
       .populate("patientId", "patientId fullName gender")
       .populate("hospitalId", "name")
       .sort({ department: 1, sequence: 1 }).lean();
   }
+
+  // Active queue must exclude appointments that are pending doctor approval or rejected
+  entries = (entries as any[]).filter((entry) => {
+    const apt = entry.appointmentId;
+    if (!apt) return true;
+    const decision = resolveDoctorDecision(apt);
+    if (decision === "pending" || decision === "rejected") return false;
+    return true;
+  });
 
   const waitingPositions = new Map<string, number>();
   let position = 0;
@@ -215,34 +227,52 @@ nurseRoutes.post("/queue/call-next", async (req, res) => {
     throw new ApiError(409, "A patient is already being served. Complete the current consultation first.");
   }
 
-  let nextWaiting = await QueueEntry.findOneAndUpdate(
-    {
-      hospitalId: req.nurse!.hospitalId,
-      department: req.nurse!.accessDepartment,
+  const candidates = await QueueEntry.find({
+    hospitalId: req.nurse!.hospitalId,
+    department: req.nurse!.accessDepartment,
+    date: queueDate,
+    status: "waiting",
+  })
+    .sort({ sequence: 1 })
+    .populate("appointmentId", "doctorDecision status");
+
+  let eligible = candidates.find((e: any) => {
+    const apt = e.appointmentId;
+    if (!apt) return true;
+    const decision = resolveDoctorDecision(apt);
+    return decision !== "pending" && decision !== "rejected";
+  });
+
+  if (!eligible) {
+    const fallbackCandidates = await QueueEntry.find({
       date: queueDate,
       status: "waiting",
-    },
+    })
+      .sort({ sequence: 1 })
+      .populate("appointmentId", "doctorDecision status");
+
+    eligible = fallbackCandidates.find((e: any) => {
+      const apt = e.appointmentId;
+      if (!apt) return true;
+      const decision = resolveDoctorDecision(apt);
+      return decision !== "pending" && decision !== "rejected";
+    });
+  }
+
+  if (!eligible) {
+    throw new ApiError(404, "No waiting patients in the queue for today.");
+  }
+
+  const nextWaiting = await QueueEntry.findOneAndUpdate(
+    { _id: eligible._id, status: "waiting" },
     { $set: { status: "serving" } },
-    { sort: { sequence: 1 }, returnDocument: "after" },
+    { returnDocument: "after" },
   )
     .populate("patientId", "patientId fullName gender")
     .populate("hospitalId", "name");
 
   if (!nextWaiting) {
-    nextWaiting = await QueueEntry.findOneAndUpdate(
-      {
-        date: queueDate,
-        status: "waiting",
-      },
-      { $set: { status: "serving" } },
-      { sort: { sequence: 1 }, returnDocument: "after" },
-    )
-      .populate("patientId", "patientId fullName gender")
-      .populate("hospitalId", "name");
-  }
-
-  if (!nextWaiting) {
-    throw new ApiError(404, "No waiting patients in the queue for today.");
+    throw new ApiError(409, "The selected queue entry was already updated. Please try again.");
   }
 
   res.json({

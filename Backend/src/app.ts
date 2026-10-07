@@ -8,17 +8,25 @@ import { authenticate } from "./patient/auth/auth.middleware.js";
 import { profileRoutes } from "./patient/profile/profile.routes.js";
 import { bookingRoutes } from "./patient/booking/booking.routes.js";
 import { ApiError } from "./patient/shared/errors.js";
+import { doctorRoutes } from "./doctor/doctor.routes.js";
+import { adminRoutes } from "./admin/admin.routes.js";
 import { nurseAuthRoutes } from "./nurse/auth/auth.routes.js";
 import { authenticateNurse } from "./nurse/auth/auth.middleware.js";
 import { nurseRoutes } from "./nurse/nurse.routes.js";
 export const app = express();
 app.disable("x-powered-by");
 app.use(helmet());
+const configuredOrigins = (process.env.CORS_ORIGINS || "http://localhost:8081")
+  .split(",")
+  .map((s) => s.trim());
+const allowedOrigins = Array.from(
+  new Set([...configuredOrigins, "http://localhost:3001", "http://127.0.0.1:3001"]),
+);
+
 app.use(
   cors({
-    origin: (process.env.CORS_ORIGINS || "http://localhost:8081")
-      .split(",")
-      .map((s) => s.trim()),
+    origin: allowedOrigins,
+    credentials: true,
   }),
 );
 app.use(
@@ -47,6 +55,8 @@ app.use(
   authRoutes,
 );
 app.use("/api/patient/booking", authenticate, bookingRoutes);
+app.use("/api/doctor", doctorRoutes);
+app.use("/api/admin", adminRoutes);
 app.use(
   "/api/nurse/auth",
   rateLimit({

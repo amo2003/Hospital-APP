@@ -21,15 +21,16 @@ export default function NurseRegistrationSuccessScreen() {
         <Row label="Name" value={String(name)} />
         <Row label="Department" value={String(department)} />
         <Row label="Username" value={String(username)} />
-        <View style={[s.row, { justifyContent: "space-between", paddingTop: 9 }]}><Text style={[s.body, { fontSize: 12 }]}>Status</Text><Text style={{ color: "#168245", backgroundColor: "#e1f5e9", fontSize: 10, fontWeight: "700", paddingHorizontal: 11, paddingVertical: 5, borderRadius: 12 }}>Active</Text></View>
+        <View style={[s.row, { justifyContent: "space-between", paddingTop: 9 }]}><Text style={[s.body, { fontSize: 12 }]}>Status</Text><Text style={{ color: "#b45309", backgroundColor: "#fef3c7", fontSize: 10, fontWeight: "700", paddingHorizontal: 11, paddingVertical: 5, borderRadius: 12 }}>Pending Approval</Text></View>
       </View>
-      <Text style={[s.title, { fontSize: 16, marginBottom: 10 }]}>What can you do next?</Text>
-      {["Sign in to your account", "View your assigned queue", "Access and update patient records"].map((item) => <View key={item} style={[s.row, { gap: 10, marginVertical: 4 }]}><Icon name="check" size={17} /><Text style={{ color: C.navy, fontSize: 12, flex: 1 }}>{item}</Text></View>)}
+      <Text style={[s.title, { fontSize: 16, marginBottom: 10 }]}>What happens next?</Text>
+      {["Hospital administration reviews your registration", "Once approved, your account becomes active", "Sign in with your Staff ID to access your queue"].map((item) => <View key={item} style={[s.row, { gap: 10, marginVertical: 4 }]}><Icon name="check" size={17} /><Text style={{ color: C.navy, fontSize: 12, flex: 1 }}>{item}</Text></View>)}
+
       <View style={{ height: 17 }} />
       <Button title="Go to Login" arrow onPress={() => router.replace("/nurse/login")} />
       <View style={{ height: 10 }} />
       <Button title="Back to Home" outline onPress={() => router.replace("/what-you-need")} />
-      <Text style={{ textAlign: "center", color: C.muted, fontSize: 10, marginTop: 14 }}>Keep your Nurse ID safe for future sign-ins.</Text>
+      <Text style={{ textAlign: "center", color: C.muted, fontSize: 10, marginTop: 14 }}>Keep your Nurse ID safe. Login will be available once approved.</Text>
     </Screen>
   );
 }

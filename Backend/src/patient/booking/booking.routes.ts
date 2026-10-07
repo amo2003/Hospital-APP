@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Appointment, Doctor, DoctorQueueCounter, Hospital, QueueEntry, QueueCounter } from "./booking.models.js";
 import { Patient } from "../auth/patient.model.js";
 import { ApiError } from "../shared/errors.js";
+import { slotIsFuture, validateBookingDate, resolveDoctorDecision } from "./booking.service.js";
 import { OPD_SLOTS, localToday, slotIsFuture, validateBookingDate } from "./booking.service.js";
 import { allocateDoctorNumber, patientQueue } from "./patient-queue.js";
 export const bookingRoutes = Router();
@@ -15,9 +16,9 @@ bookingRoutes.get("/doctors", async (req, res) => {
     .object({ hospitalId: objectId, department: z.string().min(1).max(100) })
     .parse(req.query);
   res.json(
-    await Doctor.find({ hospitalId, specialty: department, active: true }).sort(
-      { name: 1 },
-    ),
+    await Doctor.find({ hospitalId, specialty: department, active: true })
+      .populate("hospitalId", "name")
+      .sort({ name: 1 }),
   );
 });
 bookingRoutes.get("/slots", async (req, res) => {
@@ -46,6 +47,20 @@ bookingRoutes.get("/slots", async (req, res) => {
   );
 });
 bookingRoutes.get("/appointments", async (req, res) => {
+  const appointments = await Appointment.find({ patientId: req.patient!._id })
+    .populate("hospitalId", "name")
+    .populate("doctorId", "name specialty")
+    .sort({ date: -1, time: -1 });
+
+  res.json(
+    appointments.map((apt) => {
+      const obj = apt.toObject();
+      return {
+        ...obj,
+        doctorDecision: resolveDoctorDecision(apt),
+      };
+    }),
+
   const { scope } = z.object({ scope: z.enum(["today", "all"]).optional() }).parse(req.query);
   res.json(
     await Appointment.find({ patientId: req.patient!._id, ...(scope === "today" ? { date: localToday() } : {}) })
@@ -114,6 +129,13 @@ bookingRoutes.post("/appointments", async (req, res) => {
     if (!patient) throw new ApiError(401, "Please sign in again.");
     const doctorQueueNumber = await allocateDoctorNumber(data.doctorId, data.date, session);
     const created = (
+
+      await Appointment.create(
+        [{ ...data, patientId: patient._id, doctorDecision: "pending" }],
+        {
+          session,
+        },
+      )
       await Appointment.create([{ ...data, patientId: patient._id, doctorQueueNumber }], {
         session,
       })

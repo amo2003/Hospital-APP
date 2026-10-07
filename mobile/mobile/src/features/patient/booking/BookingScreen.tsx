@@ -41,6 +41,7 @@ export const dateLabel = (date: string) =>
   });
 export const isUpcoming = (appointment: Appointment) =>
   appointment.status === "confirmed" &&
+  appointment.doctorDecision !== "rejected" &&
   new Date(`${appointment.date}T${appointment.time}:00+05:30`).getTime() >
     Date.now();
 export default function BookingScreen() {
@@ -327,7 +328,12 @@ export default function BookingScreen() {
                     {d.name}
                   </Text>
                   <Text style={[s.body, { fontSize: 11 }]}>{d.specialty}</Text>
-                  <Text style={{ color: C.muted, fontSize: 10 }}>
+                  <Text style={{ color: C.navy, fontSize: 11, fontWeight: "500", marginTop: 1 }}>
+                    {typeof d.hospitalId === "object" && d.hospitalId?.name
+                      ? d.hospitalId.name
+                      : d.hospitalName || hospital?.name || "Hospital not available"}
+                  </Text>
+                  <Text style={{ color: C.muted, fontSize: 10, marginTop: 2 }}>
                     {d.weekdays
                       .map(
                         (day) =>
@@ -563,7 +569,15 @@ export function AppointmentCard({ appointment }: { appointment: Appointment }) {
       <Row
         label="Status"
         value={
-          appointment.status[0].toUpperCase() + appointment.status.slice(1)
+          appointment.status === "cancelled"
+            ? "Cancelled"
+            : appointment.status === "completed"
+              ? "Completed"
+              : appointment.doctorDecision === "rejected"
+                ? "Rejected"
+                : appointment.doctorDecision === "pending"
+                  ? "Pending Doctor Approval"
+                  : "Confirmed"
         }
       />
     </View>

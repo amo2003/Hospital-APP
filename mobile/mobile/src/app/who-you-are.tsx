@@ -1,1 +1,1 @@
-export { StaffHandoffScreen as default } from "@/features/patient/auth/LaunchScreen";
+export { default } from "@/features/doctor/auth/WhoYouAreScreen";

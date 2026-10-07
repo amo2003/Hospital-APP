@@ -39,7 +39,8 @@ export type Doctor = {
   name: string;
   specialty: string;
   weekdays: number[];
-  hospitalId: string;
+  hospitalId: string | { _id: string; name: string };
+  hospitalName?: string;
 };
 export type Appointment = {
   _id: string;
@@ -51,6 +52,7 @@ export type Appointment = {
   time: string;
   doctorQueueNumber?: number;
   status: "confirmed" | "cancelled" | "completed";
+  doctorDecision?: "pending" | "accepted" | "rejected";
 };
 export type Slot = { time: string; available: boolean };
 export type PatientQueue = {
