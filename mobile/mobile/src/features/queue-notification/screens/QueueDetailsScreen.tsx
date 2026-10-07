@@ -11,8 +11,11 @@ import { QueueHeader } from '../components/QueueHeader';
 import { QueueBottomWaves } from '../components/QueueBottomWaves';
 import { ScreenSwitcher } from '../components/ScreenSwitcher';
 import { BottomTabs } from '@/features/patient/shared/ui';
+import { Button } from '@/features/patient/shared/ui';
+import { usePatientQueue } from '@/features/patient/booking/usePatientQueue';
 
 export function QueueDetailsScreen() {
+  const { queue, loading, error, retry } = usePatientQueue();
   return (
     <View style={styles.container}>
       <ScreenSwitcher currentScreenNumber={2} />
@@ -25,23 +28,30 @@ export function QueueDetailsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {loading && <Text style={styles.emptyText}>Loading queue details...</Text>}
+        {!!error && <Text style={styles.errorText}>{error}</Text>}
+        {!!error && <Button title="Retry" outline onPress={retry} />}
+        {!loading && !error && !queue && (
+          <Text style={styles.emptyText}>You have no active appointments in a queue.</Text>
+        )}
+        {queue && <>
         {/* Current Queue Header Card */}
         <View style={styles.sectionHeader}>
           <Text style={styles.currentQueueEyebrow}>CURRENT QUEUE</Text>
-          <Text style={styles.currentQueueTitle}>General OPD • Room 03</Text>
+          <Text style={styles.currentQueueTitle}>{queue.appointment.department} • {queue.appointment.doctorId?.name || 'Doctor'}</Text>
         </View>
 
         {/* Dual Stat Banner Card */}
         <View style={styles.bannerCard}>
           <View style={styles.bannerColumn}>
             <Text style={styles.bannerLabel}>YOUR POSITION</Text>
-            <Text style={styles.bannerValue}>5th</Text>
-            <Text style={styles.bannerSub}>Token A-019</Text>
+            <Text style={styles.bannerValue}>{queue.patientsAhead + 1}th</Text>
+            <Text style={styles.bannerSub}>Token Q-{String(queue.queueNumber).padStart(3, '0')}</Text>
           </View>
           <View style={styles.bannerDivider} />
           <View style={styles.bannerColumn}>
             <Text style={styles.bannerLabel}>ESTIMATED WAIT</Text>
-            <Text style={styles.bannerValue}>25 min</Text>
+            <Text style={styles.bannerValue}>{queue.estimatedWaitMinutes} min</Text>
             <Text style={styles.bannerSub}> </Text>
           </View>
         </View>
@@ -49,52 +59,18 @@ export function QueueDetailsScreen() {
         {/* Queue Timeline */}
         <Text style={styles.timelineSectionTitle}>Queue Timeline</Text>
         <View style={styles.timelineCard}>
-          {/* Node 1 */}
-          <View style={styles.timelineItem}>
-            <View style={styles.nodeColumn}>
-              <View style={[styles.circleDot, styles.circleSolid]} />
-              <View style={styles.timelineLine} />
+          {queue.entries.map((entry, index) => (
+            <View key={entry.queueNumber} style={[styles.timelineItem, index === queue.entries.length - 1 && { marginBottom: 0 }]}> 
+              <View style={styles.nodeColumn}>
+                <View style={[styles.circleDot, entry.isYou || entry.status === 'serving' ? styles.circleSolid : styles.circleHollow]} />
+                {index < queue.entries.length - 1 && <View style={styles.timelineLine} />}
+              </View>
+              <View style={styles.timelineContent}>
+                <Text style={styles.timelineNodeTitle}>Q-{String(entry.queueNumber).padStart(3, '0')}{entry.isYou ? ' — You' : ''}</Text>
+                <Text style={styles.timelineNodeSub}>{entry.status === 'serving' ? 'Now serving' : entry.isYou ? 'Your token' : entry.status === 'completed' ? 'Completed' : 'Waiting'}</Text>
+              </View>
             </View>
-            <View style={styles.timelineContent}>
-              <Text style={styles.timelineNodeTitle}>A-014</Text>
-              <Text style={styles.timelineNodeSub}>Now serving</Text>
-            </View>
-          </View>
-
-          {/* Node 2 */}
-          <View style={styles.timelineItem}>
-            <View style={styles.nodeColumn}>
-              <View style={[styles.circleDot, styles.circleHollow]} />
-              <View style={styles.timelineLine} />
-            </View>
-            <View style={styles.timelineContent}>
-              <Text style={styles.timelineNodeTitle}>A-015 — A-018</Text>
-              <Text style={styles.timelineNodeSub}>4 patients ahead</Text>
-            </View>
-          </View>
-
-          {/* Node 3 */}
-          <View style={styles.timelineItem}>
-            <View style={styles.nodeColumn}>
-              <View style={[styles.circleDot, styles.circleSolid]} />
-              <View style={styles.timelineLine} />
-            </View>
-            <View style={styles.timelineContent}>
-              <Text style={styles.timelineNodeTitle}>A-019</Text>
-              <Text style={styles.timelineNodeSub}>Your token</Text>
-            </View>
-          </View>
-
-          {/* Node 4 */}
-          <View style={[styles.timelineItem, { marginBottom: 0 }]}>
-            <View style={styles.nodeColumn}>
-              <View style={[styles.circleDot, styles.circleHollow]} />
-            </View>
-            <View style={styles.timelineContent}>
-              <Text style={styles.timelineNodeTitle}>Consultation</Text>
-              <Text style={styles.timelineNodeSub}>Proceed to Room 03 when called</Text>
-            </View>
-          </View>
+          ))}
         </View>
 
         {/* Action Buttons */}
@@ -123,6 +99,7 @@ export function QueueDetailsScreen() {
         >
           <Text style={styles.outlineButtonText}>Appointment History</Text>
         </TouchableOpacity>
+        </>}
       </ScrollView>
 
       {/* Decorative Wave & Leaf & Tabs */}
@@ -306,5 +283,17 @@ const styles = StyleSheet.create({
   fullWidthButton: {
     width: '100%',
     marginBottom: 14,
+  },
+  emptyText: {
+    color: '#65809f',
+    fontSize: 13,
+    textAlign: 'center',
+    paddingVertical: 24,
+  },
+  errorText: {
+    color: '#b42318',
+    fontSize: 13,
+    textAlign: 'center',
+    marginVertical: 12,
   },
 });

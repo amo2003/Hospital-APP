@@ -15,6 +15,7 @@ import { paymentRoutes } from "./patient/payments/payment.routes.js";
 import { nurseAuthRoutes } from "./nurse/auth/auth.routes.js";
 import { authenticateNurse } from "./nurse/auth/auth.middleware.js";
 import { nurseRoutes } from "./nurse/nurse.routes.js";
+import { notificationRoutes } from "./patient/notifications/notification.routes.js";
 export const app = express();
 app.disable("x-powered-by");
 app.use(helmet());
@@ -57,6 +58,7 @@ app.use(
   authRoutes,
 );
 app.use("/api/patient/booking", authenticate, bookingRoutes);
+app.use("/api/patient/notifications", authenticate, notificationRoutes);
 app.use("/api/patient/payments", authenticate, paymentRoutes);
 app.use("/api/doctor", doctorRoutes);
 app.use("/api/admin", adminRoutes);
