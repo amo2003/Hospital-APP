@@ -1,1 +1,1 @@
-export { QueueScreen as default } from "@/features/patient/shared/IntegrationScreen";
+export { LiveQueueStatusScreen as default } from '@/features/queue-notification';

@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { PatientProvider } from "@/features/patient/shared/session";
 import { LanguageProvider } from "@/features/patient/i18n/LanguageProvider";
+import { NurseProvider } from "@/features/nurse/session";
 SplashScreen.preventAutoHideAsync().catch(() => {});
 export default function RootLayout() {
   useEffect(() => {
@@ -13,6 +14,7 @@ export default function RootLayout() {
   return (
     <LanguageProvider>
       <PatientProvider>
+       <NurseProvider>
         <View
           style={{ flex: 1, backgroundColor: "#e1ecf5", alignItems: "center" }}
         >
@@ -34,7 +36,8 @@ export default function RootLayout() {
             />
           </View>
         </View>
-      </PatientProvider>
+        </NurseProvider>
+            </PatientProvider>
     </LanguageProvider>
   );
 }

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { View } from "react-native";
 import { router } from "expo-router";
 import { api, messageOf } from "../shared/api";
+import { emailError, passwordError } from "./validation";
 import {
   Button,
   ErrorMessage,
@@ -21,12 +22,30 @@ export default function ForgotPasswordScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [attempted, setAttempted] = useState(false);
+  const errors = {
+    email: emailError(email),
+    code: /^[a-f0-9]{48}$/i.test(code.trim())
+      ? ""
+      : "Paste the complete reset code from your email.",
+    password: passwordError(password),
+    confirm: !confirm
+      ? "Confirm your password."
+      : password !== confirm
+        ? "Passwords do not match."
+        : "",
+  };
+  const validation = (key: keyof typeof errors) => ({
+    error: attempted || touched[key] ? errors[key] : undefined,
+    onBlur: () => setTouched((old) => ({ ...old, [key]: true })),
+  });
   async function submit() {
+    if (busy) return;
     setError("");
-    if (sent && password !== confirm) {
-      setError("Passwords do not match.");
+    setAttempted(true);
+    if (sent ? errors.code || errors.password || errors.confirm : errors.email)
       return;
-    }
     setBusy(true);
     try {
       if (sent) {
@@ -35,6 +54,8 @@ export default function ForgotPasswordScreen() {
       } else {
         await api.forgot(email.trim().toLowerCase());
         setSent(true);
+        setAttempted(false);
+        setTouched({});
       }
     } catch (e) {
       setError(messageOf(e));
@@ -70,6 +91,7 @@ export default function ForgotPasswordScreen() {
                 label="Reset code"
                 placeholder="Paste the code from your email"
                 value={code}
+                {...validation("code")}
                 onChangeText={setCode}
                 autoCapitalize="none"
               />
@@ -77,6 +99,7 @@ export default function ForgotPasswordScreen() {
                 label="New password"
                 password
                 value={password}
+                {...validation("password")}
                 onChangeText={setPassword}
                 placeholder="At least 8 characters, a letter and a number"
               />
@@ -84,6 +107,7 @@ export default function ForgotPasswordScreen() {
                 label="Confirm password"
                 password
                 value={confirm}
+                {...validation("confirm")}
                 onChangeText={setConfirm}
               />
             </>
@@ -92,6 +116,8 @@ export default function ForgotPasswordScreen() {
               label="Email Address"
               icon="mail"
               value={email}
+              {...validation("email")}
+              autoCorrect={false}
               onChangeText={setEmail}
               placeholder="Enter your registered email"
               autoCapitalize="none"
@@ -108,9 +134,12 @@ export default function ForgotPasswordScreen() {
             <Button
               title="Send a new code"
               outline
+              disabled={busy}
               onPress={() => {
                 setSent(false);
                 setError("");
+                setAttempted(false);
+                setTouched({});
               }}
               style={{ marginTop: 12 }}
             />

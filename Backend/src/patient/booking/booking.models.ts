@@ -61,3 +61,28 @@ schema.index(
   { unique: true, partialFilterExpression: { status: "confirmed" } },
 );
 export const Appointment = mongoose.model("Appointment", schema);
+
+const queueEntrySchema = new Schema(
+  {
+    appointmentId: { type: Schema.Types.ObjectId, ref: "Appointment", required: true, unique: true },
+    patientId: { type: Schema.Types.ObjectId, ref: "Patient", required: true },
+    hospitalId: { type: Schema.Types.ObjectId, ref: "Hospital", required: true },
+    department: { type: String, required: true },
+    date: { type: String, required: true },
+    sequence: { type: Number, required: true },
+    token: { type: String, required: true },
+    status: { type: String, enum: ["waiting", "serving", "completed", "cancelled"], default: "waiting" },
+  },
+  { timestamps: true },
+);
+queueEntrySchema.index({ hospitalId: 1, date: 1, department: 1, sequence: 1 }, { unique: true });
+export const QueueEntry = mongoose.model("QueueEntry", queueEntrySchema);
+
+const queueCounterSchema = new Schema({
+  hospitalId: { type: Schema.Types.ObjectId, ref: "Hospital", required: true },
+  date: { type: String, required: true },
+  department: { type: String, required: true },
+  sequence: { type: Number, default: 0 },
+});
+queueCounterSchema.index({ hospitalId: 1, date: 1, department: 1 }, { unique: true });
+export const QueueCounter = mongoose.model("QueueCounter", queueCounterSchema);

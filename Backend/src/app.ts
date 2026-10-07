@@ -10,6 +10,9 @@ import { bookingRoutes } from "./patient/booking/booking.routes.js";
 import { ApiError } from "./patient/shared/errors.js";
 import { doctorRoutes } from "./doctor/doctor.routes.js";
 import { adminRoutes } from "./admin/admin.routes.js";
+import { nurseAuthRoutes } from "./nurse/auth/auth.routes.js";
+import { authenticateNurse } from "./nurse/auth/auth.middleware.js";
+import { nurseRoutes } from "./nurse/nurse.routes.js";
 export const app = express();
 app.disable("x-powered-by");
 app.use(helmet());
@@ -53,6 +56,17 @@ app.use("/api/patient/profile", authenticate, profileRoutes);
 app.use("/api/patient/booking", authenticate, bookingRoutes);
 app.use("/api/doctor", doctorRoutes);
 app.use("/api/admin", adminRoutes);
+app.use(
+  "/api/nurse/auth",
+  rateLimit({
+    windowMs: 15 * 60_000,
+    limit: 30,
+    skip: () => process.env.NODE_ENV === "test",
+    message: { message: "Too many attempts. Please try again in 15 minutes." },
+  }),
+  nurseAuthRoutes,
+);
+app.use("/api/nurse", authenticateNurse, nurseRoutes);
 app.use((_req, _res, next) => next(new ApiError(404, "Endpoint not found.")));
 app.use(
   (

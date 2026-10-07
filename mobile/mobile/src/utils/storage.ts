@@ -8,6 +8,7 @@ export const STORAGE_KEYS = {
   USER_ID: "@careplus/userId",
 } as const;
 let sessionToken: string | null = null;
+let nurseSessionToken: string | null = null;
 // Cold starts deliberately require login; tokens remain only in memory on web.
 export const Storage = {
   getUserPath: () =>
@@ -30,6 +31,18 @@ export const Storage = {
       STORAGE_KEYS.USER_ID,
     ]);
   },
+  getNurseToken: async () => nurseSessionToken,
+  setNurseSession: async (token: string) => {
+    if (Platform.OS !== "web")
+      await SecureStore.setItemAsync("careplus.nurseSession", token);
+    nurseSessionToken = token;
+    await AsyncStorage.setItem(STORAGE_KEYS.USER_PATH, "staff");
+  },
+  clearNurseSession: async () => {
+    nurseSessionToken = null;
+    if (Platform.OS !== "web")
+      await SecureStore.deleteItemAsync("careplus.nurseSession");
+  },
   // Account deletion must retain the selected path.
   clearAll: async () => {
     await Storage.clearSession();
@@ -41,4 +54,8 @@ export const Storage = {
     value
       ? AsyncStorage.setItem("@careplus/rememberedIdentifier", value)
       : AsyncStorage.removeItem("@careplus/rememberedIdentifier"),
+  rememberedNurseIdentifier: () => AsyncStorage.getItem("@careplus/rememberedNurseIdentifier"),
+  rememberNurseIdentifier: (value: string) => value
+    ? AsyncStorage.setItem("@careplus/rememberedNurseIdentifier", value)
+    : AsyncStorage.removeItem("@careplus/rememberedNurseIdentifier"),
 };
