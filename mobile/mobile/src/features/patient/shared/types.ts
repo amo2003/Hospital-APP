@@ -41,5 +41,6 @@ export type Appointment = {
   date: string;
   time: string;
   status: "confirmed" | "cancelled" | "completed";
+  doctorDecision?: "pending" | "accepted" | "rejected";
 };
 export type Slot = { time: string; available: boolean };

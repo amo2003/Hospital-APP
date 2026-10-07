@@ -14,7 +14,8 @@ export type Nurse = {
   ward: string;
   hospitalId: string;
   role: "nurse";
-  status: "active" | "inactive";
+  status: "pending" | "active" | "rejected" | "inactive";
+  rejectionReason?: string;
 };
 
 export type NurseRegistration = Omit<Nurse, "id" | "nurseId" | "role" | "status" | "hospitalId"> & {

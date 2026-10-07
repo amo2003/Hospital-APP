@@ -22,3 +22,22 @@ export function validateBookingDate(date: string) {
 export function slotIsFuture(date: string, time: string) {
   return new Date(`${date}T${time}:00+05:30`).getTime() > Date.now();
 }
+export function appointmentTimeHasPassed(date: string, time: string) {
+  return Date.now() >= new Date(`${date}T${time}:00+05:30`).getTime();
+}
+export function resolveDoctorDecision(apt: any): "pending" | "accepted" | "rejected" {
+  if (!apt) return "pending";
+  if (apt.status === "completed") {
+    return "accepted";
+  }
+  if (apt.status === "cancelled") {
+    return apt.doctorDecision === "rejected" ? "rejected" : "accepted";
+  }
+  if (apt.doctorDecision === "accepted") {
+    return "accepted";
+  }
+  if (apt.doctorDecision === "rejected") {
+    return "rejected";
+  }
+  return "pending";
+}

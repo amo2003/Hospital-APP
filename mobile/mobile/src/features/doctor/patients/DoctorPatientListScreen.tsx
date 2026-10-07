@@ -18,6 +18,7 @@ import { DoctorStorage } from "../shared/doctorStorage";
 import {
   doctorApi,
   doctorMessageOf,
+  isAppointmentTimePassed,
   type DoctorPatientItem,
   type DoctorProfile,
 } from "../shared/doctorApi";
@@ -142,6 +143,23 @@ export default function DoctorPatientListScreen() {
     setActionBusy(true);
     try {
       await doctorApi.updateAppointmentStatus(id, newStatus);
+      setSelectedPatient(null);
+      setConfirmCancelModal(false);
+      await loadPatients(true);
+    } catch (err) {
+      setError(doctorMessageOf(err));
+    } finally {
+      setActionBusy(false);
+    }
+  }
+
+  async function handleDecisionUpdate(
+    id: string,
+    decision: "accepted" | "rejected",
+  ) {
+    setActionBusy(true);
+    try {
+      await doctorApi.updateAppointmentDecision(id, decision);
       setSelectedPatient(null);
       setConfirmCancelModal(false);
       await loadPatients(true);
@@ -605,16 +623,21 @@ export default function DoctorPatientListScreen() {
                     <Text
                       style={[
                         styles.statusBadgeText,
-                        selectedPatient.status === "confirmed" && { color: "#b35a00" },
+                        selectedPatient.doctorDecision === "pending" && { color: "#b45309" },
+                        selectedPatient.doctorDecision === "rejected" && { color: "#dc2626" },
                         selectedPatient.status === "completed" && { color: "#2e7d32" },
                         selectedPatient.status === "cancelled" && { color: "#c62828" },
                       ]}
                     >
-                      {selectedPatient.status === "confirmed"
-                        ? "Waiting"
-                        : selectedPatient.status === "completed"
-                          ? "Completed"
-                          : "Cancelled"}
+                      {selectedPatient.doctorDecision === "pending"
+                        ? "Pending Approval"
+                        : selectedPatient.doctorDecision === "rejected"
+                          ? "Rejected"
+                          : selectedPatient.status === "confirmed"
+                            ? "Waiting"
+                            : selectedPatient.status === "completed"
+                              ? "Completed"
+                              : "Cancelled"}
                     </Text>
                   </View>
                 </View>
@@ -622,20 +645,69 @@ export default function DoctorPatientListScreen() {
             )}
 
             {/* Actions */}
-            {selectedPatient?.status === "confirmed" ? (
+            {selectedPatient && selectedPatient.doctorDecision === "pending" && selectedPatient.status === "confirmed" ? (
               <View style={{ gap: 10, marginTop: 16 }}>
                 <Pressable
                   accessibilityRole="button"
-                  style={styles.doneBtn}
+                  style={[styles.doneBtn, { backgroundColor: "#16a34a" }]}
                   disabled={actionBusy}
-                  onPress={() => handleStatusUpdate(selectedPatient.id, "completed")}
+                  onPress={() => handleDecisionUpdate(selectedPatient.id, "accepted")}
                 >
                   {actionBusy ? (
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
-                    <Text style={styles.doneBtnText}>Mark as Done</Text>
+                    <Text style={styles.doneBtnText}>Accept Appointment</Text>
                   )}
                 </Pressable>
+
+                <Pressable
+                  accessibilityRole="button"
+                  style={styles.cancelBtn}
+                  disabled={actionBusy}
+                  onPress={() => handleDecisionUpdate(selectedPatient.id, "rejected")}
+                >
+                  <Text style={styles.cancelBtnText}>Reject Appointment</Text>
+                </Pressable>
+              </View>
+            ) : selectedPatient && selectedPatient.doctorDecision === "rejected" ? (
+              <View style={{ backgroundColor: "#fef2f2", padding: 12, borderRadius: 10, marginTop: 16 }}>
+                <Text style={{ color: "#b91c1c", fontSize: 13, fontWeight: "600", textAlign: "center" }}>
+                  ✕ This appointment request was rejected.
+                </Text>
+              </View>
+            ) : selectedPatient?.status === "confirmed" ? (
+              <View style={{ gap: 10, marginTop: 16 }}>
+                {(() => {
+                  const timePassed = isAppointmentTimePassed(selectedPatient.date, selectedPatient.time);
+                  return (
+                    <>
+                      <Pressable
+                        accessibilityRole="button"
+                        style={[
+                          styles.doneBtn,
+                          !timePassed && { backgroundColor: "#94a3b8", opacity: 0.8 },
+                        ]}
+                        disabled={actionBusy || !timePassed}
+                        onPress={() => handleStatusUpdate(selectedPatient.id, "completed")}
+                      >
+                        {actionBusy ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <Text style={styles.doneBtnText}>
+                            {timePassed ? "Mark as Done" : `Scheduled for ${selectedPatient.time}`}
+                          </Text>
+                        )}
+                      </Pressable>
+                      {!timePassed && (
+                        <View style={{ backgroundColor: "#eff6ff", padding: 8, borderRadius: 8 }}>
+                          <Text style={{ color: "#1e40af", fontSize: 12, textAlign: "center" }}>
+                            ⏰ Consultation can be completed at or after {selectedPatient.time}.
+                          </Text>
+                        </View>
+                      )}
+                    </>
+                  );
+                })()}
 
                 <Pressable
                   accessibilityRole="button"

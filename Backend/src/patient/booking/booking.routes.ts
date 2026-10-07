@@ -3,7 +3,7 @@ import { z } from "zod";
 import { Appointment, Doctor, Hospital, QueueEntry, QueueCounter } from "./booking.models.js";
 import { Patient } from "../auth/patient.model.js";
 import { ApiError } from "../shared/errors.js";
-import { slotIsFuture, validateBookingDate } from "./booking.service.js";
+import { slotIsFuture, validateBookingDate, resolveDoctorDecision } from "./booking.service.js";
 export const bookingRoutes = Router();
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, "Invalid record ID.");
 bookingRoutes.get("/hospitals", async (_req, res) => {
@@ -45,11 +45,19 @@ bookingRoutes.get("/slots", async (req, res) => {
   );
 });
 bookingRoutes.get("/appointments", async (req, res) => {
+  const appointments = await Appointment.find({ patientId: req.patient!._id })
+    .populate("hospitalId", "name")
+    .populate("doctorId", "name specialty")
+    .sort({ date: -1, time: -1 });
+
   res.json(
-    await Appointment.find({ patientId: req.patient!._id })
-      .populate("hospitalId", "name")
-      .populate("doctorId", "name specialty")
-      .sort({ date: -1, time: -1 }),
+    appointments.map((apt) => {
+      const obj = apt.toObject();
+      return {
+        ...obj,
+        doctorDecision: resolveDoctorDecision(apt),
+      };
+    }),
   );
 });
 bookingRoutes.post("/appointments", async (req, res) => {
@@ -97,9 +105,12 @@ bookingRoutes.post("/appointments", async (req, res) => {
     );
     if (!patient) throw new ApiError(401, "Please sign in again.");
     const created = (
-      await Appointment.create([{ ...data, patientId: patient._id }], {
-        session,
-      })
+      await Appointment.create(
+        [{ ...data, patientId: patient._id, doctorDecision: "pending" }],
+        {
+          session,
+        },
+      )
     )[0];
     const counter = await QueueCounter.findOneAndUpdate(
       { hospitalId: data.hospitalId, date: data.date, department: data.department },

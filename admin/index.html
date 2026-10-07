@@ -77,10 +77,10 @@
           </div>
 
           <!-- 2. Total Nurses -->
-          <div class="metric-card">
+          <div class="metric-card" id="metricCardNurses" style="cursor: pointer;" title="Manage Nurses">
             <div class="metric-card-top">
               <span class="metric-label">Total Nurses</span>
-              <span class="metric-badge blue">Staff</span>
+              <span class="metric-badge blue">Staff →</span>
             </div>
             <div id="totalNurses" class="metric-value">0</div>
           </div>
@@ -109,9 +109,12 @@
           <div class="pending-icon-circle">✓</div>
           <div class="pending-info">
             <div class="pending-title">Pending approvals</div>
-            <div id="pendingSubtitle" class="pending-subtitle">0 doctor registrations waiting</div>
+            <div id="pendingSubtitle" class="pending-subtitle">0 registrations waiting</div>
           </div>
-          <button id="reviewBtn" class="btn-review">Review</button>
+          <div style="display: flex; gap: 6px;">
+            <button id="reviewBtn" class="btn-review" title="Review Doctors">Doctors</button>
+            <button id="reviewNursesBtn" class="btn-review" style="background: #0284c7;" title="Review Nurses">Nurses</button>
+          </div>
         </section>
 
         <!-- Recent Activity Section (Figma 4.10) -->
@@ -138,7 +141,11 @@
         </button>
         <button class="nav-item" id="navApprovals">
           <span class="nav-icon">👤</span>
-          <span>Approvals</span>
+          <span>Doctors</span>
+        </button>
+        <button class="nav-item" id="navNurses">
+          <span class="nav-icon">🩺</span>
+          <span>Nurses</span>
         </button>
         <button class="nav-item" id="navReports">
           <span class="nav-icon">📊</span>
@@ -190,13 +197,74 @@
         </button>
         <button class="nav-item active">
           <span class="nav-icon">👤</span>
-          <span>Approvals</span>
+          <span>Doctors</span>
+        </button>
+        <button class="nav-item" id="navNursesFromApprovals">
+          <span class="nav-icon">🩺</span>
+          <span>Nurses</span>
         </button>
         <button class="nav-item" id="navReportsFromApprovals">
           <span class="nav-icon">📊</span>
           <span>Reports</span>
         </button>
         <button class="nav-item" id="navProfileFromApprovals">
+          <span class="nav-icon">⚙</span>
+          <span>Profile</span>
+        </button>
+      </nav>
+
+    </div>
+
+    <!-- ──────────────── 3C. ADMIN NURSE APPROVAL & MANAGEMENT VIEW ──────────────── -->
+    <div id="nursesView" style="display: none; flex-direction: column; min-height: 100vh;">
+      
+      <!-- Top Header -->
+      <header class="approvals-header">
+        <div class="approvals-top-row">
+          <button id="backToDashFromNursesBtn" class="back-link-btn">
+            <span style="font-size: 14px;">←</span> Back
+          </button>
+          <span style="font-size: 11px; font-weight: 700; color: #0369a1; background: #e0f2fe; padding: 3px 8px; border-radius: 6px;">STAFF PORTAL</span>
+        </div>
+        <h1 class="approvals-title">Nurse approvals & staff</h1>
+      </header>
+
+      <!-- Segmented Filter Tabs: Pending - X | Active | Rejected | All -->
+      <div class="tabs-bar">
+        <button id="tabNursePending" class="tab-pill active">Pending - 0</button>
+        <button id="tabNurseActive" class="tab-pill">Active</button>
+        <button id="tabNurseRejected" class="tab-pill">Rejected</button>
+        <button id="tabNurseAll" class="tab-pill">All</button>
+      </div>
+
+      <!-- Nurse List Container -->
+      <main class="approvals-content">
+        <div id="nursesListContainer">
+          <!-- Loaded dynamically from MongoDB -->
+        </div>
+
+        <p class="approvals-footer-note">Reviewed nurses can access assigned OPD queues & patient records</p>
+      </main>
+
+      <!-- Bottom Navigation Tabs -->
+      <nav class="bottom-nav">
+        <button class="nav-item" id="navHomeFromNurses">
+          <span class="nav-icon">⌂</span>
+          <span>Home</span>
+        </button>
+        <button class="nav-item" id="navApprovalsFromNurses">
+          <span class="nav-icon">👤</span>
+          <span>Doctors</span>
+        </button>
+        <button class="nav-item active">
+          <span class="nav-icon">🩺</span>
+          <span>Nurses</span>
+        </button>
+        <button class="nav-item" id="navReportsFromNurses">
+          <span class="nav-icon">📊</span>
+          <span>Reports</span>
+        </button>
+        <button class="nav-item" id="navProfileFromNurses">
           <span class="nav-icon">⚙</span>
           <span>Profile</span>
         </button>
@@ -319,7 +387,11 @@
         </button>
         <button class="nav-item" id="navApprovalsFromReports">
           <span class="nav-icon">👤</span>
-          <span>Approvals</span>
+          <span>Doctors</span>
+        </button>
+        <button class="nav-item" id="navNursesFromReports">
+          <span class="nav-icon">🩺</span>
+          <span>Nurses</span>
         </button>
         <button class="nav-item active">
           <span class="nav-icon">📊</span>
@@ -341,6 +413,19 @@
           <button id="closeDoctorDetailsModal" class="modal-close-btn">&times;</button>
         </div>
         <div id="doctorDetailsBody" class="modal-body">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ──────────────── 4B. NURSE DETAILS MODAL ──────────────── -->
+    <div id="nurseDetailsModal" class="modal-backdrop">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">Nurse Registration Details</h2>
+          <button id="closeNurseDetailsModal" class="modal-close-btn">&times;</button>
+        </div>
+        <div id="nurseDetailsBody" class="modal-body">
           <!-- Populated dynamically -->
         </div>
       </div>

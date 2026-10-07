@@ -48,6 +48,11 @@ const schema = new Schema(
       enum: ["confirmed", "cancelled", "completed"],
       default: "confirmed",
     },
+    doctorDecision: {
+      type: String,
+      enum: ["pending", "accepted", "rejected"],
+      default: "pending",
+    },
   },
   { timestamps: true },
 );

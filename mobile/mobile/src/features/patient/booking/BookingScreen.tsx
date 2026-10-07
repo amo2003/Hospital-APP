@@ -41,6 +41,7 @@ export const dateLabel = (date: string) =>
   });
 export const isUpcoming = (appointment: Appointment) =>
   appointment.status === "confirmed" &&
+  appointment.doctorDecision !== "rejected" &&
   new Date(`${appointment.date}T${appointment.time}:00+05:30`).getTime() >
     Date.now();
 export default function BookingScreen() {
@@ -482,7 +483,15 @@ export function AppointmentCard({ appointment }: { appointment: Appointment }) {
       <Row
         label="Status"
         value={
-          appointment.status[0].toUpperCase() + appointment.status.slice(1)
+          appointment.status === "cancelled"
+            ? "Cancelled"
+            : appointment.status === "completed"
+              ? "Completed"
+              : appointment.doctorDecision === "rejected"
+                ? "Rejected"
+                : appointment.doctorDecision === "pending"
+                  ? "Pending Doctor Approval"
+                  : "Confirmed"
         }
       />
     </View>

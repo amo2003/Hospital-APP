@@ -122,6 +122,7 @@ export interface DoctorAppointment {
   time: string;
   date: string;
   status: "confirmed" | "completed" | "cancelled";
+  doctorDecision?: "pending" | "accepted" | "rejected";
   department: string;
 }
 
@@ -137,12 +138,14 @@ export interface DoctorPatientItem {
   time: string;
   date: string;
   status: "confirmed" | "completed" | "cancelled";
+  doctorDecision?: "pending" | "accepted" | "rejected";
   department: string;
 }
 
 export interface DoctorDashboardData {
   summary: {
     todayAppointments: number;
+    pendingRequests?: number;
     waiting: number;
     completed: number;
     cancelled: number;
@@ -157,6 +160,7 @@ export interface DoctorDashboardData {
     time: string;
     date: string;
     status: string;
+    doctorDecision?: "pending" | "accepted" | "rejected";
     department: string;
   } | null;
   todaySchedule: DoctorAppointment[];
@@ -184,6 +188,7 @@ export interface DoctorPatientRecordData {
     date: string;
     time: string;
     status: "confirmed" | "completed" | "cancelled";
+    doctorDecision?: "pending" | "accepted" | "rejected";
     department: string;
     reasonForVisit: string;
   } | null;
@@ -286,6 +291,20 @@ export const doctorApi = {
       "PATCH",
       { status },
     ),
+
+  updateAppointmentDecision: (
+    id: string,
+    decision: "accepted" | "rejected",
+  ) =>
+    request<{
+      message: string;
+      appointment: { id: string; status: string; doctorDecision: string };
+    }>(`/appointments/${id}/decision`, "PATCH", { decision }),
+};
+
+export const isAppointmentTimePassed = (date: string, time: string): boolean => {
+  if (!date || !time) return false;
+  return Date.now() >= new Date(`${date}T${time}:00+05:30`).getTime();
 };
 
 export const doctorMessageOf = (error: unknown): string => {

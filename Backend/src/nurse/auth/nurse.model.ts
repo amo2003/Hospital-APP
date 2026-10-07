@@ -22,7 +22,12 @@ const schema = new Schema(
     ward: { type: String, default: "" },
     hospitalId: { type: Schema.Types.ObjectId, ref: "Hospital", required: true },
     role: { type: String, enum: ["nurse"], default: "nurse", immutable: true },
-    status: { type: String, enum: ["active", "inactive"], default: "active" },
+    status: {
+      type: String,
+      enum: ["pending", "active", "rejected", "inactive"],
+      default: "pending",
+    },
+    rejectionReason: { type: String, default: "" },
     passwordHash: { type: String, required: true, select: false },
     tokenVersion: { type: Number, default: 0 },
   },
@@ -67,5 +72,7 @@ export function publicNurse(nurse: any) {
     hospitalId: String(hospitalId),
     role,
     status,
+    rejectionReason: nurse.rejectionReason || "",
+    createdAt: nurse.createdAt,
   };
 }

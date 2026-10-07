@@ -3,7 +3,8 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
 import { DoctorAccount, ClinicalNote, publicDoctor } from "./doctor.model.js";
-import { Appointment } from "../patient/booking/booking.models.js";
+import { Appointment, QueueEntry } from "../patient/booking/booking.models.js";
+import { appointmentTimeHasPassed, resolveDoctorDecision } from "../patient/booking/booking.service.js";
 import { Patient } from "../patient/auth/patient.model.js";
 import { ApiError } from "../patient/shared/errors.js";
 import { authenticateDoctor } from "./doctor.middleware.js";
@@ -172,6 +173,8 @@ const getTodayDate = () =>
     day: "2-digit",
   }).format(new Date());
 
+const getDoctorDecision = resolveDoctorDecision;
+
 // GET /api/doctor/dashboard
 // Returns real OPD summary stats, next patient, and today's schedule for authenticated doctor
 doctorRoutes.get("/dashboard", authenticateDoctor, async (req, res, next) => {
@@ -183,6 +186,7 @@ doctorRoutes.get("/dashboard", authenticateDoctor, async (req, res, next) => {
       return res.json({
         summary: {
           todayAppointments: 0,
+          pendingRequests: 0,
           waiting: 0,
           completed: 0,
           cancelled: 0,
@@ -202,9 +206,18 @@ doctorRoutes.get("/dashboard", authenticateDoctor, async (req, res, next) => {
       .populate("hospitalId", "name")
       .sort({ time: 1 });
 
-    const waiting = appointments.filter((a) => a.status === "confirmed");
+    const totalPendingCount = await Appointment.countDocuments({
+      doctorId: doctor.doctorCatalogId,
+      status: "confirmed",
+      doctorDecision: "pending",
+    });
+    const waiting = appointments.filter(
+      (a) => a.status === "confirmed" && getDoctorDecision(a) === "accepted",
+    );
     const completed = appointments.filter((a) => a.status === "completed");
-    const cancelled = appointments.filter((a) => a.status === "cancelled");
+    const cancelled = appointments.filter(
+      (a) => a.status === "cancelled" || a.doctorDecision === "rejected",
+    );
 
     const nextPatient = waiting[0] || null;
 
@@ -219,6 +232,7 @@ doctorRoutes.get("/dashboard", authenticateDoctor, async (req, res, next) => {
     res.json({
       summary: {
         todayAppointments: appointments.length,
+        pendingRequests: totalPendingCount,
         waiting: waiting.length,
         completed: completed.length,
         cancelled: cancelled.length,
@@ -235,6 +249,7 @@ doctorRoutes.get("/dashboard", authenticateDoctor, async (req, res, next) => {
             time: nextPatient.time,
             date: nextPatient.date,
             status: nextPatient.status,
+            doctorDecision: getDoctorDecision(nextPatient),
             department: nextPatient.department,
           }
         : null,
@@ -247,7 +262,8 @@ doctorRoutes.get("/dashboard", authenticateDoctor, async (req, res, next) => {
         patientId: (apt.patientId as any)?.patientId || "",
         time: apt.time,
         date: apt.date,
-        status: apt.status, // "confirmed" (waiting in queue), "completed" (done), "cancelled"
+        status: apt.status,
+        doctorDecision: getDoctorDecision(apt),
         department: apt.department,
       })),
       doctor: publicDoctor(doctor),
@@ -302,6 +318,7 @@ doctorRoutes.get("/appointments", authenticateDoctor, async (req, res, next) => 
         time: apt.time,
         date: apt.date,
         status: apt.status,
+        doctorDecision: getDoctorDecision(apt),
         department: apt.department,
       })),
     );
@@ -365,6 +382,7 @@ doctorRoutes.get("/patients", authenticateDoctor, async (req, res, next) => {
         time: apt.time,
         date: apt.date,
         status: apt.status,
+        doctorDecision: getDoctorDecision(apt),
         department: apt.department || "OPD",
       };
     });
@@ -386,6 +404,94 @@ doctorRoutes.get("/patients", authenticateDoctor, async (req, res, next) => {
     next(error);
   }
 });
+
+// PATCH /api/doctor/appointments/:id/decision
+// Accept or reject a pending appointment request
+doctorRoutes.patch(
+  "/appointments/:id/decision",
+  authenticateDoctor,
+  async (req, res, next) => {
+    try {
+      const doctor = req.doctor!;
+      const id = objectId.parse(req.params.id);
+      const { decision } = z
+        .object({
+          decision: z.enum(["accepted", "rejected"]),
+        })
+        .parse(req.body);
+
+      const appointment = await Appointment.findById(id);
+      if (!appointment) {
+        throw new ApiError(404, "Appointment not found.");
+      }
+
+      // Strict Authorization check: appointment must belong to this doctor's catalogue ID
+      if (
+        !doctor.doctorCatalogId ||
+        !appointment.doctorId.equals(doctor.doctorCatalogId)
+      ) {
+        throw new ApiError(
+          403,
+          "You are not authorized to update this appointment.",
+        );
+      }
+
+      // Terminal checks
+      if (appointment.status === "completed") {
+        throw new ApiError(409, "Completed appointments cannot be modified.");
+      }
+
+      if (appointment.status === "cancelled") {
+        throw new ApiError(409, "Cancelled appointments cannot be modified.");
+      }
+
+      const currentDecision = getDoctorDecision(appointment);
+      if (currentDecision === "rejected" && decision === "accepted") {
+        throw new ApiError(409, "Rejected appointments cannot be accepted.");
+      }
+
+      // Idempotent
+      if (appointment.doctorDecision === decision) {
+        return res.json({
+          message: `Appointment is already ${decision}.`,
+          appointment: {
+            id: String(appointment._id),
+            appointmentId: appointment.appointmentId,
+            status: appointment.status,
+            doctorDecision: appointment.doctorDecision,
+            date: appointment.date,
+            time: appointment.time,
+          },
+        });
+      }
+
+      appointment.doctorDecision = decision;
+      await appointment.save();
+
+      // If rejected, safely cancel any active queue entry
+      if (decision === "rejected") {
+        await QueueEntry.updateMany(
+          { appointmentId: appointment._id, status: { $in: ["waiting", "serving"] } },
+          { $set: { status: "cancelled" } },
+        );
+      }
+
+      res.json({
+        message: `Appointment request ${decision} successfully.`,
+        appointment: {
+          id: String(appointment._id),
+          appointmentId: appointment.appointmentId,
+          status: appointment.status,
+          doctorDecision: appointment.doctorDecision,
+          date: appointment.date,
+          time: appointment.time,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 // PATCH /api/doctor/appointments/:id/status
 // Update status of an appointment belonging to this doctor
@@ -427,6 +533,7 @@ doctorRoutes.patch(
             id: String(appointment._id),
             appointmentId: appointment.appointmentId,
             status: appointment.status,
+            doctorDecision: getDoctorDecision(appointment),
             date: appointment.date,
             time: appointment.time,
           },
@@ -449,8 +556,43 @@ doctorRoutes.patch(
         );
       }
 
+      // - Completed rules:
+      // 1. Must be accepted
+      // 2. Scheduled appointment time must have arrived or passed
+      if (status === "completed") {
+        const currentDecision = getDoctorDecision(appointment);
+        if (currentDecision !== "accepted") {
+          throw new ApiError(
+            400,
+            currentDecision === "rejected"
+              ? "Rejected appointments cannot be marked as completed."
+              : "Pending appointments must be accepted before they can be completed.",
+          );
+        }
+
+        if (!appointmentTimeHasPassed(appointment.date, appointment.time)) {
+          throw new ApiError(
+            400,
+            "Appointments cannot be marked as completed before their scheduled consultation time.",
+          );
+        }
+      }
+
       appointment.status = status;
       await appointment.save();
+
+      // Queue synchronization:
+      if (status === "completed") {
+        await QueueEntry.updateMany(
+          { appointmentId: appointment._id, status: { $in: ["waiting", "serving"] } },
+          { $set: { status: "completed" } },
+        );
+      } else if (status === "cancelled") {
+        await QueueEntry.updateMany(
+          { appointmentId: appointment._id, status: { $in: ["waiting", "serving"] } },
+          { $set: { status: "cancelled" } },
+        );
+      }
 
       res.json({
         message: `Appointment status updated to ${status}.`,
@@ -458,6 +600,7 @@ doctorRoutes.patch(
           id: String(appointment._id),
           appointmentId: appointment.appointmentId,
           status: appointment.status,
+          doctorDecision: getDoctorDecision(appointment),
           date: appointment.date,
           time: appointment.time,
         },
@@ -635,6 +778,7 @@ doctorRoutes.get("/patient-record", authenticateDoctor, async (req, res, next) =
             date: appointment.date,
             time: appointment.time,
             status: appointment.status,
+            doctorDecision: getDoctorDecision(appointment),
             department: appointment.department,
             reasonForVisit: `Routine ${appointment.department} consultation and general clinical evaluation.`,
           }

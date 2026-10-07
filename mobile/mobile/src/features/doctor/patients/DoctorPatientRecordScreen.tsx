@@ -17,6 +17,7 @@ import { Icon } from "@/features/patient/shared/icons";
 import {
   doctorApi,
   doctorMessageOf,
+  isAppointmentTimePassed,
   type DoctorPatientRecordData,
 } from "../shared/doctorApi";
 
@@ -79,6 +80,19 @@ export default function DoctorPatientRecordScreen() {
     setActionBusy(true);
     try {
       await doctorApi.updateAppointmentStatus(record.appointment.id, "completed");
+      await loadRecord(true);
+    } catch (err) {
+      setError(doctorMessageOf(err));
+    } finally {
+      setActionBusy(false);
+    }
+  }
+
+  async function handleDecisionUpdate(decision: "accepted" | "rejected") {
+    if (!record?.appointment?.id) return;
+    setActionBusy(true);
+    try {
+      await doctorApi.updateAppointmentDecision(record.appointment.id, decision);
       await loadRecord(true);
     } catch (err) {
       setError(doctorMessageOf(err));
@@ -359,34 +373,95 @@ export default function DoctorPatientRecordScreen() {
                 <Text style={styles.lastVisitValue}>{record.lastVisit}</Text>
               </View>
 
-              {/* Action Buttons: Add note | Mark as done */}
-              <View style={styles.actionButtonsRow}>
-                <Pressable
-                  accessibilityRole="button"
-                  style={styles.addNoteBtn}
-                  onPress={() => setNoteModalOpen(true)}
-                >
-                  <Text style={styles.addNoteBtnText}>Add note</Text>
-                </Pressable>
+              {/* Action Buttons: Add note | Accept/Reject or Mark as done */}
+              {appointment && appointment.doctorDecision === "pending" && appointment.status === "confirmed" ? (
+                <View style={{ gap: 8, marginTop: 14 }}>
+                  <View style={styles.actionButtonsRow}>
+                    <Pressable
+                      accessibilityRole="button"
+                      style={[styles.markDoneBtn, { backgroundColor: "#16a34a" }]}
+                      disabled={actionBusy}
+                      onPress={() => handleDecisionUpdate("accepted")}
+                    >
+                      {actionBusy ? (
+                        <ActivityIndicator size="small" color="#ffffff" />
+                      ) : (
+                        <Text style={styles.markDoneBtnText}>Accept Appointment</Text>
+                      )}
+                    </Pressable>
 
-                <Pressable
-                  accessibilityRole="button"
-                  style={[
-                    styles.markDoneBtn,
-                    isCompleted && styles.markDoneBtnDisabled,
-                  ]}
-                  disabled={isCompleted || actionBusy}
-                  onPress={handleMarkAsDone}
-                >
-                  {actionBusy ? (
-                    <ActivityIndicator size="small" color="#ffffff" />
-                  ) : (
-                    <Text style={styles.markDoneBtnText}>
-                      {isCompleted ? "Completed ✓" : "Mark as done"}
-                    </Text>
+                    <Pressable
+                      accessibilityRole="button"
+                      style={[styles.addNoteBtn, { borderColor: "#ef4444" }]}
+                      disabled={actionBusy}
+                      onPress={() => handleDecisionUpdate("rejected")}
+                    >
+                      <Text style={[styles.addNoteBtnText, { color: "#ef4444" }]}>Reject</Text>
+                    </Pressable>
+                  </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    style={[styles.addNoteBtn, { width: "100%" }]}
+                    onPress={() => setNoteModalOpen(true)}
+                  >
+                    <Text style={styles.addNoteBtnText}>Add Clinical Note</Text>
+                  </Pressable>
+                </View>
+              ) : appointment && appointment.doctorDecision === "rejected" ? (
+                <View style={{ backgroundColor: "#fef2f2", padding: 12, borderRadius: 10, marginTop: 14 }}>
+                  <Text style={{ color: "#b91c1c", fontSize: 13, fontWeight: "600", textAlign: "center" }}>
+                    ✕ This appointment request was rejected.
+                  </Text>
+                </View>
+              ) : (
+                <View style={{ marginTop: 14 }}>
+                  <View style={styles.actionButtonsRow}>
+                    <Pressable
+                      accessibilityRole="button"
+                      style={styles.addNoteBtn}
+                      onPress={() => setNoteModalOpen(true)}
+                    >
+                      <Text style={styles.addNoteBtnText}>Add note</Text>
+                    </Pressable>
+
+                    {(() => {
+                      const timePassed = appointment ? isAppointmentTimePassed(appointment.date, appointment.time) : true;
+                      const canMarkDone = !isCompleted && !actionBusy && timePassed;
+
+                      return (
+                        <Pressable
+                          accessibilityRole="button"
+                          style={[
+                            styles.markDoneBtn,
+                            (!timePassed || isCompleted) && styles.markDoneBtnDisabled,
+                          ]}
+                          disabled={!canMarkDone}
+                          onPress={handleMarkAsDone}
+                        >
+                          {actionBusy ? (
+                            <ActivityIndicator size="small" color="#ffffff" />
+                          ) : (
+                            <Text style={styles.markDoneBtnText}>
+                              {isCompleted
+                                ? "Completed ✓"
+                                : timePassed
+                                  ? "Mark as done"
+                                  : `Scheduled for ${appointment?.time || ""}`}
+                            </Text>
+                          )}
+                        </Pressable>
+                      );
+                    })()}
+                  </View>
+                  {appointment && !isCompleted && !isAppointmentTimePassed(appointment.date, appointment.time) && (
+                    <View style={{ backgroundColor: "#eff6ff", padding: 8, borderRadius: 8, marginTop: 8 }}>
+                      <Text style={{ color: "#1e40af", fontSize: 12, textAlign: "center" }}>
+                        ⏰ Consultation can be completed at or after {appointment.time}.
+                      </Text>
+                    </View>
                   )}
-                </Pressable>
-              </View>
+                </View>
+              )}
             </View>
           )}
 

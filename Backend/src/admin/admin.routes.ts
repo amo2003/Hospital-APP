@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { z } from "zod";
 import { Admin } from "./admin.model.js";
 import { DoctorAccount, publicDoctor } from "../doctor/doctor.model.js";
+import { Nurse, publicNurse } from "../nurse/auth/nurse.model.js";
 import { Doctor, Hospital, Appointment } from "../patient/booking/booking.models.js";
 import { Patient } from "../patient/auth/patient.model.js";
 import { ApiError } from "../patient/shared/errors.js";
@@ -87,6 +88,10 @@ adminRoutes.get("/dashboard", authenticateAdmin, async (_req, res, next) => {
       totalPatients,
       pendingList,
       recentDocs,
+      pendingNurses,
+      activeNurses,
+      rejectedNurses,
+      recentNurses,
     ] = await Promise.all([
       DoctorAccount.countDocuments({ status: "pending" }),
       DoctorAccount.countDocuments({ status: "approved" }),
@@ -97,13 +102,17 @@ adminRoutes.get("/dashboard", authenticateAdmin, async (_req, res, next) => {
         .sort({ createdAt: -1 })
         .limit(10),
       DoctorAccount.find().sort({ updatedAt: -1 }).limit(5),
+      Nurse.countDocuments({ status: "pending" }),
+      Nurse.countDocuments({ status: "active" }),
+      Nurse.countDocuments({ status: "rejected" }),
+      Nurse.find().sort({ updatedAt: -1 }).limit(5),
     ]);
 
     const totalDoctors = approvedDoctors;
-    const totalNurses = 0; // Nurse module belongs to teammate Menurangi
-    const totalPending = pendingDoctors;
+    const totalNurses = activeNurses;
+    const totalPending = pendingDoctors + pendingNurses;
 
-    const recentActivity = recentDocs.map((d) => ({
+    const doctorActivities = recentDocs.map((d) => ({
       id: String(d._id),
       text:
         d.status === "approved"
@@ -114,12 +123,29 @@ adminRoutes.get("/dashboard", authenticateAdmin, async (_req, res, next) => {
       time: d.updatedAt ? d.updatedAt.toISOString() : new Date().toISOString(),
     }));
 
+    const nurseActivities = recentNurses.map((n) => ({
+      id: String(n._id),
+      text:
+        n.status === "active"
+          ? `${n.fullName} (Nurse) approved`
+          : n.status === "pending"
+            ? `${n.fullName} (Nurse) registered (awaiting approval)`
+            : `${n.fullName} (Nurse) registration rejected`,
+      time: n.updatedAt ? n.updatedAt.toISOString() : new Date().toISOString(),
+    }));
+
+    const recentActivity = [...doctorActivities, ...nurseActivities]
+      .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+      .slice(0, 6);
+
     res.json({
       metrics: {
         totalDoctors,
         totalNurses,
         totalPatients,
         pendingApprovals: totalPending,
+        pendingDoctors,
+        pendingNurses,
         totalAppointments: 0,
       },
       doctors: {
@@ -127,6 +153,12 @@ adminRoutes.get("/dashboard", authenticateAdmin, async (_req, res, next) => {
         approved: approvedDoctors,
         rejected: rejectedDoctors,
         total: pendingDoctors + approvedDoctors + rejectedDoctors,
+      },
+      nurses: {
+        pending: pendingNurses,
+        active: activeNurses,
+        rejected: rejectedNurses,
+        total: pendingNurses + activeNurses + rejectedNurses,
       },
       pendingList: pendingList.map(publicDoctor),
       recentActivity,
@@ -276,6 +308,170 @@ adminRoutes.patch(
   },
 );
 
+// ──────────────── NURSE MANAGEMENT & APPROVALS (PHASE 2) ────────────────
+
+// GET /api/admin/nurses?status=pending|active|rejected|inactive|all
+adminRoutes.get("/nurses", authenticateAdmin, async (req, res, next) => {
+  try {
+    const rawStatus = (req.query.status as string) || "pending";
+    const query: Record<string, unknown> = {};
+
+    if (rawStatus !== "all") {
+      const statusSchema = z.enum(["pending", "active", "rejected", "inactive"]);
+      const parsed = statusSchema.safeParse(rawStatus.toLowerCase());
+      if (parsed.success) {
+        query.status = parsed.data;
+      }
+    }
+
+    const nurses = await Nurse.find(query)
+      .populate("hospitalId", "name")
+      .select("-passwordHash -tokenVersion")
+      .sort({ createdAt: -1 });
+
+    const safeNurses = nurses.map((n) => ({
+      id: String(n._id),
+      _id: String(n._id),
+      nurseId: n.nurseId,
+      fullName: n.fullName,
+      nic: n.nic,
+      dateOfBirth: n.dateOfBirth,
+      gender: n.gender,
+      phone: n.phone,
+      email: n.email,
+      address: n.address,
+      district: n.district,
+      username: n.username,
+      department: n.department,
+      accessDepartment: n.accessDepartment,
+      ward: n.ward || "General",
+      hospitalId: n.hospitalId,
+      hospitalName: (n.hospitalId as any)?.name || "CarePlus Hospital",
+      role: n.role,
+      status: n.status,
+      rejectionReason: n.rejectionReason || "",
+      createdAt: n.createdAt,
+      updatedAt: n.updatedAt,
+    }));
+
+    res.json(safeNurses);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /api/admin/nurses/:id
+adminRoutes.get("/nurses/:id", authenticateAdmin, async (req, res, next) => {
+  try {
+    const id = objectId.parse(req.params.id);
+    const n = await Nurse.findById(id)
+      .populate("hospitalId", "name")
+      .select("-passwordHash -tokenVersion");
+
+    if (!n) {
+      throw new ApiError(404, "Nurse record not found.");
+    }
+
+    res.json({
+      id: String(n._id),
+      _id: String(n._id),
+      nurseId: n.nurseId,
+      fullName: n.fullName,
+      nic: n.nic,
+      dateOfBirth: n.dateOfBirth,
+      gender: n.gender,
+      phone: n.phone,
+      email: n.email,
+      address: n.address,
+      district: n.district,
+      username: n.username,
+      department: n.department,
+      accessDepartment: n.accessDepartment,
+      ward: n.ward || "General",
+      hospitalId: n.hospitalId,
+      hospitalName: (n.hospitalId as any)?.name || "CarePlus Hospital",
+      role: n.role,
+      status: n.status,
+      rejectionReason: n.rejectionReason || "",
+      createdAt: n.createdAt,
+      updatedAt: n.updatedAt,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PATCH /api/admin/nurses/:id/approve
+adminRoutes.patch("/nurses/:id/approve", authenticateAdmin, async (req, res, next) => {
+  try {
+    const id = objectId.parse(req.params.id);
+    const nurse = await Nurse.findById(id).select("-passwordHash -tokenVersion");
+
+    if (!nurse) {
+      throw new ApiError(404, "Nurse not found.");
+    }
+
+    if (nurse.status !== "pending") {
+      throw new ApiError(400, `Nurse is currently '${nurse.status}' and cannot be approved.`);
+    }
+
+    nurse.status = "active";
+    nurse.rejectionReason = "";
+    await nurse.save();
+
+    res.json({
+      message: `Nurse ${nurse.fullName} approved successfully.`,
+      nurse: {
+        id: String(nurse._id),
+        nurseId: nurse.nurseId,
+        fullName: nurse.fullName,
+        department: nurse.department,
+        status: nurse.status,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PATCH /api/admin/nurses/:id/reject
+adminRoutes.patch("/nurses/:id/reject", authenticateAdmin, async (req, res, next) => {
+  try {
+    const id = objectId.parse(req.params.id);
+    const { reason } = z
+      .object({ reason: z.string().trim().max(500).optional() })
+      .parse(req.body || {});
+
+    const nurse = await Nurse.findById(id).select("-passwordHash -tokenVersion");
+
+    if (!nurse) {
+      throw new ApiError(404, "Nurse not found.");
+    }
+
+    if (nurse.status !== "pending") {
+      throw new ApiError(400, `Nurse is currently '${nurse.status}' and cannot be rejected.`);
+    }
+
+    nurse.status = "rejected";
+    nurse.rejectionReason = reason || "Registration rejected by administrator";
+    await nurse.save();
+
+    res.json({
+      message: `Nurse ${nurse.fullName} registration rejected.`,
+      nurse: {
+        id: String(nurse._id),
+        nurseId: nurse.nurseId,
+        fullName: nurse.fullName,
+        department: nurse.department,
+        status: nurse.status,
+        rejectionReason: nurse.rejectionReason,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // GET /api/admin/reports?period=daily|weekly|monthly
 adminRoutes.get("/reports", authenticateAdmin, async (req, res, next) => {
   try {
@@ -356,8 +552,12 @@ adminRoutes.get("/reports", authenticateAdmin, async (req, res, next) => {
 
     const total = appointments.length;
     const completed = appointments.filter((a) => a.status === "completed").length;
-    const cancelled = appointments.filter((a) => a.status === "cancelled").length;
-    const waiting = appointments.filter((a) => a.status === "confirmed").length;
+    const cancelled = appointments.filter(
+      (a) => a.status === "cancelled" || (a as any).doctorDecision === "rejected",
+    ).length;
+    const waiting = appointments.filter(
+      (a) => a.status === "confirmed" && (a as any).doctorDecision !== "rejected",
+    ).length;
 
     // Populate chart buckets
     if (period === "daily") {
