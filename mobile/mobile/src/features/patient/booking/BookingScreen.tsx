@@ -173,7 +173,13 @@ export default function BookingScreen() {
           <Button
             title="View Appointment"
             arrow
-            onPress={() => router.replace("/patient/appointments")}
+            onPress={() =>
+              router.replace(
+                confirmed.date === today()
+                  ? "/patient/appointments"
+                  : "/patient/appointment-history",
+              )
+            }
           />
           <Button
             title="Back to Home"
@@ -186,7 +192,43 @@ export default function BookingScreen() {
   return (
     <Screen
       decoration={step === 0}
-      footer={<BottomTabs active="appointments" />}
+      footer={
+        <>
+          {step === 2 && (
+            <View
+              style={[
+                s.row,
+                {
+                  paddingHorizontal: 24,
+                  paddingVertical: 12,
+                  backgroundColor: C.bg,
+                  borderTopWidth: 1,
+                  borderColor: C.line,
+                },
+              ]}
+            >
+              <Button
+                title="Back"
+                outline
+                onPress={() => changeStep(1)}
+                style={{ flex: 1 }}
+              />
+              <Button
+                title="Next"
+                arrow
+                disabled={
+                  loading ||
+                  !time ||
+                  !slots.some((slot) => slot.time === time && slot.available)
+                }
+                onPress={next}
+                style={{ flex: 1.5 }}
+              />
+            </View>
+          )}
+          <BottomTabs active="appointments" />
+        </>
+      }
     >
       <Header
         title={
@@ -335,6 +377,7 @@ export default function BookingScreen() {
           <Calendar
             value={date}
             onChange={(value) => {
+              if (value === date) return;
               setLoading(true);
               setTime("");
               setSlots([]);
@@ -343,48 +386,83 @@ export default function BookingScreen() {
             }}
             weekdays={doctor?.weekdays || []}
           />
-          <Text style={[s.label, { marginTop: 24, marginBottom: 13 }]}>
+          <Text style={[s.label, { marginTop: 20, marginBottom: 4 }]}>
             Available Time Slots
           </Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-            {slots.map((slot) => (
-              <Pressable
-                key={slot.time}
-                accessibilityRole="radio"
-                accessibilityState={{
-                  checked: time === slot.time,
-                  disabled: !slot.available,
-                }}
-                disabled={!slot.available || loading}
-                onPress={() => setTime(slot.time)}
-                style={{
-                  width: "30%",
-                  minHeight: 39,
-                  justifyContent: "center",
-                  alignItems: "center",
-                  borderWidth: 1,
-                  borderColor: C.line,
-                  borderRadius: 11,
-                  backgroundColor: time === slot.time ? C.navy : "#fff",
-                  opacity: slot.available ? 1 : 0.35,
-                }}
-              >
-                <Text
+          <Text style={[s.body, { fontSize: 12, marginBottom: 16 }]}>
+            15-minute appointments
+          </Text>
+          {[
+            { title: "Morning (9–10 AM)", start: "09:00", end: "10:00" },
+            { title: "Evening (5–7 PM)", start: "17:00", end: "19:00" },
+          ].map((period) => {
+            const periodSlots = slots.filter(
+              (slot) => slot.time >= period.start && slot.time < period.end,
+            );
+            if (!periodSlots.length) return null;
+            return (
+              <View key={period.title} style={{ marginBottom: 16 }}>
+                <Text style={[s.label, { marginBottom: 10 }]}>
+                  {period.title}
+                </Text>
+                <View
                   style={{
-                    color: time === slot.time ? "#fff" : C.navy,
-                    fontSize: 12,
-                    fontWeight: "600",
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    rowGap: 8,
+                    marginHorizontal: -4,
                   }}
                 >
-                  {timeLabel(slot.time)}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+                  {periodSlots.map((slot) => (
+                    <View
+                      key={slot.time}
+                      style={{ width: "33.333333%", paddingHorizontal: 4 }}
+                    >
+                      <Pressable
+                        accessibilityRole="radio"
+                        accessibilityLabel={timeLabel(slot.time)}
+                        accessibilityState={{
+                          checked: time === slot.time,
+                          disabled: !slot.available,
+                        }}
+                        disabled={!slot.available || loading}
+                        onPress={() => setTime(slot.time)}
+                        style={{
+                          minHeight: 44,
+                          paddingVertical: 10,
+                          paddingHorizontal: 4,
+                          justifyContent: "center",
+                          alignItems: "center",
+                          borderWidth: 1,
+                          borderColor: C.line,
+                          borderRadius: 11,
+                          backgroundColor: time === slot.time ? C.navy : "#fff",
+                          opacity: slot.available ? 1 : 0.35,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: time === slot.time ? "#fff" : C.navy,
+                            fontSize: 12,
+                            fontWeight: "600",
+                            textAlign: "center",
+                          }}
+                        >
+                          {timeLabel(slot.time)}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            );
+          })}
           {!loading && !error && !slots.some((slot) => slot.available) && (
-            <Notice>
-              No available times on this date. Please choose another day.
-            </Notice>
+            <View style={{ marginTop: 4 }}>
+              <Notice>
+                No available times on this date. Please choose another day.
+              </Notice>
+            </View>
           )}
         </>
       ) : (
@@ -420,29 +498,34 @@ export default function BookingScreen() {
           <Text style={s.link}>Retry loading</Text>
         </Pressable>
       )}
-      <View
-        style={[s.row, { marginTop: 32, marginBottom: step === 0 ? 155 : 20 }]}
-      >
-        {step >= 2 && (
+      {step !== 2 && (
+        <View
+          style={[
+            s.row,
+            { marginTop: 32, marginBottom: step === 0 ? 155 : 20 },
+          ]}
+        >
+          {step >= 2 && (
+            <Button
+              title="Back"
+              outline
+              disabled={booking}
+              onPress={() => {
+                changeStep(step - 1);
+              }}
+              style={{ flex: 1 }}
+            />
+          )}
           <Button
-            title="Back"
-            outline
-            disabled={booking}
-            onPress={() => {
-              changeStep(step - 1);
-            }}
-            style={{ flex: 1 }}
+            title={step === 3 ? "Confirm Appointment" : "Next"}
+            arrow
+            loading={booking}
+            disabled={loading}
+            onPress={next}
+            style={{ flex: step >= 2 ? 1.5 : 1 }}
           />
-        )}
-        <Button
-          title={step === 3 ? "Confirm Appointment" : "Next"}
-          arrow
-          loading={booking}
-          disabled={loading}
-          onPress={next}
-          style={{ flex: step >= 2 ? 1.5 : 1 }}
-        />
-      </View>
+        </View>
+      )}
     </Screen>
   );
 }
@@ -469,6 +552,9 @@ export function AppointmentCard({ appointment }: { appointment: Appointment }) {
         </View>
       </View>
       <Row label="Appointment ID" value={appointment.appointmentId} />
+      {!!appointment.doctorQueueNumber && (
+        <Row label="Your Queue" value={`#${appointment.doctorQueueNumber}`} />
+      )}
       <Row
         label="Hospital"
         value={appointment.hospitalId?.name || "Hospital unavailable"}

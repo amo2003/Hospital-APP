@@ -1,4 +1,3 @@
-import { LanguagePicker } from "../../patient/auth/LanguagePicker";
 import { Text } from "../../patient/i18n/LanguageProvider";
 import React, { useState } from 'react';
 import {
@@ -172,7 +171,6 @@ export function PatientNotificationsScreen() {
 
       {/* Decorative Wave & Bottom Tabs */}
       <QueueBottomWaves />
-      <LanguagePicker />
       <BottomTabs active="notifications" />
     </View>
   );

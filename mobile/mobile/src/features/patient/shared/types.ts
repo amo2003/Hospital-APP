@@ -11,6 +11,7 @@ export type Patient = {
   patientId: string;
   fullName: string;
   profileImage?: string | null;
+  medicalDetails?: MedicalDetails;
   nic: string;
   dateOfBirth: string;
   gender: "Male" | "Female" | "Other";
@@ -20,7 +21,15 @@ export type Patient = {
   district: string;
   username: string;
 };
-export type Registration = Omit<Patient, "id" | "patientId" | "profileImage"> & {
+export type MedicalDetails = {
+  bloodGroup: string | null;
+  heightCm: number | null;
+  weightKg: number | null;
+};
+export type Registration = Omit<
+  Patient,
+  "id" | "patientId" | "profileImage" | "medicalDetails"
+> & {
   password: string;
   acceptedTerms: boolean;
 };
@@ -41,7 +50,25 @@ export type Appointment = {
   department: string;
   date: string;
   time: string;
+  doctorQueueNumber?: number;
   status: "confirmed" | "cancelled" | "completed";
   doctorDecision?: "pending" | "accepted" | "rejected";
 };
 export type Slot = { time: string; available: boolean };
+export type PatientQueue = {
+  appointment: Appointment;
+  queueNumber: number;
+  status: "waiting" | "serving" | "completed" | "cancelled";
+  startsAt: string;
+  serverTime: string;
+  patientsAhead: number;
+  nowServing: number | null;
+  entries: {
+    queueNumber: number;
+    isYou: boolean;
+    name?: string;
+    time: string;
+    status: PatientQueue["status"];
+    selected: boolean;
+  }[];
+};

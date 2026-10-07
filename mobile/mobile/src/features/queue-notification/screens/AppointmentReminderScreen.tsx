@@ -1,4 +1,3 @@
-import { LanguagePicker } from "../../patient/auth/LanguagePicker";
 import { Text } from "../../patient/i18n/LanguageProvider";
 import React from 'react';
 import {
@@ -108,7 +107,6 @@ export function AppointmentReminderScreen() {
 
       {/* Decorative Wave, Leaves & Bottom Tabs */}
       <QueueBottomWaves showLeaves />
-      <LanguagePicker />
       <BottomTabs active="notifications" />
     </View>
   );

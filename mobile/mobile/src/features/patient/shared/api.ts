@@ -10,6 +10,7 @@ import type {
   Registration,
   Slot,
   GoogleAuthResult,
+  PatientQueue,
 } from "./types";
 const configuredBase = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "");
 // Expo Go exposes the Metro host. Use it only for an unconfigured development build.
@@ -129,7 +130,12 @@ export const api = {
     ),
   slots: (doctorId: string, date: string) =>
     request<Slot[]>(`/booking/slots?doctorId=${doctorId}&date=${date}`),
-  appointments: () => request<Appointment[]>("/booking/appointments"),
+  appointments: (scope: "today" | "all" = "all") =>
+    request<Appointment[]>(`/booking/appointments?scope=${scope}`),
+  queue: (appointmentId?: string) =>
+    request<PatientQueue | null>(
+      `/booking/queue${appointmentId ? `?appointmentId=${encodeURIComponent(appointmentId)}` : ""}`,
+    ),
   book: (data: {
     hospitalId: string;
     department: string;

@@ -6,7 +6,9 @@ import { personalSchema } from "../auth/validation.js";
 import { Appointment } from "../booking/booking.models.js";
 import { ApiError } from "../shared/errors.js";
 import { MAX_PHOTO_TEXT, normalizeProfilePhoto } from "./profile-photo.js";
+import { medicalSchema } from "./medical.validation.js";
 const profileSchema = personalSchema.partial().extend({
+  medicalDetails: medicalSchema.optional(),
   profileImage: z.string().max(MAX_PHOTO_TEXT, "Choose a photo smaller than 5 MB.").nullable().optional(),
 }).strict().refine((data) => Object.keys(data).length > 0, "No profile changes provided.");
 export const profileRoutes = Router();

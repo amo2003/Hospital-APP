@@ -1,5 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 import { randomUUID } from "node:crypto";
+import { OPD_SLOTS } from "./booking.service.js";
 export const Hospital = mongoose.model(
   "Hospital",
   new Schema({
@@ -43,6 +44,7 @@ const schema = new Schema(
     department: { type: String, required: true },
     date: { type: String, required: true },
     time: { type: String, required: true },
+    doctorQueueNumber: { type: Number, min: 1 },
     status: {
       type: String,
       enum: ["confirmed", "cancelled", "completed"],
@@ -66,6 +68,13 @@ schema.index(
   { unique: true, partialFilterExpression: { status: "confirmed" } },
 );
 export const Appointment = mongoose.model("Appointment", schema);
+
+// Separate doctor/day numbering from the department queue used by staff.
+export const DoctorQueueCounter = mongoose.model("DoctorQueueCounter", new Schema({
+  _id: String,
+  sequence: { type: Number, default: 0 },
+  revision: { type: Number, default: 0 },
+}));
 
 const queueEntrySchema = new Schema(
   {

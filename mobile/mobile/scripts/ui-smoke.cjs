@@ -52,7 +52,7 @@ async function main() {
     else if (url.pathname.endsWith("/hospitals")) result = [hospital];
     else if (url.pathname.endsWith("/doctors")) result = [doctor];
     else if (url.pathname.endsWith("/slots"))
-      result = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30"].map(
+      result = ["09:00", "09:15", "09:30", "09:45", "17:00", "17:15", "17:30", "17:45", "18:00", "18:15", "18:30", "18:45"].map(
         (time) => ({ time, available: true }),
       );
     else if (url.pathname.endsWith("/appointments") && method === "POST") {
@@ -62,10 +62,14 @@ async function main() {
         appointmentId: "OPD-20260929001",
         doctorId: doctor,
         hospitalId: hospital,
+        doctorQueueNumber: 1,
         status: "confirmed",
       };
       appointments.push(result);
       status = 201;
+    } else if (url.pathname.endsWith("/queue")) {
+      const appointment = appointments.find((a) => a.status === "confirmed");
+      result = appointment ? { appointment, queueNumber: 1, patientsAhead: 0, nowServing: null, status: "waiting", startsAt: `${appointment.date}T${appointment.time}:00+05:30`, serverTime: new Date().toISOString(), entries: [{ queueNumber: 1, isYou: true, name: patient.fullName, selected: true, status: "waiting", time: appointment.time }] } : null;
     } else if (url.pathname.endsWith("/appointments")) result = appointments;
     else if (url.pathname.endsWith("/cancel")) {
       appointments = appointments.map((a) => ({ ...a, status: "cancelled" }));
@@ -177,7 +181,7 @@ async function main() {
     if (!(await page.getByRole("button", { name: date, exact: true }).count()))
       await page.getByLabel("Next month", { exact: true }).click();
     await page.getByRole("button", { name: date, exact: true }).click();
-    await page.getByRole("radio", { name: "10:00 AM", exact: true }).click();
+    await page.getByRole("radio", { name: "9:15 AM", exact: true }).click();
     await shot("11-date-time");
     await page.getByRole("button", { name: "Next", exact: true }).click();
     await page.getByRole("button", { name: "Confirm Appointment" }).click();

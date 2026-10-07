@@ -20,6 +20,10 @@ export type IconName =
   | "cross"
   | "edit"
   | "logout"
+  | "settings"
+  | "globe"
+  | "info"
+  | "close"
   | "more";
 const paths: Record<IconName, string> = {
   user: "M5 21v-3a7 7 0 0 1 14 0v3 M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0",
@@ -43,6 +47,12 @@ const paths: Record<IconName, string> = {
   cross: "M9 3h6v6h6v6h-6v6H9v-6H3V9h6z",
   edit: "M3 16L16 3l5 5L8 21H3z M13 6l5 5",
   logout: "M14 17l5-5-5-5 M19 12H8 M4 4v16",
+  settings:
+    "M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0",
+  globe:
+    "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0 M3 12h18 M12 3c-5 5-5 13 0 18 M12 3c5 5 5 13 0 18",
+  info: "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0 M12 11v6 M12 7h.01",
+  close: "M6 6l12 12 M18 6L6 18",
   more: "",
 };
 export function Icon({

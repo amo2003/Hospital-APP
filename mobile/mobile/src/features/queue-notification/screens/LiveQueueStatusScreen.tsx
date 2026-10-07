@@ -1,4 +1,3 @@
-import { LanguagePicker } from "../../patient/auth/LanguagePicker";
 import { Text } from "../../patient/i18n/LanguageProvider";
 import React, { useState } from 'react';
 import {
@@ -108,7 +107,6 @@ export function LiveQueueStatusScreen() {
 
       {/* Curved Blue Waves & Bottom Tabs */}
       <QueueBottomWaves />
-      <LanguagePicker />
       <BottomTabs active="home" />
     </View>
   );
