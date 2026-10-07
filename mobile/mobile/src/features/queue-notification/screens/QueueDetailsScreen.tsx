@@ -1,4 +1,3 @@
-import { LanguagePicker } from "../../patient/auth/LanguagePicker";
 import { Text } from "../../patient/i18n/LanguageProvider";
 import React from 'react';
 import {
@@ -128,7 +127,6 @@ export function QueueDetailsScreen() {
 
       {/* Decorative Wave & Leaf & Tabs */}
       <QueueBottomWaves showLeaves />
-      <LanguagePicker />
       <BottomTabs active="home" />
     </View>
   );

@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { router, usePathname } from "expo-router";
 import Svg, { Path } from "react-native-svg";
 import { Icon, type IconName } from "./icons";
 import { LanguagePicker } from "../auth/LanguagePicker";
@@ -127,6 +127,7 @@ export function Screen({
   decoration?: boolean;
   scroll?: boolean;
 }) {
+  const pathname = usePathname();
   return (
     <LinearGradient colors={["#f8fcff", "#edf7ff"]} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
@@ -160,7 +161,7 @@ export function Screen({
             children
           )}
         </KeyboardAvoidingView>
-        <LanguagePicker />
+        {!pathname.startsWith("/patient/") && <LanguagePicker />}
         {footer}
       </SafeAreaView>
     </LinearGradient>
@@ -311,7 +312,7 @@ export function Field({
           </Pressable>
         )}
       </View>
-      {error && (
+      {!!error && (
         <Text accessibilityRole="alert" style={s.error}>
           {error}
         </Text>

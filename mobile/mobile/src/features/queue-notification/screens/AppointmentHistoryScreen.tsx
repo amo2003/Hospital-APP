@@ -1,4 +1,3 @@
-import { LanguagePicker } from "../../patient/auth/LanguagePicker";
 import { Text, useLanguage } from "../../patient/i18n/LanguageProvider";
 import React, { useState } from 'react';
 import {
@@ -191,7 +190,6 @@ export function AppointmentHistoryScreen() {
 
       {/* Decorative Wave & Leaves & Tabs */}
       <QueueBottomWaves showLeaves />
-      <LanguagePicker />
       <BottomTabs active="appointments" />
     </View>
   );
