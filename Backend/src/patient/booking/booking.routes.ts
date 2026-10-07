@@ -3,9 +3,10 @@ import { z } from "zod";
 import { Appointment, Doctor, DoctorQueueCounter, Hospital, QueueEntry, QueueCounter } from "./booking.models.js";
 import { Patient } from "../auth/patient.model.js";
 import { ApiError } from "../shared/errors.js";
-import { slotIsFuture, validateBookingDate, resolveDoctorDecision } from "./booking.service.js";
-import { OPD_SLOTS, localToday, slotIsFuture, validateBookingDate } from "./booking.service.js";
+import { OPD_SLOTS, localToday, slotIsFuture, validateBookingDate, resolveDoctorDecision } from "./booking.service.js";
 import { allocateDoctorNumber, patientQueue } from "./patient-queue.js";
+import { PaymentSlip } from "../payments/payment.models.js";
+import { queueAppointmentEmail } from "../notifications/appointment-email.js";
 export const bookingRoutes = Router();
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, "Invalid record ID.");
 bookingRoutes.get("/hospitals", async (_req, res) => {
@@ -47,7 +48,8 @@ bookingRoutes.get("/slots", async (req, res) => {
   );
 });
 bookingRoutes.get("/appointments", async (req, res) => {
-  const appointments = await Appointment.find({ patientId: req.patient!._id })
+  const { scope } = z.object({ scope: z.enum(["today", "all"]).optional() }).parse(req.query);
+  const appointments = await Appointment.find({ patientId: req.patient!._id, ...(scope === "today" ? { date: localToday() } : {}) })
     .populate("hospitalId", "name")
     .populate("doctorId", "name specialty")
     .sort({ date: -1, time: -1 });
@@ -60,13 +62,6 @@ bookingRoutes.get("/appointments", async (req, res) => {
         doctorDecision: resolveDoctorDecision(apt),
       };
     }),
-
-  const { scope } = z.object({ scope: z.enum(["today", "all"]).optional() }).parse(req.query);
-  res.json(
-    await Appointment.find({ patientId: req.patient!._id, ...(scope === "today" ? { date: localToday() } : {}) })
-      .populate("hospitalId", "name")
-      .populate("doctorId", "name specialty")
-      .sort({ date: -1, time: -1 }),
   );
 });
 bookingRoutes.get("/queue", async (req, res) => {
@@ -90,8 +85,21 @@ bookingRoutes.post("/appointments", async (req, res) => {
       department: z.string().min(1).max(100),
       date: z.string(),
       time: z.string().regex(/^\d{2}:\d{2}$/),
+      expectedFeeLkr: z.number().nonnegative().optional(),
+      slipId: objectId.optional(),
     })
     .parse(req.body);
+  // A retried confirmation after a network timeout must not create a second paid booking.
+  if (data.slipId) {
+    const existing = await Appointment.findOne({ patientId: req.patient!._id, "payment.slipId": data.slipId });
+    if (existing && String(existing.doctorId) === data.doctorId && String(existing.hospitalId) === data.hospitalId &&
+      existing.date === data.date && existing.time === data.time && existing.department === data.department) {
+      if (existing.status === "cancelled") throw new ApiError(409, "This booking was cancelled. Upload a new payment slip for a new booking.");
+      await existing.populate([{ path: "hospitalId", select: "name" }, { path: "doctorId", select: "name specialty" }]);
+      res.json(existing);
+      return;
+    }
+  }
   validateBookingDate(data.date);
   const [doctor, hospital] = await Promise.all([
     Doctor.findOne({
@@ -127,19 +135,30 @@ bookingRoutes.post("/appointments", async (req, res) => {
       { session },
     );
     if (!patient) throw new ApiError(401, "Please sign in again.");
+    // Serialize against fee edits so the receipt is attached to the price the patient saw.
+    const pricedDoctor = await Doctor.findOneAndUpdate({ _id: doctor._id, active: true },
+      { $inc: { paymentRevision: 1 } }, { session, returnDocument: "after" });
+    if (!pricedDoctor) throw new ApiError(409, "This doctor is no longer available.");
+    const amountLkr = pricedDoctor.feeLkr || 0;
+    if ((data.expectedFeeLkr ?? 0) !== amountLkr)
+      throw new ApiError(409, "The doctor fee has changed. Select the doctor again to review the latest fee.");
+    if (amountLkr > 0 && (!data.slipId || !pricedDoctor.paymentInstructions.trim()))
+      throw new ApiError(400, "Upload your payment slip before confirming the appointment.");
     const doctorQueueNumber = await allocateDoctorNumber(data.doctorId, data.date, session);
     const created = (
 
-      await Appointment.create(
-        [{ ...data, patientId: patient._id, doctorDecision: "pending" }],
-        {
-          session,
-        },
-      )
-      await Appointment.create([{ ...data, patientId: patient._id, doctorQueueNumber }], {
+      await Appointment.create([{ ...data, patientId: patient._id, doctorDecision: "pending", doctorQueueNumber,
+        payment: { amountLkr, status: amountLkr > 0 ? "pending" : "not_required", ...(amountLkr > 0 ? { slipId: data.slipId } : {}) },
+      }], {
         session,
       })
     )[0];
+    if (amountLkr > 0) {
+      const slip = await PaymentSlip.findOneAndUpdate({ _id: data.slipId, patientId: patient._id,
+        doctorId: doctor._id, appointmentId: { $exists: false }, expiresAt: { $gt: new Date() } },
+        { $set: { appointmentId: created._id }, $unset: { expiresAt: 1 } }, { session });
+      if (!slip) throw new ApiError(400, "This payment slip is unavailable. Please upload it again.");
+    }
     const counter = await QueueCounter.findOneAndUpdate(
       { hospitalId: data.hospitalId, date: data.date, department: data.department },
       { $inc: { sequence: 1 } },
@@ -156,6 +175,9 @@ bookingRoutes.post("/appointments", async (req, res) => {
       sequence,
       token: `${prefix}-${String(sequence).padStart(3, "0")}`,
     }], { session });
+    await queueAppointmentEmail("booking", { id: created._id, patientId: patient._id, email: patient.email,
+      name: patient.fullName, reference: created.appointmentId, doctor: doctor.name, hospital: hospital.name,
+      department: data.department, date: data.date, time: data.time, amount: amountLkr, createdAt: created.createdAt }, session);
     return created;
   });
   await appointment.populate([
@@ -166,19 +188,25 @@ bookingRoutes.post("/appointments", async (req, res) => {
 });
 bookingRoutes.patch("/appointments/:id/cancel", async (req, res) => {
   const id = objectId.parse(req.params.id);
-  const appointment = await Appointment.findOne({
+  const appointment = await Appointment.db.transaction(async (session) => {
+  const current = await Appointment.findOne({
     _id: id,
     patientId: req.patient!._id,
     status: "confirmed",
-  });
-  if (!appointment) throw new ApiError(404, "Active appointment not found.");
-  if (!slotIsFuture(appointment.date, appointment.time))
+  }).session(session);
+  if (!current) throw new ApiError(404, "Active appointment not found.");
+  if (Date.now() >= current.createdAt.getTime() + 30 * 60_000)
+    throw new ApiError(400, "Appointments can only be cancelled within 30 minutes of booking.");
+  if (!slotIsFuture(current.date, current.time))
     throw new ApiError(400, "Past appointments cannot be cancelled.");
-  appointment.status = "cancelled";
-  await appointment.save();
+  current.status = "cancelled";
+  await current.save({ session });
   await QueueEntry.updateOne(
-    { appointmentId: appointment._id, status: "waiting" },
+    { appointmentId: current._id, status: { $in: ["waiting", "serving"] } },
     { $set: { status: "cancelled" } },
+    { session },
   );
+  return current;
+  });
   res.json(appointment);
 });
