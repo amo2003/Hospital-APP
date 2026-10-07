@@ -21,7 +21,6 @@ app.use(
       .map((s) => s.trim()),
   }),
 );
-app.use(express.json({ limit: "32kb" }));
 app.use(
   "/api",
   rateLimit({
@@ -34,6 +33,9 @@ app.use(
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", service: "careplus-patient-api" });
 });
+// Only authenticated profile uploads accept a larger JSON body (base64 photo).
+app.use("/api/patient/profile", authenticate, express.json({ limit: "7mb" }), profileRoutes);
+app.use(express.json({ limit: "32kb" }));
 app.use(
   "/api/patient/auth",
   rateLimit({
@@ -44,7 +46,6 @@ app.use(
   }),
   authRoutes,
 );
-app.use("/api/patient/profile", authenticate, profileRoutes);
 app.use("/api/patient/booking", authenticate, bookingRoutes);
 app.use(
   "/api/nurse/auth",
@@ -65,6 +66,10 @@ app.use(
     res: express.Response,
     _next: express.NextFunction,
   ) => {
+    if (error?.type === "entity.too.large") {
+      res.status(413).json({ message: "The upload is too large. Choose a photo smaller than 5 MB." });
+      return;
+    }
     if (error instanceof ZodError) {
       res
         .status(400)

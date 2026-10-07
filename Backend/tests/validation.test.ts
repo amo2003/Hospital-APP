@@ -11,6 +11,7 @@ import {
   filterName,
   filterNic,
   registrationErrors,
+  personalErrors,
   emailError,
   loginErrors,
   passwordError,
@@ -30,6 +31,13 @@ const valid = {
   password: "Password123!",
   acceptedTerms: true,
 };
+
+test("profile validation shares registration rules without requiring account credentials", () => {
+  const { username: _username, password: _password, acceptedTerms: _terms, ...profile } = valid;
+  assert.deepEqual(personalErrors(profile), {});
+  const errors = personalErrors({ ...profile, fullName: "Name123", nic: "123456789X", email: "bad@", phone: "123", dateOfBirth: "2099-01-01", address: "a", district: "Unknown" });
+  assert.deepEqual(Object.keys(errors).sort(), ["address", "dateOfBirth", "district", "email", "fullName", "nic", "phone"]);
+});
 
 test("registration accepts formatted mobile numbers, multilingual names and leap-day births", () => {
   for (const patch of [
