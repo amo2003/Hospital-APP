@@ -1,4 +1,5 @@
 export const paymentTranslations: Record<string, readonly [string, string]> = {
+  "File uploads need an updated app. Install the latest CarePlus APK or use the web app to upload your document.": ["ගොනු එක් කිරීමට යාවත්කාලීන app එක අවශ්‍යයි. නවතම CarePlus APK එක ස්ථාපනය කරන්න හෝ ගොනුව එක් කිරීමට web app එක භාවිත කරන්න.", "கோப்புகளைப் பதிவேற்ற புதுப்பிக்கப்பட்ட செயலி தேவை. சமீபத்திய CarePlus APK ஐ நிறுவவும் அல்லது ஆவணத்தைப் பதிவேற்ற இணையச் செயலியைப் பயன்படுத்தவும்."],
   "Payment": ["ගෙවීම", "கட்டணம்"],
   "Appointment fee": ["හමුවීම් ගාස්තුව", "சந்திப்புக் கட்டணம்"],
   "Payment instructions": ["ගෙවීම් උපදෙස්", "கட்டண வழிமுறைகள்"],

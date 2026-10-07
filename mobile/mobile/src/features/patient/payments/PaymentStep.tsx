@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Platform, View } from "react-native";
-import * as DocumentPicker from "expo-document-picker";
+import { pickDocument } from "@/utils/document-picker";
 import { Text } from "../i18n/LanguageProvider";
 import { api, messageOf } from "../shared/api";
 import { Button, ErrorMessage, Notice, Row, s } from "../shared/ui";
@@ -19,7 +19,7 @@ export default function PaymentStep({ doctor, slip, onChange, onBusy }: {
     setError("");
     try {
       // Open directly on the user's press so web browsers allow the file chooser.
-      const result = await DocumentPicker.getDocumentAsync({ type: ["image/jpeg", "image/png", "application/pdf"], multiple: false, copyToCacheDirectory: true, base64: false });
+      const result = await pickDocument({ type: ["image/jpeg", "image/png", "application/pdf"], multiple: false, copyToCacheDirectory: true, base64: false });
       if (result.canceled) return;
       const asset = result.assets[0];
       if (asset.size !== undefined && asset.size > 5 * 1024 * 1024) {
