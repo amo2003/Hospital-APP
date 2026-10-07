@@ -19,6 +19,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import Svg, { Path } from "react-native-svg";
 import { Icon, type IconName } from "./icons";
+import { LanguagePicker } from "../auth/LanguagePicker";
 import { BottomLeaves } from "./BottomLeaves";
 export const C = {
   navy: "#102e57",
@@ -159,6 +160,7 @@ export function Screen({
             children
           )}
         </KeyboardAvoidingView>
+        <LanguagePicker />
         {footer}
       </SafeAreaView>
     </LinearGradient>
@@ -526,6 +528,7 @@ export function Row({ label, value }: { label: string; value: string }) {
     <View style={{ flexDirection: "row", paddingVertical: 8, gap: 12 }}>
       <Text style={[s.body, { flex: 1, fontSize: 12 }]}>{label}</Text>
       <Text
+        translate={!["Name", "Full Name", "Username", "Patient ID", "Nurse ID", "Email", "Phone"].includes(label)}
         style={{ flex: 1.3, color: C.navy, fontSize: 12, fontWeight: "600" }}
       >
         {value}
@@ -564,7 +567,7 @@ export function BottomTabs({
           }}
         >
           <Icon name={tab.icon} size={21} />
-          <Text style={{ fontSize: 9, fontWeight: "600", color: C.navy }}>
+          <Text style={{ fontSize: 9, fontWeight: "600", color: C.navy, textAlign: "center", paddingHorizontal: 3 }}>
             {tab.label}
           </Text>
         </Pressable>
@@ -597,6 +600,7 @@ export const s = StyleSheet.create({
   },
   button: {
     minHeight: 49,
+    paddingVertical: 10,
     paddingHorizontal: 18,
     borderRadius: 13,
     alignItems: "center",
