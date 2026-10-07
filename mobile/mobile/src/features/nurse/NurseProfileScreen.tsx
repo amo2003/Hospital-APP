@@ -1,4 +1,4 @@
-import { Text } from "../patient/i18n/LanguageProvider";
+import { Text, useLanguage } from "../patient/i18n/LanguageProvider";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Modal, Pressable, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
@@ -13,6 +13,7 @@ import { NurseTabs } from "./NurseShared";
 
 const departments = ["General OPD", "General Medicine", "Cardiology", "Dermatology", "Paediatrics", "Emergency", "Surgical Ward"];
 export default function NurseProfileScreen() {
+  const { t } = useLanguage();
   const { setNurse, signOut } = useNurse();
   const [profile, setProfile] = useState<Nurse | null>(null);
   const [draft, setDraft] = useState<Nurse | null>(null);
@@ -68,9 +69,9 @@ export default function NurseProfileScreen() {
   return <Screen footer={<NurseTabs active="profile" />}>
     {loading ? <ActivityIndicator color={C.blue} style={{ padding: 55 }} /> : error && !profile ? <><ErrorMessage message={error} /><Button title="Retry" outline onPress={() => setRetry((n) => n + 1)} /></> : profile && draft ? <>
       <LinearGradient colors={["#07345e", "#102e57"]} style={{ marginHorizontal: -24, marginTop: -25, marginBottom: 17, paddingHorizontal: 24, paddingTop: 52, paddingBottom: 51, borderBottomLeftRadius: 42, borderBottomRightRadius: 42, alignItems: "center" }}>
-        <View style={[s.row, { width: "100%", justifyContent: "space-between", marginBottom: 11 }]}><Pressable accessibilityLabel="Back to dashboard" onPress={() => router.replace("/nurse/dashboard")} style={{ width: 36, height: 36, borderRadius: 19, backgroundColor: "#ffffff25", alignItems: "center", justifyContent: "center" }}><Icon name="back" size={19} color="#fff" /></Pressable><Text style={{ color: "#fff", fontSize: 16, fontWeight: "700" }}>My Profile</Text><View style={{ width: 36 }} /></View>
+        <View style={[s.row, { width: "100%", justifyContent: "space-between", marginBottom: 11 }]}><Pressable accessibilityLabel={t("Back to dashboard")} onPress={() => router.replace("/nurse/dashboard")} style={{ width: 36, height: 36, borderRadius: 19, backgroundColor: "#ffffff25", alignItems: "center", justifyContent: "center" }}><Icon name="back" size={19} color="#fff" /></Pressable><Text style={{ color: "#fff", fontSize: 16, fontWeight: "700" }}>My Profile</Text><View style={{ width: 36 }} /></View>
         <LinearGradient colors={["#1477bd", "#064071"]} style={{ width: 78, height: 78, borderRadius: 41, alignItems: "center", justifyContent: "center", borderWidth: 3, borderColor: "#fff", marginBottom: 9 }}><Text style={{ color: "#fff", fontSize: 23, fontWeight: "700" }}>{profile.fullName.split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase()}</Text></LinearGradient>
-        <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>{profile.fullName}</Text>
+        <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }} translate={false}>{profile.fullName}</Text>
         <Text style={{ color: "#d5e7f6", fontSize: 11, marginTop: 4 }}>Nurse ID: {profile.nurseId}</Text>
         <Text style={{ color: "#168245", backgroundColor: "#e1f5e9", borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, fontSize: 9, fontWeight: "700", marginTop: 7 }}>● {profile.status === "active" ? "Active" : "Inactive"}</Text>
       </LinearGradient>
@@ -135,5 +136,5 @@ export default function NurseProfileScreen() {
 }
 
 function ProfileRow({ icon, label, value, last = false }: { icon: "user" | "id" | "mail" | "phone" | "pin"; label: string; value: string; last?: boolean }) {
-  return <View style={[s.row, { paddingHorizontal: 9, paddingVertical: 12, gap: 11, borderBottomWidth: last ? 0 : 1, borderColor: "#edf3f8" }]}><View style={[s.iconTile, { width: 36, height: 36, borderRadius: 11 }]}><Icon name={icon} size={19} /></View><View style={{ flex: 1 }}><Text style={{ color: C.muted, fontSize: 9 }}>{label}</Text><Text style={{ color: C.navy, fontSize: 12, fontWeight: "600", marginTop: 3 }}>{value}</Text></View></View>;
+  return <View style={[s.row, { paddingHorizontal: 9, paddingVertical: 12, gap: 11, borderBottomWidth: last ? 0 : 1, borderColor: "#edf3f8" }]}><View style={[s.iconTile, { width: 36, height: 36, borderRadius: 11 }]}><Icon name={icon} size={19} /></View><View style={{ flex: 1 }}><Text style={{ color: C.muted, fontSize: 9 }}>{label}</Text><Text style={{ color: C.navy, fontSize: 12, fontWeight: "600", marginTop: 3 }} translate={label === "Department / Ward"}>{value}</Text></View></View>;
 }

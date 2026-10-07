@@ -1,4 +1,4 @@
-import { Text } from "../patient/i18n/LanguageProvider";
+import { Text, useLanguage } from "../patient/i18n/LanguageProvider";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Modal, Pressable, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
@@ -12,6 +12,7 @@ import { NurseTabs } from "./NurseShared";
 const tabs = ["waiting", "serving", "completed"] as const;
 
 export default function NurseQueueScreen() {
+  const { t } = useLanguage();
   const [entries, setEntries] = useState<NurseQueueEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -114,7 +115,7 @@ export default function NurseQueueScreen() {
       >
         <View style={[s.row, { justifyContent: "space-between" }]}>
           <Pressable
-            accessibilityLabel="Back to dashboard"
+            accessibilityLabel={t("Back to dashboard")}
             onPress={() => router.replace("/nurse/dashboard")}
             style={{
               width: 38,
@@ -129,7 +130,7 @@ export default function NurseQueueScreen() {
           </Pressable>
           <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>Queue Management</Text>
           <Pressable
-            accessibilityLabel="Refresh queue"
+            accessibilityLabel={t("Refresh queue")}
             onPress={() => setRetry((n) => n + 1)}
             style={{
               width: 38,
@@ -181,7 +182,7 @@ export default function NurseQueueScreen() {
               {currentServing.token}
             </Text>
             <Text style={{ color: "#e4f2fc", fontSize: 13, fontWeight: "600" }}>
-              {currentServing.patient?.fullName || "Patient"} · {currentServing.department}
+              <Text translate={false}>{currentServing.patient?.fullName || t("Patient")}</Text> · <Text>{currentServing.department}</Text>
             </Text>
           </>
         ) : (
@@ -208,10 +209,10 @@ export default function NurseQueueScreen() {
           ]}
         >
           <Text style={{ color: "#cde4fa", fontSize: 11 }}>
-            Waiting: {waitingEntries.length}
+            <Text>Waiting:</Text> {waitingEntries.length}
           </Text>
           <Text style={{ color: "#cde4fa", fontSize: 11 }}>
-            Avg wait: {Math.max(5, waitingEntries.length * 8)} mins
+            <Text>Avg wait:</Text> {Math.max(5, waitingEntries.length * 8)} <Text>mins</Text>
           </Text>
         </View>
       </LinearGradient>
@@ -289,10 +290,10 @@ export default function NurseQueueScreen() {
                   color: active ? "#fff" : "#64748b",
                   fontSize: 11,
                   fontWeight: "700",
-                  textTransform: "capitalize",
+                  textTransform: "capitalize", textAlign: "center", paddingHorizontal: 3,
                 }}
               >
-                {item} ({count})
+                <Text>{item}</Text> ({count})
               </Text>
             </Pressable>
           );
@@ -353,7 +354,7 @@ export default function NurseQueueScreen() {
                     {entry.patient?.fullName || "Patient"}
                   </Text>
                   <Text style={[s.body, { fontSize: 11, color: "#64748b", marginTop: 2 }]}>
-                    {entry.department} · {entry.patient?.patientId || "No ID"}
+                    <Text>{entry.department}</Text> · <Text>{entry.patient?.patientId || "No ID"}</Text>
                   </Text>
                 </View>
 
@@ -457,8 +458,7 @@ export default function NurseQueueScreen() {
           <View style={s.modal}>
             <Text style={s.title}>Cancel queue entry?</Text>
             <Text style={[s.body, { marginVertical: 16 }]}>
-              Token {selected?.token} for {selected?.patient?.fullName || "this patient"} will be
-              removed from the queue. The patient’s account record will not be deleted.
+              {t("Token {token} for {name} will be removed from the queue. The patient’s account record will not be deleted.", { token: selected?.token || "", name: selected?.patient?.fullName || t("this patient") })}
             </Text>
             <ErrorMessage message={error} />
             <Button title="Confirm Cancellation" loading={busy} onPress={handleCancel} />

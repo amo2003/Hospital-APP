@@ -1,4 +1,4 @@
-import { Text } from "../patient/i18n/LanguageProvider";
+import { Text, useLanguage } from "../patient/i18n/LanguageProvider";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
@@ -12,6 +12,7 @@ import { NurseTabs } from "./NurseShared";
 const defaultDepartments = ["General OPD", "Cardiology", "Paediatrics", "Dermatology"];
 
 export default function NurseDigitalQueueScreen() {
+  const { t } = useLanguage();
   const [entries, setEntries] = useState<NurseQueueEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -86,7 +87,7 @@ export default function NurseDigitalQueueScreen() {
       >
         <View style={[s.row, { justifyContent: "space-between" }]}>
           <Pressable
-            accessibilityLabel="Back to dashboard"
+            accessibilityLabel={t("Back to dashboard")}
             onPress={() => router.replace("/nurse/dashboard")}
             style={{
               width: 38,
@@ -108,7 +109,7 @@ export default function NurseDigitalQueueScreen() {
             </Text>
           </View>
           <Pressable
-            accessibilityLabel="Refresh digital display"
+            accessibilityLabel={t("Refresh digital display")}
             onPress={() => setRetry((n) => n + 1)}
             style={{
               width: 38,
@@ -163,7 +164,7 @@ export default function NurseDigitalQueueScreen() {
                   letterSpacing: 0.6,
                 }}
               >
-                COUNTER {counter.counterNum}
+                <Text>COUNTER</Text> {counter.counterNum}
               </Text>
               <Text
                 style={{
