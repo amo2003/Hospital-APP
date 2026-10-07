@@ -156,7 +156,7 @@ export function StaffHandoffScreen() {
         OR
       </Text>
       <Button title="Nurse" arrow onPress={() => router.replace("/nurse/login")} />
-      {role && (
+      {!!role && (
         <Text
           style={[
             s.body,

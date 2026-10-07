@@ -1,1 +1,1 @@
-export { default } from "@/features/patient/auth/LaunchScreen";
+export { default } from './queue-hub';

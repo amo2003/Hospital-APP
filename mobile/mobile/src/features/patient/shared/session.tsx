@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useState } from "react";
 import { Storage } from "@/utils/storage";
 import { api } from "./api";
-import type { Patient } from "./types";
+import type { Patient, GoogleOnboarding } from "./types";
 type Session = {
+  googleOnboarding: GoogleOnboarding | null;
+  setGoogleOnboarding: (value: GoogleOnboarding | null) => void;
   patient: Patient | null;
   setPatient: (patient: Patient | null) => void;
   signIn: (token: string, patient: Patient) => Promise<void>;
@@ -10,10 +12,13 @@ type Session = {
 };
 const Context = createContext<Session | null>(null);
 export function PatientProvider({ children }: { children: React.ReactNode }) {
+  const [googleOnboarding, setGoogleOnboarding] =
+    useState<GoogleOnboarding | null>(null);
   const [patient, setPatient] = useState<Patient | null>(null);
   async function signIn(token: string, user: Patient) {
     await Storage.setSession(token, user.id);
     setPatient(user);
+    setGoogleOnboarding(null);
   }
   async function signOut() {
     try {
@@ -24,7 +29,16 @@ export function PatientProvider({ children }: { children: React.ReactNode }) {
     }
   }
   return (
-    <Context.Provider value={{ patient, setPatient, signIn, signOut }}>
+    <Context.Provider
+      value={{
+        patient,
+        setPatient,
+        signIn,
+        signOut,
+        googleOnboarding,
+        setGoogleOnboarding,
+      }}
+    >
       {children}
     </Context.Provider>
   );

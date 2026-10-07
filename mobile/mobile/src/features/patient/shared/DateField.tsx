@@ -11,6 +11,7 @@ export type DateFieldProps = {
   value: string;
   onChange: (value: string) => void;
   editable?: boolean;
+  error?: string;
 };
 export const dateString = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -19,6 +20,7 @@ export default function DateField({
   value,
   onChange,
   editable = true,
+  error,
 }: DateFieldProps) {
   const { language, t } = useLanguage();
   const [open, setOpen] = useState(false);
@@ -53,7 +55,11 @@ export default function DateField({
         accessibilityLabel={t(label)}
         disabled={!editable}
         onPress={show}
-        style={[s.inputBox, !editable && { backgroundColor: "#eff5fa" }]}
+        style={[
+          s.inputBox,
+          !editable && { backgroundColor: "#eff5fa" },
+          !!error && { borderColor: "#d24c4c" },
+        ]}
       >
         <Icon name="calendar" />
         <Text
@@ -68,6 +74,11 @@ export default function DateField({
         </Text>
         <Icon name="chevron" size={18} />
       </Pressable>
+      {!!error && (
+        <Text accessibilityRole="alert" style={s.error}>
+          {error}
+        </Text>
+      )}
       <Modal
         visible={open}
         transparent

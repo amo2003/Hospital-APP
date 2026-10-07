@@ -1,10 +1,5 @@
-import { Redirect, Stack } from "expo-router";
-import { usePatient } from "@/features/patient/shared/session";
+import { Stack } from 'expo-router';
+
 export default function PatientLayout() {
-  const { patient } = usePatient();
-  return patient ? (
-    <Stack screenOptions={{ headerShown: false }} />
-  ) : (
-    <Redirect href="/login" />
-  );
+  return <Stack screenOptions={{ headerShown: false }} />;
 }
