@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useLanguage, type Language } from "../i18n/LanguageProvider";
 export function LanguagePicker() {
-  const { language, setLanguage } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
   const [error, setError] = useState("");
   return (
     <View style={{ alignItems: "center", paddingVertical: 12 }}>
@@ -55,7 +55,7 @@ export function LanguagePicker() {
         ))}
       </View>
       {!!error && (
-        <Text style={{ color: "#b52d3b", fontSize: 12 }}>{error}</Text>
+        <Text style={{ color: "#b52d3b", fontSize: 12 }}>{t(error)}</Text>
       )}
     </View>
   );

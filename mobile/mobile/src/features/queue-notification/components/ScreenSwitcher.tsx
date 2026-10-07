@@ -1,9 +1,9 @@
+import { Text } from "../../patient/i18n/LanguageProvider";
 import React, { useState } from 'react';
 import {
   Modal,
   Pressable,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -63,7 +63,7 @@ export function ScreenSwitcher({ currentScreenNumber }: ScreenSwitcherProps) {
         >
           <View style={styles.pillDot} />
           <Text style={styles.pillText}>
-            {currentScreenNumber}/7 • {current.title.split(' ').slice(1, 3).join(' ')} ▾
+            {currentScreenNumber}/7 • <Text>{current.title.replace(/^\d+ /, "")}</Text> ▾
           </Text>
         </TouchableOpacity>
 
@@ -149,6 +149,7 @@ export function ScreenSwitcher({ currentScreenNumber }: ScreenSwitcherProps) {
 
 const styles = StyleSheet.create({
   floatingBar: {
+    maxWidth: "90%",
     position: 'absolute',
     top: 10,
     right: 12,
@@ -180,6 +181,8 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   floatingCenterPill: {
+    flexShrink: 1,
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 6,
@@ -193,6 +196,8 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   pillText: {
+    flexShrink: 1,
+    textAlign: "center",
     color: '#ffffff',
     fontSize: 11,
     fontWeight: '700',

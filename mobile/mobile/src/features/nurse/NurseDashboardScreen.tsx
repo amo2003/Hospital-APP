@@ -1,4 +1,4 @@
-import { Text } from "../patient/i18n/LanguageProvider";
+import { Text, useLanguage } from "../patient/i18n/LanguageProvider";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, TextInput, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
@@ -11,6 +11,7 @@ import type { NurseQueueEntry } from "./types";
 import { ActionCard, NurseTabs } from "./NurseShared";
 
 export default function NurseDashboardScreen() {
+  const { t } = useLanguage();
   const { nurse } = useNurse();
   const [entries, setEntries] = useState<NurseQueueEntry[]>([]);
   const [error, setError] = useState("");
@@ -72,7 +73,7 @@ export default function NurseDashboardScreen() {
         <View style={{ height: 36, justifyContent: "center", marginBottom: 10 }}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Go back"
+            accessibilityLabel={t("Go back")}
             onPress={() => (router.canGoBack() ? router.back() : router.replace("/nurse/login"))}
             style={{
               width: 36,
@@ -110,12 +111,12 @@ export default function NurseDashboardScreen() {
             <View>
               <Text style={{ color: "#d6e8fa", fontSize: 12 }}>{greeting}</Text>
               <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700", marginTop: 2 }}>
-                {nurse?.fullName ? `Nurse ${nurse.fullName}` : "CarePlus Staff"}
+                {nurse?.fullName ? <><Text>Nurse</Text> <Text translate={false}>{nurse.fullName}</Text></> : "CarePlus Staff"}
               </Text>
             </View>
           </View>
           <Pressable
-            accessibilityLabel="Notifications"
+            accessibilityLabel={t("Notifications")}
             onPress={() => router.push("/nurse/digital-queue")}
             style={[
               s.iconTile,
@@ -149,7 +150,7 @@ export default function NurseDashboardScreen() {
           <Icon name="search" size={20} color="#64748b" />
           <TextInput
             editable={false}
-            placeholder="Search patient, doctor, ward..."
+            placeholder={t("Search patient, doctor, ward...")}
             placeholderTextColor="#8ea4c2"
             style={[s.input, { paddingVertical: 8, fontSize: 13, color: C.navy }]}
           />
@@ -318,10 +319,10 @@ export default function NurseDashboardScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ color: C.navy, fontSize: 13, fontWeight: "700" }}>
-                  {entry.patient?.fullName || "Patient"} checked in
+                  {t("{name} checked in", { name: entry.patient?.fullName || t("Patient") })}
                 </Text>
                 <Text style={[s.body, { fontSize: 11, color: "#64748b", marginTop: 2 }]}>
-                  Token {entry.token} · {entry.department}
+                  <Text>Token</Text> <Text translate={false}>{entry.token}</Text> · <Text>{entry.department}</Text>
                 </Text>
               </View>
               <Text style={{ color: "#94a3b8", fontSize: 11 }}>

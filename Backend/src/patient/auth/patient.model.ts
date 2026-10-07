@@ -8,6 +8,7 @@ const schema = new Schema(
       unique: true,
     },
     fullName: { type: String, required: true },
+    profileImage: { type: String, default: null },
     nic: { type: String, required: true, unique: true },
     dateOfBirth: { type: String, required: true },
     gender: { type: String, enum: ["Male", "Female", "Other"], required: true },
@@ -50,6 +51,7 @@ export function publicPatient(patient: any) {
     _id,
     patientId,
     fullName,
+    profileImage,
     nic,
     dateOfBirth,
     gender,
@@ -61,6 +63,7 @@ export function publicPatient(patient: any) {
   } = patient;
   return {
     id: String(_id),
+    profileImage: profileImage || null,
     patientId,
     fullName,
     nic,

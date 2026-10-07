@@ -1,4 +1,4 @@
-import { Text } from "../patient/i18n/LanguageProvider";
+import { Text, useLanguage } from "../patient/i18n/LanguageProvider";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Linking, Pressable, View } from "react-native";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -10,6 +10,7 @@ import type { NursePatient } from "./types";
 import { NurseTabs } from "./NurseShared";
 
 export default function NursePatientDetailsScreen() {
+  const { t } = useLanguage();
   const params = useLocalSearchParams<{ patientId: string }>();
   const patientId = Array.isArray(params.patientId) ? params.patientId[0] : params.patientId;
   const [patient, setPatient] = useState<NursePatient | null>(null);
@@ -116,7 +117,7 @@ export default function NursePatientDetailsScreen() {
               ]}
             >
               <Pressable
-                accessibilityLabel="Back to patient search"
+                accessibilityLabel={t("Back to patient search")}
                 onPress={() => router.replace("/nurse/patients")}
                 style={{
                   width: 38,
@@ -153,12 +154,9 @@ export default function NursePatientDetailsScreen() {
               <Text style={{ color: "#0c3b6b", fontSize: 24, fontWeight: "700" }}>{initials}</Text>
             </View>
 
-            <Text style={{ color: "#fff", fontSize: 20, fontWeight: "700" }}>
-              {patient.fullName}
-            </Text>
+            <Text style={{ color: "#fff", fontSize: 20, fontWeight: "700" }} translate={false}>{patient.fullName}</Text>
             <Text style={{ color: "#d5e7f6", fontSize: 12, marginTop: 4 }}>
-              ID: {patient.patientId} · {patient.age ? `${patient.age} yrs` : "Age —"} ·{" "}
-              {patient.gender}
+              <Text>ID:</Text> <Text translate={false}>{patient.patientId}</Text> · <Text>{patient.age ? `${patient.age} yrs` : "Age —"}</Text> · <Text>{patient.gender}</Text>
             </Text>
           </LinearGradient>
 
@@ -363,7 +361,7 @@ export default function NursePatientDetailsScreen() {
                   {appt.doctor || "Consultant Physician"}
                 </Text>
                 <Text style={[s.body, { fontSize: 11, color: "#64748b", marginTop: 2 }]}>
-                  {appt.department} · {appt.date} at {appt.time}
+                  <Text>{appt.department}</Text> · <Text>{appt.date}</Text> <Text>at</Text> <Text>{appt.time}</Text>
                 </Text>
                 <Text style={[s.body, { fontSize: 11, color: "#64748b" }]}>{appt.hospital}</Text>
               </View>

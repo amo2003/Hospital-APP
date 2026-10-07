@@ -10,6 +10,7 @@ export type Patient = {
   id: string;
   patientId: string;
   fullName: string;
+  profileImage?: string | null;
   nic: string;
   dateOfBirth: string;
   gender: "Male" | "Female" | "Other";
@@ -19,7 +20,7 @@ export type Patient = {
   district: string;
   username: string;
 };
-export type Registration = Omit<Patient, "id" | "patientId"> & {
+export type Registration = Omit<Patient, "id" | "patientId" | "profileImage"> & {
   password: string;
   acceptedTerms: boolean;
 };

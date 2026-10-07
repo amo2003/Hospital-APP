@@ -1,8 +1,9 @@
+import { LanguagePicker } from "../../patient/auth/LanguagePicker";
+import { Text } from "../../patient/i18n/LanguageProvider";
 import React from 'react';
 import {
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -127,6 +128,7 @@ export function QueueDetailsScreen() {
 
       {/* Decorative Wave & Leaf & Tabs */}
       <QueueBottomWaves showLeaves />
+      <LanguagePicker />
       <BottomTabs active="home" />
     </View>
   );
@@ -278,6 +280,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   filledButtonText: {
+    textAlign: 'center',
+    paddingHorizontal: 6,
+    flexShrink: 1,
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '700',
@@ -293,6 +298,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   outlineButtonText: {
+    textAlign: 'center',
+    paddingHorizontal: 6,
+    flexShrink: 1,
     color: '#0e2b4d',
     fontSize: 14,
     fontWeight: '700',

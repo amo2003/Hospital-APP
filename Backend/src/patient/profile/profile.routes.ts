@@ -5,12 +5,18 @@ import { Patient, publicPatient } from "../auth/patient.model.js";
 import { personalSchema } from "../auth/validation.js";
 import { Appointment } from "../booking/booking.models.js";
 import { ApiError } from "../shared/errors.js";
+import { MAX_PHOTO_TEXT, normalizeProfilePhoto } from "./profile-photo.js";
+const profileSchema = personalSchema.partial().extend({
+  profileImage: z.string().max(MAX_PHOTO_TEXT, "Choose a photo smaller than 5 MB.").nullable().optional(),
+}).strict().refine((data) => Object.keys(data).length > 0, "No profile changes provided.");
 export const profileRoutes = Router();
 profileRoutes.get("/", (req, res) => {
   res.json(publicPatient(req.patient));
 });
 profileRoutes.patch("/", async (req, res) => {
-  const data = personalSchema.partial().strict().parse(req.body);
+  const data = profileSchema.parse(req.body);
+  if (typeof data.profileImage === "string")
+    data.profileImage = await normalizeProfilePhoto(data.profileImage);
   const patient = await Patient.findByIdAndUpdate(
     req.patient!._id,
     { $set: data },

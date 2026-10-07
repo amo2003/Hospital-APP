@@ -1,8 +1,9 @@
+import { LanguagePicker } from "../../patient/auth/LanguagePicker";
+import { Text, useLanguage } from "../../patient/i18n/LanguageProvider";
 import React, { useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
@@ -55,6 +56,7 @@ const INITIAL_HISTORY: AppointmentHistoryItem[] = [
 ];
 
 export function AppointmentHistoryScreen() {
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Confirmed' | 'Completed' | 'Cancelled'>('All');
 
@@ -65,7 +67,7 @@ export function AppointmentHistoryScreen() {
     const q = searchQuery.toLowerCase().trim();
     const matchesSearch =
       !q ||
-      item.department.toLowerCase().includes(q) ||
+      (item.department.toLowerCase().includes(q) || t(item.department).toLowerCase().includes(q)) ||
       item.doctorName.toLowerCase().includes(q) ||
       item.token.toLowerCase().includes(q);
 
@@ -103,7 +105,7 @@ export function AppointmentHistoryScreen() {
           </Svg>
           <TextInput
             style={styles.searchInput}
-            placeholder="Search doctor / clinic / token"
+            placeholder={t("Search doctor / clinic / token")}
             placeholderTextColor="#8aa3bd"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -123,7 +125,7 @@ export function AppointmentHistoryScreen() {
                 activeOpacity={0.7}
               >
                 <Text style={[styles.pillText, isSelected && styles.pillTextActive]}>
-                  {tab === 'Completed' ? 'completed' : tab === 'Cancelled' ? 'cancelled' : tab}
+                  {tab}
                 </Text>
               </TouchableOpacity>
             );
@@ -156,10 +158,10 @@ export function AppointmentHistoryScreen() {
                   </View>
 
                   <Text style={styles.doctorSub}>
-                    {item.doctorName} • {item.date}
+                    <Text translate={false}>{item.doctorName}</Text> • <Text>{item.date}</Text>
                   </Text>
                   <Text style={styles.timeToken}>
-                    {item.time} • {item.token}
+                    <Text>{item.time}</Text> • <Text>{item.token}</Text>
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -189,6 +191,7 @@ export function AppointmentHistoryScreen() {
 
       {/* Decorative Wave & Leaves & Tabs */}
       <QueueBottomWaves showLeaves />
+      <LanguagePicker />
       <BottomTabs active="appointments" />
     </View>
   );
@@ -230,6 +233,7 @@ const styles = StyleSheet.create({
   },
   filterRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     marginBottom: 18,
   },
@@ -286,11 +290,14 @@ const styles = StyleSheet.create({
   },
   cardHeader: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 4,
   },
   deptTitle: {
+    flexShrink: 1,
     fontSize: 15,
     fontWeight: '700',
     color: '#0e2b4d',
@@ -324,6 +331,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   outlineButtonText: {
+    textAlign: 'center',
+    paddingHorizontal: 6,
+    flexShrink: 1,
     color: '#0e2b4d',
     fontSize: 14,
     fontWeight: '700',
@@ -337,6 +347,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   filledButtonText: {
+    textAlign: 'center',
+    paddingHorizontal: 6,
+    flexShrink: 1,
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '700',

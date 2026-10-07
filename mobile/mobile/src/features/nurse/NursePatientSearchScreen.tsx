@@ -1,4 +1,4 @@
-import { Text } from "../patient/i18n/LanguageProvider";
+import { Text, useLanguage } from "../patient/i18n/LanguageProvider";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, TextInput, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
@@ -17,6 +17,7 @@ const filters = [
 ] as const;
 
 export default function NursePatientSearchScreen() {
+  const { t } = useLanguage();
   const [patients, setPatients] = useState<NursePatient[]>([]);
   const [text, setText] = useState("");
   const [query, setQuery] = useState("");
@@ -64,7 +65,7 @@ export default function NursePatientSearchScreen() {
       >
         <View style={[s.row, { justifyContent: "space-between" }]}>
           <Pressable
-            accessibilityLabel="Back to dashboard"
+            accessibilityLabel={t("Back to dashboard")}
             onPress={() => router.replace("/nurse/dashboard")}
             style={{
               width: 38,
@@ -79,7 +80,7 @@ export default function NursePatientSearchScreen() {
           </Pressable>
           <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700" }}>Patient Search</Text>
           <Pressable
-            accessibilityLabel="Search filters"
+            accessibilityLabel={t("Search filters")}
             onPress={() => {}}
             style={{
               width: 38,
@@ -119,12 +120,12 @@ export default function NursePatientSearchScreen() {
           value={text}
           onChangeText={setText}
           onSubmitEditing={() => setQuery(text.trim())}
-          placeholder="Search by name, ID or phone..."
+          placeholder={t("Search by name, ID or phone...")}
           placeholderTextColor="#8ea4c2"
           returnKeyType="search"
           style={[s.input, { fontSize: 13, paddingVertical: 10, color: C.navy }]}
         />
-        <Pressable accessibilityLabel="Execute search" onPress={() => setQuery(text.trim())}>
+        <Pressable accessibilityLabel={t("Execute search")} onPress={() => setQuery(text.trim())}>
           <Icon name="search" size={20} color={C.blue} />
         </Pressable>
       </View>
@@ -152,7 +153,7 @@ export default function NursePatientSearchScreen() {
                 elevation: 2,
               }}
             >
-              <Text style={{ color: active ? "#fff" : "#64748b", fontSize: 11, fontWeight: "700" }}>
+              <Text style={{ color: active ? "#fff" : "#64748b", fontSize: 11, fontWeight: "700", textAlign: "center", paddingHorizontal: 3 }}>
                 {item.label}
               </Text>
             </Pressable>
@@ -254,12 +255,9 @@ export default function NursePatientSearchScreen() {
 
               {/* Patient Info */}
               <View style={{ flex: 1 }}>
-                <Text style={{ color: C.navy, fontSize: 14, fontWeight: "700" }}>
-                  {patient.fullName}
-                </Text>
+                <Text style={{ color: C.navy, fontSize: 14, fontWeight: "700" }} translate={false}>{patient.fullName}</Text>
                 <Text style={{ color: "#64748b", fontSize: 11, marginTop: 2 }}>
-                  ID: {patient.patientId} · {patient.age ? `${patient.age} yrs` : "Age —"} ·{" "}
-                  {patient.gender}
+                  <Text>ID:</Text> <Text translate={false}>{patient.patientId}</Text> · <Text>{patient.age ? `${patient.age} yrs` : "Age —"}</Text> · <Text>{patient.gender}</Text>
                 </Text>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 5 }}>
                   <View

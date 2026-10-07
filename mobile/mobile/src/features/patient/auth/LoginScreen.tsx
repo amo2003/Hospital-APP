@@ -20,7 +20,6 @@ import {
   Wave,
 } from "../shared/ui";
 import { Icon } from "../shared/icons";
-import { LanguagePicker } from "./LanguagePicker";
 import GoogleSignInButton from "./google/GoogleSignInButton";
 import type { GoogleOnboarding } from "../shared/types";
 
@@ -101,7 +100,7 @@ export default function LoginScreen() {
     }
   }
   return (
-    <Screen footer={<LanguagePicker />}>
+    <Screen>
       <View
         style={{ marginHorizontal: -24, minHeight: 286, paddingBottom: 14 }}
       >
