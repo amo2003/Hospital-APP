@@ -61,7 +61,7 @@ before(async () => {
     specialty: "General Medicine",
     hospitalId,
     weekdays: [0, 1, 2, 3, 4, 5, 6],
-    slots: ["09:00", "10:00"],
+    slots: ["09:00", "10:00", "11:00"],
   });
   doctorId = String(doctor._id);
 });
@@ -295,6 +295,168 @@ test("appointment booking assigns queue tokens automatically and nurse cancellat
   assert.equal((await Appointment.findById(storedQueueEntry!.appointmentId))?.status, "confirmed");
   const list = await request(app).get(`/api/nurse/queue?date=${date}`).auth(nurseToken, { type: "bearer" }).expect(200);
   assert.ok(!list.body.entries.some((item: any) => item.id === entry.id));
+});
+test("full end-to-end appointment -> auto token -> waiting -> digital queue -> call next -> serving -> complete -> completed flow", async () => {
+  // 1. CREATE ONE NEW TEST APPOINTMENT
+  const bookRes = await request(app)
+    .post("/api/patient/booking/appointments")
+    .auth(token, { type: "bearer" })
+    .send({
+      hospitalId,
+      doctorId,
+      department: "General Medicine",
+      date,
+      time: "10:00",
+    })
+    .expect(201);
+
+  const newApptId = bookRes.body._id;
+  assert.ok(newApptId);
+  assert.equal(bookRes.body.status, "confirmed");
+  assert.equal(bookRes.body.department, "General Medicine");
+  assert.equal(bookRes.body.date, date);
+  assert.equal(bookRes.body.time, "10:00");
+
+  // 2. VERIFY AUTO QUEUE CREATION IN DATABASE
+  const savedAppt = await Appointment.findById(newApptId);
+  assert.ok(savedAppt);
+  assert.equal(savedAppt.status, "confirmed");
+
+  const qEntries = await QueueEntry.find({ appointmentId: newApptId });
+  assert.equal(qEntries.length, 1);
+  const qEntry = qEntries[0];
+  assert.equal(String(qEntry.appointmentId), String(newApptId));
+  assert.equal(String(qEntry.hospitalId), String(hospitalId));
+  assert.equal(qEntry.department, "General Medicine");
+  assert.equal(qEntry.date, date);
+  assert.equal(qEntry.status, "waiting");
+  assert.match(qEntry.token, /^G-\d{3,}$/);
+
+  const counter = await QueueCounter.findOne({
+    hospitalId,
+    date,
+    department: "General Medicine",
+  });
+  assert.ok(counter);
+  assert.equal(counter.sequence, qEntry.sequence);
+
+  const testToken = qEntry.token;
+
+  // 3. VERIFY QUEUE MANAGEMENT -> WAITING
+  const qmResponse = await request(app)
+    .get(`/api/nurse/queue?date=${date}`)
+    .auth(nurseToken, { type: "bearer" })
+    .expect(200);
+
+  const qmWaitingEntry = qmResponse.body.entries.find((e: any) => e.token === testToken);
+  assert.ok(qmWaitingEntry);
+  assert.equal(qmWaitingEntry.status, "waiting");
+  assert.equal(qmWaitingEntry.department, "General Medicine");
+  assert.equal(qmWaitingEntry.patient?.fullName, "Updated Patient");
+  assert.ok(qmWaitingEntry.position >= 1);
+
+  // 4. VERIFY DIGITAL QUEUE BEFORE CALL NEXT
+  const dqResponse = await request(app)
+    .get(`/api/nurse/queue?allDepartments=true&date=${date}`)
+    .auth(nurseToken, { type: "bearer" })
+    .expect(200);
+
+  const dqWaitingEntry = dqResponse.body.entries.find((e: any) => e.token === testToken);
+  assert.ok(dqWaitingEntry);
+  assert.equal(dqWaitingEntry.status, "waiting");
+  assert.equal(qmWaitingEntry.token, dqWaitingEntry.token);
+
+  // 5. TEST CALL NEXT
+  const callNextRes = await request(app)
+    .post(`/api/nurse/queue/call-next?date=${date}`)
+    .auth(nurseToken, { type: "bearer" })
+    .expect(200);
+
+  assert.equal(callNextRes.body.token, testToken);
+  assert.equal(callNextRes.body.status, "serving");
+
+  // Database verification: waiting -> serving
+  const qEntryServing = await QueueEntry.findById(qEntry._id);
+  assert.equal(qEntryServing?.status, "serving");
+
+  // Queue Management: Now Serving updates
+  const qmAfterCall = await request(app)
+    .get(`/api/nurse/queue?date=${date}`)
+    .auth(nurseToken, { type: "bearer" })
+    .expect(200);
+  const qmServingEntry = qmAfterCall.body.entries.find((e: any) => e.token === testToken);
+  assert.ok(qmServingEntry);
+  assert.equal(qmServingEntry.status, "serving");
+
+  // Digital Queue: Now Serving updates with SAME token
+  const dqAfterCall = await request(app)
+    .get(`/api/nurse/queue?allDepartments=true&date=${date}`)
+    .auth(nurseToken, { type: "bearer" })
+    .expect(200);
+  const dqServingEntry = dqAfterCall.body.entries.find((e: any) => e.token === testToken);
+  assert.ok(dqServingEntry);
+  assert.equal(dqServingEntry.status, "serving");
+  assert.equal(qmServingEntry.token, dqServingEntry.token);
+
+  // 7. TEST COMPLETE
+  const completeRes = await request(app)
+    .patch(`/api/nurse/queue/${qEntry._id}/complete`)
+    .auth(nurseToken, { type: "bearer" })
+    .expect(200);
+
+  assert.equal(completeRes.body.status, "completed");
+  assert.equal(completeRes.body.token, testToken);
+
+  // Database verification: serving -> completed
+  const qEntryCompleted = await QueueEntry.findById(qEntry._id);
+  assert.equal(qEntryCompleted?.status, "completed");
+
+  const apptCompleted = await Appointment.findById(newApptId);
+  assert.equal(apptCompleted?.status, "completed");
+
+  // Queue Management: Completed
+  const qmAfterComplete = await request(app)
+    .get(`/api/nurse/queue?date=${date}`)
+    .auth(nurseToken, { type: "bearer" })
+    .expect(200);
+  const qmCompletedEntry = qmAfterComplete.body.entries.find((e: any) => e.token === testToken);
+  assert.ok(qmCompletedEntry);
+  assert.equal(qmCompletedEntry.status, "completed");
+
+  // Digital Queue removes that token from Now Serving
+  const dqAfterComplete = await request(app)
+    .get(`/api/nurse/queue?allDepartments=true&date=${date}`)
+    .auth(nurseToken, { type: "bearer" })
+    .expect(200);
+  const dqServingList = dqAfterComplete.body.entries.filter((e: any) => e.status === "serving");
+  assert.ok(!dqServingList.some((e: any) => e.token === testToken));
+
+  // 8. SEQUENTIAL SECOND TOKEN CHECK
+  const bookRes2 = await request(app)
+    .post("/api/patient/booking/appointments")
+    .auth(token, { type: "bearer" })
+    .send({
+      hospitalId,
+      doctorId,
+      department: "General Medicine",
+      date,
+      time: "11:00",
+    })
+    .expect(201);
+
+  const newApptId2 = bookRes2.body._id;
+  const qEntries2 = await QueueEntry.find({ appointmentId: newApptId2 });
+  assert.equal(qEntries2.length, 1);
+  const qEntry2 = qEntries2[0];
+  assert.equal(qEntry2.status, "waiting");
+  assert.equal(qEntry2.sequence, qEntry.sequence + 1);
+  assert.notEqual(qEntry2.token, qEntry.token);
+  const counter2 = await QueueCounter.findOne({
+    hospitalId,
+    date,
+    department: "General Medicine",
+  });
+  assert.equal(counter2?.sequence, qEntry2.sequence);
 });
 test("reset codes are single-use and invalidate existing sessions", async () => {
   const code = "test-reset-code-which-is-long-enough";
