@@ -1,8 +1,8 @@
+import { Text } from "../../patient/i18n/LanguageProvider";
 import React, { useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -188,6 +188,7 @@ const styles = StyleSheet.create({
   },
   filterRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     marginBottom: 16,
   },
@@ -244,11 +245,14 @@ const styles = StyleSheet.create({
   },
   cardHeader: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 4,
   },
   cardTitle: {
+    flexShrink: 1,
     fontSize: 14,
     fontWeight: '700',
     color: '#0e2b4d',
@@ -278,6 +282,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   outlineButtonText: {
+    textAlign: 'center',
+    paddingHorizontal: 6,
+    flexShrink: 1,
     color: '#0e2b4d',
     fontSize: 14,
     fontWeight: '700',

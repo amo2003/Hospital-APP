@@ -1,6 +1,6 @@
-# CarePlus Hospital — patient OPD app
+# CarePlus Hospital — OPD app
 
-Patient registration, login, appointment booking, and profile management. The app uses Expo Router / React Native; the API uses Express, TypeScript, and MongoDB Atlas. No staff login implementation is included.
+Patient registration, login, appointment booking, and profile management, plus a separate nurse login, dashboard, profile, patient lookup, and queue view. The app uses Expo Router / React Native; the API uses Express, TypeScript, and MongoDB Atlas.
 
 ## Run the project
 
@@ -53,7 +53,7 @@ cd Backend
 npm run seed
 ```
 
-The seed is repeatable and does not create patients or staff accounts. Replace these demo schedules with approved hospital schedules when the staff module is integrated.
+The seed is repeatable and does not create patient or nurse accounts. It creates one active demo hospital, required by nurse registration in this development build. Replace demo schedules with approved hospital schedules before deployment.
 
 ## Your section's files
 
@@ -79,12 +79,15 @@ Existing assets in `assets/images` supply the CarePlus logo, leaves, and hospita
 - Password reset emails contain a 15-minute, single-use code; resetting the password invalidates existing sessions. Configure SMTP before using this feature.
 - Successful patient registration automatically queues a welcome email with account details and next steps. Delivery retries without blocking registration. See [patient email setup](docs/PATIENT_EMAIL_SETUP.md) for SMTP configuration and delivery status.
 - Google sign-in supports linked-account login, new patient registration, and password-confirmed linking of existing accounts. Android/iOS use native Google sign-in; web uses Google's official browser button. Follow [Google authentication setup](docs/GOOGLE_AUTH_SETUP.md) to configure client IDs, signing certificates, and a native development build/APK. Google sign-in does not run inside Expo Go.
+- Nurse login, registration, profile editing/deactivation, patient lookup, and queue views use a separate nurse JWT audience and mobile session. Accounts bind to the sole active hospital at registration; patient and queue reads are limited to that hospital and the nurse's original assigned department. Appointment booking automatically assigns a queue token.
 
 ## Team integration boundaries
 
-Staff login, live queue position/waiting estimates, notifications/push delivery, and medical records are intentionally pending your teammates' modules. The UI displays these states honestly, without fake queue numbers. Sinhala and Tamil controls currently explain that reviewed translations are pending; the implemented interface is English. Demonstration terms/privacy text must be replaced with hospital-approved copy before release.
+Live queue progression, notifications/push delivery, and medical records are pending integration. The UI displays unavailable clinical data honestly rather than inventing it. Sinhala and Tamil controls currently explain that reviewed translations are pending; the implemented interface is English. Demonstration terms/privacy text must be replaced with hospital-approved copy before release. Nurse self-registration is suitable only for controlled development/demo environments; use hospital-approved account provisioning and verify authorization before exposing patient data in production.
 
 The staff scheduling module can manage the `Hospital` and `Doctor` models. Each doctor supplies `hospitalId`, `specialty`, `weekdays` (`0` = Sunday), `slots` (`HH:mm`), and `active`. The appointment model exposes `patientId`, `doctorId`, `hospitalId`, `department`, `date`, `time`, `status`, and `appointmentId`. Keep staff authorization separate from patient JWTs.
+
+Nurse routes start with `/api/nurse`. Public auth routes are `POST /auth/register` and `POST /auth/login` under that prefix. Protected routes include `GET/PATCH/DELETE /profile`, `POST /auth/logout`, `GET /patients`, `GET /patients/:patientId`, `GET /queue`, and `PATCH /queue/:id/cancel`. Patient and queue reads are scoped to the nurse's bound hospital and original department. Nurses can cancel waiting queue entries but cannot create tokens or control queue progression.
 
 ## Patient API
 

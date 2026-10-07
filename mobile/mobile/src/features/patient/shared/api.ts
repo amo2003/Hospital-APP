@@ -10,6 +10,7 @@ import type {
   Registration,
   Slot,
   GoogleAuthResult,
+  PatientQueue,
 } from "./types";
 const configuredBase = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "");
 // Expo Go exposes the Metro host. Use it only for an unconfigured development build.
@@ -44,15 +45,16 @@ async function request<T>(
     );
   const token = authenticated ? await Storage.getUserToken() : null;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
+  const multipart = body instanceof FormData;
+  const timeout = setTimeout(() => controller.abort(), multipart ? 60000 : 15000);
   try {
     const response = await fetch(`${base}/patient${path}`, {
       method,
       headers: {
-        "Content-Type": "application/json",
+        ...(multipart ? {} : { "Content-Type": "application/json" }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : multipart ? body : JSON.stringify(body),
       signal: controller.signal,
     });
     const data =
@@ -129,14 +131,23 @@ export const api = {
     ),
   slots: (doctorId: string, date: string) =>
     request<Slot[]>(`/booking/slots?doctorId=${doctorId}&date=${date}`),
-  appointments: () => request<Appointment[]>("/booking/appointments"),
+  appointments: (scope: "today" | "all" = "all") =>
+    request<Appointment[]>(`/booking/appointments?scope=${scope}`),
+  queue: (appointmentId?: string) =>
+    request<PatientQueue | null>(
+      `/booking/queue${appointmentId ? `?appointmentId=${encodeURIComponent(appointmentId)}` : ""}`,
+    ),
   book: (data: {
     hospitalId: string;
     department: string;
     doctorId: string;
     date: string;
     time: string;
+    expectedFeeLkr?: number;
+    slipId?: string;
   }) => request<Appointment>("/booking/appointments", "POST", data),
+  uploadPaymentSlip: (doctorId: string, form: FormData) =>
+    request<{ id: string; filename: string; uploadedAt: string }>(`/payments/slips/${doctorId}`, "POST", form),
   cancel: (id: string) =>
     request<Appointment>(`/booking/appointments/${id}/cancel`, "PATCH"),
 };

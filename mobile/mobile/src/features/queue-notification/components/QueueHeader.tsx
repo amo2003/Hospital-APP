@@ -1,5 +1,6 @@
+import { Text } from "../../patient/i18n/LanguageProvider";
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 
@@ -65,7 +66,8 @@ const styles = StyleSheet.create({
   headerContainer: {
     backgroundColor: '#034ea2',
     position: 'relative',
-    paddingTop: 12,
+    // Reserve space for the translated preview switcher above the back button.
+    paddingTop: 52,
   },
   contentContainer: {
     paddingHorizontal: 20,

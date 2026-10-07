@@ -1,0 +1,59 @@
+export type Nurse = {
+  id: string;
+  nurseId: string;
+  fullName: string;
+  nic: string;
+  dateOfBirth: string;
+  gender: "Male" | "Female" | "Other";
+  phone: string;
+  email: string;
+  address: string;
+  district: string;
+  username: string;
+  department: string;
+  ward: string;
+  hospitalId: string;
+  role: "nurse";
+  status: "pending" | "active" | "rejected" | "inactive";
+  rejectionReason?: string;
+};
+
+export type NurseRegistration = Omit<Nurse, "id" | "nurseId" | "role" | "status" | "hospitalId"> & {
+  password: string;
+  confirmPassword: string;
+  acceptedTerms: boolean;
+};
+
+export type NursePatient = {
+  id: string;
+  patientId: string;
+  fullName: string;
+  gender: "Male" | "Female" | "Other";
+  age: number;
+  phone: string;
+  email: string;
+  address: string;
+  district: string;
+  appointment: null | {
+    id: string;
+    status: "confirmed" | "cancelled" | "completed";
+    department: string;
+    date: string;
+    time: string;
+    hospital: string;
+    doctor: string;
+  };
+  appointments?: Array<NonNullable<NursePatient["appointment"]> & { specialty?: string }>;
+};
+
+export type NurseQueueEntry = {
+  id: string;
+  token: string;
+  sequence: number;
+  status: "waiting" | "serving" | "completed" | "cancelled";
+  department: string;
+  date: string;
+  patient: { patientId: string; fullName: string; gender: string } | null;
+  hospital: string;
+  position: number;
+};

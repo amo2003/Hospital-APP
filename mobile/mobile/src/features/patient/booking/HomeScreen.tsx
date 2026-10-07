@@ -1,11 +1,9 @@
-import { Text } from "../i18n/LanguageProvider";
-import { useCallback, useState } from "react";
+import { Text, useLanguage } from "../i18n/LanguageProvider";
+import { useState } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
-import { useFocusEffect, router } from "expo-router";
+import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { usePatient } from "../shared/session";
-import { api, messageOf } from "../shared/api";
-import type { Appointment } from "../shared/types";
 import {
   BottomTabs,
   Button,
@@ -17,43 +15,19 @@ import {
   s,
 } from "../shared/ui";
 import { Icon, type IconName } from "../shared/icons";
-import { dateLabel, isUpcoming, timeLabel } from "./BookingScreen";
+import { dateLabel, timeLabel } from "./BookingScreen";
+import { PatientAvatar } from "../profile/ProfilePhotoPicker";
+import PatientDrawer from "../shared/PatientDrawer";
+import { usePatientQueue } from "./usePatientQueue";
 export default function HomeScreen() {
   const { patient } = usePatient();
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [retry, setRetry] = useState(0);
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
-      setLoading(true);
-      setError("");
-      api
-        .appointments()
-        .then((data) => {
-          if (active) setAppointments(data);
-        })
-        .catch((e) => {
-          if (active) setError(messageOf(e));
-        })
-        .finally(() => {
-          if (active) setLoading(false);
-        });
-      return () => {
-        active = false;
-      };
-      // Retry intentionally creates a new focus subscription after a failed request.
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [retry]),
-  );
-  const next = appointments
-    .filter(isUpcoming)
-    .sort((a, b) =>
-      `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`),
-    )[0];
+  const { t } = useLanguage();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { queue, loading, error, retry, waiting, started } = usePatientQueue();
+  const next = queue?.appointment;
   return (
     <Screen footer={<BottomTabs active="home" />}>
+      {menuOpen && <PatientDrawer onClose={() => setMenuOpen(false)} />}
       <LinearGradient
         colors={["#004877", "#11336a"]}
         style={{
@@ -67,8 +41,10 @@ export default function HomeScreen() {
           style={[s.row, { justifyContent: "space-between", marginBottom: 18 }]}
         >
           <Pressable
-            accessibilityLabel="Open profile and settings"
-            onPress={() => router.push("/patient/profile")}
+            accessibilityRole="button"
+            accessibilityLabel={t("Open menu")}
+            hitSlop={12}
+            onPress={() => setMenuOpen(true)}
           >
             <Icon name="menu" color="#fff" />
           </Pressable>
@@ -111,7 +87,7 @@ export default function HomeScreen() {
             onPress={() => router.push("/patient/profile")}
             style={[s.iconTile, { width: 52, height: 52, borderRadius: 28 }]}
           >
-            <Icon name="user" size={26} />
+            <PatientAvatar uri={patient?.profileImage} size={52} />
           </Pressable>
         </View>
       </LinearGradient>
@@ -121,11 +97,7 @@ export default function HomeScreen() {
         ) : error ? (
           <>
             <ErrorMessage message={error} />
-            <Button
-              title="Retry"
-              outline
-              onPress={() => setRetry((v) => v + 1)}
-            />
+            <Button title="Retry" outline onPress={retry} />
           </>
         ) : next ? (
           <>
@@ -152,7 +124,12 @@ export default function HomeScreen() {
                   {next.hospitalId?.name}
                 </Text>
                 <Pressable
-                  onPress={() => router.push("/patient/appointments")}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/patient/queue",
+                      params: { appointmentId: next._id },
+                    })
+                  }
                   style={{ paddingTop: 7 }}
                 >
                   <Text style={s.link}>View Details →</Text>
@@ -204,15 +181,17 @@ export default function HomeScreen() {
           <Text
             style={{
               color: C.navy,
-              fontSize: 26,
+              fontSize: 23,
               fontWeight: "700",
               marginVertical: 7,
             }}
           >
-            A-019
+            {queue ? `#${queue.queueNumber}` : "--"}
           </Text>
           <Text style={{ color: "#00a884", fontSize: 11, fontWeight: "600" }}>
-            5 ahead • Live
+            {queue
+              ? `${queue.patientsAhead} patients ahead`
+              : "Book an appointment"}
           </Text>
         </Pressable>
 
@@ -224,17 +203,25 @@ export default function HomeScreen() {
             Estimated Waiting Time
           </Text>
           <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
             style={{
               color: C.navy,
-              fontSize: 26,
+              fontSize: 22,
+              width: "100%",
+              textAlign: "center",
               fontWeight: "700",
               marginVertical: 7,
             }}
           >
-            25 min
+            {waiting}
           </Text>
           <Text style={{ color: C.blue, fontSize: 11, fontWeight: "600" }}>
-            Updated 9:41 AM
+            {queue
+              ? started
+                ? "Appointment time reached"
+                : "Time until appointment"
+              : "Not available yet"}
           </Text>
         </Pressable>
       </View>
@@ -305,6 +292,8 @@ export default function HomeScreen() {
         style={{
           flex: 1,
           minHeight: 115,
+          marginTop: 12,
+          overflow: "hidden",
           marginHorizontal: -24,
           marginBottom: -25,
           justifyContent: "flex-end",
@@ -314,8 +303,8 @@ export default function HomeScreen() {
         <Wave />
         <Notice>
           {next
-            ? "Your appointment is confirmed. Live queue updates will be available when the hospital queue service is connected."
-            : "Your queue and waiting time will appear after booking and hospital queue integration."}
+            ? "Queue updates every 15 seconds while this screen is open."
+            : "Your queue and waiting time will appear after booking an appointment."}
         </Notice>
       </View>
     </Screen>

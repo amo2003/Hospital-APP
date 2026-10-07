@@ -1,1 +1,1 @@
-export { LiveQueueStatusScreen as default } from '@/features/queue-notification';
+export { default } from '@/features/patient/booking/PatientQueueScreen';

@@ -84,10 +84,19 @@ export function validBirthDate(value: string) {
 export type RegistrationErrors = Partial<
   Record<keyof Registration | "confirm", string>
 >;
-export function registrationErrors(
-  data: Registration,
-  confirm: string,
-  genderChosen: boolean,
+export function personalErrors(
+  data: Pick<
+    Registration,
+    | "fullName"
+    | "nic"
+    | "dateOfBirth"
+    | "gender"
+    | "phone"
+    | "email"
+    | "address"
+    | "district"
+  >,
+  genderChosen = ["Male", "Female", "Other"].includes(data.gender),
 ): RegistrationErrors {
   const errors: RegistrationErrors = {};
   if (
@@ -110,6 +119,14 @@ export function registrationErrors(
     errors.address = "Enter a home address of 5–300 characters.";
   if (!districts.includes(data.district))
     errors.district = "Select your district.";
+  return errors;
+}
+export function registrationErrors(
+  data: Registration,
+  confirm: string,
+  genderChosen: boolean,
+): RegistrationErrors {
+  const errors = personalErrors(data, genderChosen);
   if (!/^[a-z0-9_]{3,30}$/i.test(data.username.trim()))
     errors.username =
       "Use 3–30 letters, numbers or underscores for your username.";

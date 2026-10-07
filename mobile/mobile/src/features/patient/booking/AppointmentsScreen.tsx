@@ -1,6 +1,6 @@
 import { Text } from "../i18n/LanguageProvider";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Modal, Pressable, View } from "react-native";
+import { ActivityIndicator, AppState, Modal, View } from "react-native";
 import { useFocusEffect, router } from "expo-router";
 import { api, messageOf } from "../shared/api";
 import type { Appointment } from "../shared/types";
@@ -13,38 +13,70 @@ import {
   Header,
   Notice,
   Screen,
+  Select,
   s,
 } from "../shared/ui";
-export default function AppointmentsScreen() {
+export default function AppointmentsScreen({
+  history = false,
+}: {
+  history?: boolean;
+}) {
   const [items, setItems] = useState<Appointment[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [cancel, setCancel] = useState<Appointment | null>(null);
-  const [history, setHistory] = useState(false);
+  const [doctorFilter, setDoctorFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
   const [retry, setRetry] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+  useFocusEffect(useCallback(() => {
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []));
   useFocusEffect(
     useCallback(() => {
       let active = true;
       setLoading(true);
       setError("");
-      api
-        .appointments()
-        .then((data) => {
-          if (active) setItems(data);
-        })
-        .catch((e) => {
-          if (active) setError(messageOf(e));
-        })
-        .finally(() => {
-          if (active) setLoading(false);
-        });
+      let pending = false;
+      const refresh = () => {
+        if (
+          pending ||
+          (AppState.currentState && AppState.currentState !== "active")
+        )
+          return;
+        pending = true;
+        void api
+          .appointments(history ? "all" : "today")
+          .then((data) => {
+            if (active) {
+              setItems(data);
+              setError("");
+            }
+          })
+          .catch((e) => {
+            if (active) setError(messageOf(e));
+          })
+          .finally(() => {
+            pending = false;
+            if (active) setLoading(false);
+          });
+      };
+      refresh();
+      const interval = setInterval(refresh, 15000);
+      const subscription = AppState.addEventListener("change", (state) => {
+        if (state === "active") refresh();
+      });
       return () => {
         active = false;
+        clearInterval(interval);
+        subscription.remove();
       };
       // Retry intentionally creates a new focus subscription after a failed request.
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [retry]),
+    }, [retry, history]),
   );
   async function cancelAppointment() {
     if (!cancel) return;
@@ -64,39 +96,61 @@ export default function AppointmentsScreen() {
       setBusy(false);
     }
   }
-  const visible = items.filter((item) =>
-    history ? !isUpcoming(item) : isUpcoming(item),
-  );
+  const visible = items
+    .filter(
+      (item) =>
+        !history ||
+        ((!doctorFilter || item.doctorId?._id === doctorFilter) &&
+          (!dateFilter || item.date === dateFilter)),
+    )
+    .sort((a, b) =>
+      history
+        ? `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`)
+        : a.time.localeCompare(b.time),
+    );
+  const doctors = [
+    ...new Map(
+      items
+        .filter((item) => item.doctorId)
+        .map((item) => [item.doctorId!._id, item.doctorId!]),
+    ).values(),
+  ];
   return (
     <Screen footer={<BottomTabs active="appointments" />}>
       <Header
-        title="My Appointments"
+        title={history ? "Appointment History" : "Today's Appointments"}
         back={() => router.replace("/patient/home")}
       />
-      <View style={[s.row, { marginBottom: 22 }]}>
-        {["Upcoming", "History"].map((label, i) => (
-          <Pressable
-            key={label}
-            onPress={() => setHistory(i === 1)}
-            style={{
-              flex: 1,
-              padding: 13,
-              borderRadius: 12,
-              backgroundColor: history === (i === 1) ? C.blue : "#fff",
-            }}
-          >
-            <Text
-              style={{
-                textAlign: "center",
-                color: history === (i === 1) ? "#fff" : C.blue,
-                fontWeight: "600",
-              }}
-            >
-              {label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+      {history && (
+        <>
+          <Select
+            label="Doctor"
+            placeholder="All doctors"
+            value={doctorFilter}
+            onChange={setDoctorFilter}
+            options={[
+              { label: "All doctors", value: "" },
+              ...doctors.map((doctor) => ({
+                label: doctor.name,
+                value: doctor._id,
+              })),
+            ]}
+          />
+          <Select
+            label="Date"
+            placeholder="All dates"
+            value={dateFilter}
+            onChange={setDateFilter}
+            options={[
+              { label: "All dates", value: "" },
+              ...[...new Set(items.map((item) => item.date))]
+                .sort()
+                .reverse()
+                .map((date) => ({ label: date, value: date })),
+            ]}
+          />
+        </>
+      )}
       {loading && <ActivityIndicator color={C.blue} />}
       <ErrorMessage message={error} />
       {!!error && !cancel && (
@@ -105,23 +159,48 @@ export default function AppointmentsScreen() {
       {!loading && !error && !visible.length && (
         <Notice>
           {history
-            ? "No past or cancelled appointments."
-            : "You have no upcoming appointments."}
+            ? "No appointments match these filters."
+            : "You have no appointments today."}
         </Notice>
       )}
       {visible.map((item) => (
         <View key={item._id} style={{ marginBottom: 20 }}>
           <AppointmentCard appointment={item} />
-          {isUpcoming(item) && (
+          {item.status === "confirmed" && (
+            <Button
+              title="View Queue"
+              outline
+              onPress={() =>
+                router.push({
+                  pathname: "/patient/queue",
+                  params: { appointmentId: item._id },
+                })
+              }
+              style={{ marginTop: 9 }}
+            />
+          )}
+          {isUpcoming(item) && !!item.createdAt && now < new Date(item.createdAt).getTime() + 30 * 60_000 && (
+            <>
+            <Text style={[s.body, { marginTop: 10 }]}>Cancellation time remaining</Text>
+            <Text translate={false} style={s.body}>{Math.max(0, Math.ceil((new Date(item.createdAt).getTime() + 30 * 60_000 - now) / 60_000))} min</Text>
             <Button
               title="Cancel Appointment"
               outline
               onPress={() => setCancel(item)}
               style={{ marginTop: 9 }}
             />
+            </>
           )}
         </View>
       ))}
+      {!history && (
+        <Button
+          title="Appointment History"
+          outline
+          onPress={() => router.push("/patient/appointment-history")}
+          style={{ marginTop: 12 }}
+        />
+      )}
       <Button
         title="Book Appointment"
         onPress={() => router.push("/patient/book")}
@@ -139,6 +218,7 @@ export default function AppointmentsScreen() {
               This will release your reserved time. You can book another
               appointment afterwards.
             </Text>
+            <Text style={s.body}>You can cancel within 30 minutes of booking, before your appointment starts.</Text>
             <ErrorMessage message={error} />
             <Button
               title="Yes, cancel appointment"
@@ -157,4 +237,8 @@ export default function AppointmentsScreen() {
       </Modal>
     </Screen>
   );
+}
+
+export function PatientAppointmentHistoryScreen() {
+  return <AppointmentsScreen history />;
 }

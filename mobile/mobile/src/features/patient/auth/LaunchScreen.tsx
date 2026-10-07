@@ -4,6 +4,7 @@ import { Image, Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { Storage, type UserPath } from "@/utils/storage";
 import { assets, Button, C, ErrorMessage, Leaves, s, Wave } from "../shared/ui";
+import { LanguagePicker } from "./LanguagePicker";
 import { HeartMark } from "../shared/icons";
 export default function LaunchScreen() {
   const [error, setError] = useState("");
@@ -12,6 +13,7 @@ export default function LaunchScreen() {
     if (navigated.current) return;
     try {
       await Storage.clearSession();
+      await Storage.clearNurseSession();
       const path = await Storage.getUserPath();
       navigated.current = true;
       router.replace(
@@ -60,6 +62,7 @@ export default function LaunchScreen() {
         </Pressable>
         <ErrorMessage message={error} />
       </View>
+      <LanguagePicker />
     </View>
   );
 }
@@ -121,12 +124,12 @@ function ChoiceLayout({
         <Text
           style={[
             s.title,
-            { fontSize: 28, textAlign: "center", marginBottom: 46 },
+            { fontSize: 28, textAlign: "center", marginBottom: 46, paddingHorizontal: 20 },
           ]}
         >
           {title}
         </Text>
-        <View style={{ alignSelf: "center", width: "60%" }}>
+        <View style={{ alignSelf: "center", width: "80%", maxWidth: 330 }}>
           <View
             pointerEvents="none"
             style={{ position: "absolute", alignSelf: "center", top: -20 }}
@@ -136,6 +139,7 @@ function ChoiceLayout({
           {children}
         </View>
       </View>
+      <LanguagePicker />
     </View>
   );
 }
@@ -154,7 +158,7 @@ export function StaffHandoffScreen() {
       >
         OR
       </Text>
-      <Button title="Nurse" arrow onPress={() => setRole("Nurse")} />
+      <Button title="Nurse" arrow onPress={() => router.replace("/nurse/login")} />
       {!!role && (
         <Text
           style={[

@@ -8,6 +8,15 @@ const schema = new Schema(
       unique: true,
     },
     fullName: { type: String, required: true },
+    profileImage: { type: String, default: null },
+    medicalDetails: {
+      type: new Schema({
+        bloodGroup: { type: String, enum: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"], default: null },
+        heightCm: { type: Number, min: 30, max: 300, default: null },
+        weightKg: { type: Number, min: 1, max: 700, default: null },
+      }, { _id: false }),
+      default: () => ({}),
+    },
     nic: { type: String, required: true, unique: true },
     dateOfBirth: { type: String, required: true },
     gender: { type: String, enum: ["Male", "Female", "Other"], required: true },
@@ -50,6 +59,8 @@ export function publicPatient(patient: any) {
     _id,
     patientId,
     fullName,
+    profileImage,
+    medicalDetails,
     nic,
     dateOfBirth,
     gender,
@@ -61,6 +72,12 @@ export function publicPatient(patient: any) {
   } = patient;
   return {
     id: String(_id),
+    profileImage: profileImage || null,
+    medicalDetails: {
+      bloodGroup: medicalDetails?.bloodGroup ?? null,
+      heightCm: medicalDetails?.heightCm ?? null,
+      weightKg: medicalDetails?.weightKg ?? null,
+    },
     patientId,
     fullName,
     nic,

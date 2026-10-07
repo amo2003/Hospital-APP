@@ -34,6 +34,7 @@ export default function GoogleSignInButton({
       // Keep the module unloaded in Expo Go, where its native implementation is absent.
       // @ts-ignore
       const { GoogleSignin, isSuccessResponse, isErrorWithCode, statusCodes } =
+        // eslint-disable-next-line import/no-unresolved
         // @ts-ignore
         await import("@react-native-google-signin/google-signin");
       try {

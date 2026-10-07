@@ -62,6 +62,13 @@ export default function QueueHubScreen() {
         >
           <Text style={styles.startBtnText}>Start Live Queue Walkthrough</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.startBtn, { backgroundColor: '#0066cc', marginTop: 10 }]}
+          onPress={() => router.push('/launch' as any)}
+        >
+          <Text style={styles.startBtnText}>Go to Doctor, Nurse & Patient Portal</Text>
+        </TouchableOpacity>
       </ScrollView>
 
       <BottomTabs active="notifications" />

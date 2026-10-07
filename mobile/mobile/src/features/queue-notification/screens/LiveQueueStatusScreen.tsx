@@ -1,8 +1,8 @@
+import { Text } from "../../patient/i18n/LanguageProvider";
 import React, { useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -70,8 +70,8 @@ export function LiveQueueStatusScreen() {
             <View style={[styles.progressFill, { width: '68%' }]} />
           </View>
           <View style={styles.progressLabels}>
-            <Text style={styles.progressLabelLeft}>{nowServing} now serving</Text>
-            <Text style={styles.progressLabelRight}>{myToken} yours</Text>
+            <Text style={styles.progressLabelLeft}>{nowServing} <Text>now serving</Text></Text>
+            <Text style={styles.progressLabelRight}>{myToken} <Text>yours</Text></Text>
           </View>
         </View>
 
@@ -206,10 +206,13 @@ const styles = StyleSheet.create({
   },
   waitRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
     justifyContent: 'space-between',
     alignItems: 'flex-end',
   },
   waitBigNumber: {
+    flexShrink: 1,
     color: '#0e2b4d',
     fontSize: 22,
     fontWeight: '700',
@@ -240,13 +243,17 @@ const styles = StyleSheet.create({
   },
   progressLabels: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
     justifyContent: 'space-between',
   },
   progressLabelLeft: {
+    flexShrink: 1,
     color: '#65809f',
     fontSize: 12,
   },
   progressLabelRight: {
+    flexShrink: 1,
     color: '#65809f',
     fontSize: 12,
   },
@@ -267,6 +274,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   outlineButtonText: {
+    textAlign: 'center',
+    paddingHorizontal: 6,
+    flexShrink: 1,
     color: '#0e2b4d',
     fontSize: 14,
     fontWeight: '700',
@@ -280,6 +290,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   filledButtonText: {
+    textAlign: 'center',
+    paddingHorizontal: 6,
+    flexShrink: 1,
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '700',

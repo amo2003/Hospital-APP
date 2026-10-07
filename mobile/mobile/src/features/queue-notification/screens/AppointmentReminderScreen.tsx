@@ -1,8 +1,8 @@
+import { Text } from "../../patient/i18n/LanguageProvider";
 import React from 'react';
 import {
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -40,7 +40,7 @@ export function AppointmentReminderScreen() {
 
           <Text style={styles.cardDeptTitle}>General OPD</Text>
           <Text style={styles.doctorName}>Dr. Priya Sharma</Text>
-          <Text style={styles.dateTimeText}>20 September 2026 • 10:00 AM</Text>
+          <Text style={styles.dateTimeText}><Text>20 September 2026</Text> • <Text>10:00 AM</Text></Text>
           <Text style={styles.tokenRoomText}>Token A-019 • Room 03</Text>
         </View>
 
@@ -204,6 +204,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   statusBoldText: {
+    flexShrink: 1,
     fontSize: 13,
     fontWeight: '700',
     color: '#0e2b4d',
@@ -235,6 +236,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionBtnText: {
+    textAlign: 'center',
+    paddingHorizontal: 6,
+    flexShrink: 1,
     color: '#0e2b4d',
     fontSize: 14,
     fontWeight: '700',

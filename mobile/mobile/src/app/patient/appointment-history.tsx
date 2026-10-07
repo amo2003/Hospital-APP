@@ -1,1 +1,1 @@
-export { AppointmentHistoryScreen as default } from '@/features/queue-notification';
+export { PatientAppointmentHistoryScreen as default } from '@/features/patient/booking/AppointmentsScreen';
