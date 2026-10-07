@@ -15,6 +15,7 @@ import { Patient } from "../src/patient/auth/patient.model.js";
 import {
   Appointment,
   Doctor,
+  DoctorQueueCounter,
   Hospital,
   QueueCounter,
   QueueEntry,
@@ -59,7 +60,7 @@ before(async () => {
     replSet: { count: 1 },
   });
   await mongoose.connect(db.getUri());
-  await Promise.all([Patient.init(), Appointment.init(), Nurse.init(), QueueEntry.init(), QueueCounter.init()]);
+  await Promise.all([Patient.init(), Appointment.init(), DoctorQueueCounter.init(), Nurse.init(), QueueEntry.init(), QueueCounter.init()]);
   const hospital = await Hospital.create({
     name: "Test OPD",
     departments: ["General Medicine"],
@@ -369,6 +370,25 @@ test("profile photo uploads persist, normalize, stay private, and can be removed
   const removed = await request(app).patch("/api/patient/profile").auth(token, { type: "bearer" }).send({ profileImage: null }).expect(200);
   assert.equal(removed.body.profileImage, null);
 });
+test("patient medical details persist privately, reject invalid values, and can be cleared", async () => {
+  const medicalDetails = { bloodGroup: "O+", heightCm: 170.5, weightKg: 65.2 };
+  const saved = await request(app).patch("/api/patient/profile").auth(token, { type: "bearer" }).send({ medicalDetails }).expect(200);
+  assert.deepEqual(saved.body.medicalDetails, medicalDetails);
+  const loaded = await request(app).get("/api/patient/profile").auth(token, { type: "bearer" }).expect(200);
+  assert.deepEqual(loaded.body.medicalDetails, medicalDetails);
+  const other = await request(app).get("/api/patient/profile").auth(otherToken, { type: "bearer" }).expect(200);
+  assert.equal(other.body.medicalDetails.heightCm, null);
+  await request(app).patch("/api/patient/profile").send({ medicalDetails }).expect(401);
+  for (const change of [{ bloodGroup: "X+" }, { heightCm: 0 }, { weightKg: 701 }, { bmi: 22 }]) {
+    await request(app).patch("/api/patient/profile").auth(token, { type: "bearer" }).send({ medicalDetails: { ...medicalDetails, ...change } }).expect(400);
+  }
+  const unchanged = await request(app).get("/api/patient/profile").auth(token, { type: "bearer" }).expect(200);
+  assert.deepEqual(unchanged.body.medicalDetails, medicalDetails);
+  const empty = { bloodGroup: null, heightCm: null, weightKg: null };
+  const cleared = await request(app).patch("/api/patient/profile").auth(token, { type: "bearer" }).send({ medicalDetails: empty }).expect(200);
+  assert.deepEqual(cleared.body.medicalDetails, empty);
+});
+
 test("nurse registration and authentication are separate from patient JWTs", async () => {
   const additionalHospital = await Hospital.create({
     name: "ZZZ Additional Active Hospital",
@@ -418,10 +438,20 @@ test("catalogue, date validation and server-owned slot validation", async () => 
     .get("/api/patient/booking/hospitals")
     .auth(token, { type: "bearer" })
     .expect(200);
-  await request(app)
+  const availability = await request(app)
     .get(`/api/patient/booking/slots?doctorId=${doctorId}&date=${date}`)
     .auth(token, { type: "bearer" })
     .expect(200);
+  assert.deepEqual(availability.body.map((slot: { time: string }) => slot.time), [
+    "09:00", "09:15", "09:30", "09:45",
+    "17:00", "17:15", "17:30", "17:45", "18:00", "18:15", "18:30", "18:45",
+  ]);
+  for (const time of ["08:45", "09:10", "10:00", "16:45", "19:00"]) {
+    await request(app).post("/api/patient/booking/appointments")
+      .auth(token, { type: "bearer" })
+      .send({ hospitalId, doctorId, department: "General Medicine", date, time })
+      .expect(400);
+  }
   assert.throws(() => validateBookingDate("2026-02-31"));
   await request(app)
     .post("/api/patient/booking/appointments")
@@ -535,7 +565,7 @@ test("full end-to-end appointment -> auto token -> waiting -> digital queue -> c
       doctorId,
       department: "General Medicine",
       date,
-      time: "10:00",
+      time: "17:15",
     })
     .expect(201);
 
@@ -544,7 +574,7 @@ test("full end-to-end appointment -> auto token -> waiting -> digital queue -> c
   assert.equal(bookRes.body.status, "confirmed");
   assert.equal(bookRes.body.department, "General Medicine");
   assert.equal(bookRes.body.date, date);
-  assert.equal(bookRes.body.time, "10:00");
+  assert.equal(bookRes.body.time, "17:15");
 
   // 2. VERIFY AUTO QUEUE CREATION IN DATABASE
   const savedAppt = await Appointment.findById(newApptId);
@@ -669,7 +699,7 @@ test("full end-to-end appointment -> auto token -> waiting -> digital queue -> c
       doctorId,
       department: "General Medicine",
       date,
-      time: "11:00",
+      time: "09:15",
     })
     .expect(201);
 
