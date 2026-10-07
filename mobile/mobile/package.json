@@ -55,7 +55,9 @@
     "typecheck": "tsc --noEmit",
     "test:ui": "node scripts/ui-smoke.cjs",
     "test:google": "node scripts/google-auth-smoke.cjs",
-    "test:validation": "node scripts/validation-smoke.cjs"
+    "test:validation": "node scripts/validation-smoke.cjs",
+    "test:languages": "node scripts/language-smoke.cjs",
+    "test:profile": "node scripts/profile-smoke.cjs"
   },
   "private": true
 }
