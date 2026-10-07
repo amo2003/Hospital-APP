@@ -142,6 +142,8 @@ export const api = {
     request<PatientNotificationRecord[]>("/notifications"),
   markNotificationRead: (id: string) =>
     request<PatientNotificationRecord>(`/notifications/${id}/read`, "PATCH"),
+  deleteNotification: (id: string) =>
+    request<void>(`/notifications/${id}`, "DELETE"),
   book: (data: {
     hospitalId: string;
     department: string;

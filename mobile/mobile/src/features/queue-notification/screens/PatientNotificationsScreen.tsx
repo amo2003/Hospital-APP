@@ -12,7 +12,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { QueueHeader } from '../components/QueueHeader';
 import { QueueBottomWaves } from '../components/QueueBottomWaves';
 import { ScreenSwitcher } from '../components/ScreenSwitcher';
-import { BottomTabs } from '@/features/patient/shared/ui';
+import { BottomTabs, notifyNotificationChange } from '@/features/patient/shared/ui';
 import { api, messageOf } from '@/features/patient/shared/api';
 import type { PatientNotificationRecord } from '../types';
 
@@ -122,7 +122,13 @@ export function PatientNotificationsScreen() {
               style={[styles.card, !item.read && styles.unreadCard]}
               activeOpacity={0.8}
               onPress={() => {
-                void api.markNotificationRead(item._id);
+                if (!item.read) {
+                  setNotifications((current) => current.map((notification) =>
+                    notification._id === item._id ? { ...notification, read: true } : notification,
+                  ));
+                  notifyNotificationChange();
+                  void api.markNotificationRead(item._id);
+                }
                 if (item.action === 'appointment-reminder') router.push('/patient/appointment-reminder' as any);
                 else if (item.action === 'queue') router.push('/patient/queue' as any);
               }}
@@ -138,6 +144,18 @@ export function PatientNotificationsScreen() {
                 </View>
                 <Text style={styles.cardBody}>{item.description}</Text>
               </View>
+              <TouchableOpacity
+                accessibilityLabel="Delete notification"
+                onPress={() => {
+                  void api.deleteNotification(item._id).then(() => {
+                    setNotifications((current) => current.filter((notification) => notification._id !== item._id));
+                    notifyNotificationChange();
+                  });
+                }}
+                style={styles.deleteButton}
+              >
+                <Text style={styles.deleteButtonText}>Delete</Text>
+              </TouchableOpacity>
             </TouchableOpacity>
           ))}
         </View>
@@ -262,6 +280,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#526e8d',
     lineHeight: 17,
+  },
+  deleteButton: {
+    marginLeft: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+  },
+  deleteButtonText: {
+    color: '#b42318',
+    fontSize: 10,
+    fontWeight: '700',
   },
   emptyText: {
     color: '#65809f',
