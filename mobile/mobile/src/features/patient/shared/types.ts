@@ -21,7 +21,8 @@ export type Doctor = {
   name: string;
   specialty: string;
   weekdays: number[];
-  hospitalId: string;
+  hospitalId: string | { _id: string; name: string };
+  hospitalName?: string;
 };
 export type Appointment = {
   _id: string;

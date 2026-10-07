@@ -19,7 +19,10 @@ export const Doctor = mongoose.model(
       required: true,
     },
     weekdays: [Number],
-    slots: [String],
+    slots: {
+      type: [String],
+      default: () => ["09:00", "10:00", "12:00", "16:00", "18:00"],
+    },
     active: { type: Boolean, default: true },
   }),
 );

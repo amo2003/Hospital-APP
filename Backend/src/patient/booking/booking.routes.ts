@@ -14,9 +14,9 @@ bookingRoutes.get("/doctors", async (req, res) => {
     .object({ hospitalId: objectId, department: z.string().min(1).max(100) })
     .parse(req.query);
   res.json(
-    await Doctor.find({ hospitalId, specialty: department, active: true }).sort(
-      { name: 1 },
-    ),
+    await Doctor.find({ hospitalId, specialty: department, active: true })
+      .populate("hospitalId", "name")
+      .sort({ name: 1 }),
   );
 });
 bookingRoutes.get("/slots", async (req, res) => {

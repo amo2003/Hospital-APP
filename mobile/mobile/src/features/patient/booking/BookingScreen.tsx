@@ -285,7 +285,12 @@ export default function BookingScreen() {
                     {d.name}
                   </Text>
                   <Text style={[s.body, { fontSize: 11 }]}>{d.specialty}</Text>
-                  <Text style={{ color: C.muted, fontSize: 10 }}>
+                  <Text style={{ color: C.navy, fontSize: 11, fontWeight: "500", marginTop: 1 }}>
+                    {typeof d.hospitalId === "object" && d.hospitalId?.name
+                      ? d.hospitalId.name
+                      : d.hospitalName || hospital?.name || "Hospital not available"}
+                  </Text>
+                  <Text style={{ color: C.muted, fontSize: 10, marginTop: 2 }}>
                     {d.weekdays
                       .map(
                         (day) =>
