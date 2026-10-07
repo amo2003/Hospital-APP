@@ -29,6 +29,12 @@ export default function AppointmentsScreen({
   const [doctorFilter, setDoctorFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [retry, setRetry] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+  useFocusEffect(useCallback(() => {
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []));
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -173,13 +179,17 @@ export default function AppointmentsScreen({
               style={{ marginTop: 9 }}
             />
           )}
-          {isUpcoming(item) && (
+          {isUpcoming(item) && !!item.createdAt && now < new Date(item.createdAt).getTime() + 30 * 60_000 && (
+            <>
+            <Text style={[s.body, { marginTop: 10 }]}>Cancellation time remaining</Text>
+            <Text translate={false} style={s.body}>{Math.max(0, Math.ceil((new Date(item.createdAt).getTime() + 30 * 60_000 - now) / 60_000))} min</Text>
             <Button
               title="Cancel Appointment"
               outline
               onPress={() => setCancel(item)}
               style={{ marginTop: 9 }}
             />
+            </>
           )}
         </View>
       ))}
@@ -208,6 +218,7 @@ export default function AppointmentsScreen({
               This will release your reserved time. You can book another
               appointment afterwards.
             </Text>
+            <Text style={s.body}>You can cancel within 30 minutes of booking, before your appointment starts.</Text>
             <ErrorMessage message={error} />
             <Button
               title="Yes, cancel appointment"

@@ -41,6 +41,8 @@ export type Doctor = {
   weekdays: number[];
   hospitalId: string | { _id: string; name: string };
   hospitalName?: string;
+  feeLkr?: number;
+  paymentInstructions?: string;
 };
 export type Appointment = {
   _id: string;
@@ -51,6 +53,8 @@ export type Appointment = {
   date: string;
   time: string;
   doctorQueueNumber?: number;
+  createdAt?: string;
+  payment?: { amountLkr: number; status: "not_required" | "pending" | "approved"; reviewedAt?: string };
   status: "confirmed" | "cancelled" | "completed";
   doctorDecision?: "pending" | "accepted" | "rejected";
 };
