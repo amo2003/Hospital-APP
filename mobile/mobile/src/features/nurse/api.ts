@@ -59,7 +59,12 @@ export const nurseApi = {
   logout: () => request<void>("/auth/logout", "POST"),
   patients: (q = "", status = "all") => request<NursePatient[]>(`/patients?q=${encodeURIComponent(q)}&status=${status}`),
   patient: (patientId: string) => request<NursePatient>(`/patients/${encodeURIComponent(patientId)}`),
-  queue: (date?: string) => request<{ date: string; entries: NurseQueueEntry[] }>(`/queue${date ? `?date=${encodeURIComponent(date)}` : ""}`),
+  queue: (date?: string, allDepartments = false) => {
+    const query = [date ? `date=${encodeURIComponent(date)}` : "", allDepartments ? "allDepartments=true" : ""].filter(Boolean).join("&");
+    return request<{ date: string; entries: NurseQueueEntry[] }>(`/queue${query ? `?${query}` : ""}`);
+  },
+  callNext: () => request<NurseQueueEntry>("/queue/call-next", "POST"),
+  completeQueue: (id: string) => request<NurseQueueEntry>(`/queue/${encodeURIComponent(id)}/complete`, "PATCH"),
   cancelQueue: (id: string) => request<{ id: string; token: string; status: string }>(`/queue/${encodeURIComponent(id)}/cancel`, "PATCH"),
 };
 
