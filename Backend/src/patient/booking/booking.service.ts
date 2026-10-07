@@ -1,4 +1,11 @@
 import { ApiError } from "../shared/errors.js";
+// OPD sessions use 15-minute appointments; closing times are not start times.
+// Shared by availability and booking validation, including existing doctors.
+export const OPD_SLOTS = [9, 17, 18].flatMap((hour) =>
+  [0, 15, 30, 45].map(
+    (minute) => `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+  ),
+);
 export const localToday = () =>
   new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Colombo",
