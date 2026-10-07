@@ -35,6 +35,7 @@ async function main() {
       const req = route.request();
       const url = new URL(req.url()).pathname;
       let body = [];
+      if (url.endsWith("/queue")) body = null;
       let status = req.method() === "OPTIONS" ? 204 : 200;
       if (url.endsWith("/auth/login")) body = { token: "test-token", patient };
       if (url.endsWith("/profile")) {
