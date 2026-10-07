@@ -64,6 +64,8 @@ async function main() {
         hospitalId: hospital,
         doctorQueueNumber: 1,
         status: "confirmed",
+        createdAt: new Date().toISOString(),
+        payment: { amountLkr: 0, status: "not_required" },
       };
       appointments.push(result);
       status = 201;
@@ -184,8 +186,10 @@ async function main() {
     await page.getByRole("radio", { name: "9:15 AM", exact: true }).click();
     await shot("11-date-time");
     await page.getByRole("button", { name: "Next", exact: true }).click();
+    await expect(page.getByText("No payment required", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Next", exact: true }).click();
     await page.getByRole("button", { name: "Confirm Appointment" }).click();
-    await expect(page.getByText("Appointment Confirmed!")).toBeVisible();
+    await expect(page.getByText("Appointment booked", { exact: true })).toBeVisible();
     await shot("12-confirmed");
     await page
       .getByRole("button", { name: "Back to Home", exact: true })
