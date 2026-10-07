@@ -24,6 +24,7 @@ import { validateBookingDate } from "../src/patient/booking/booking.service.js";
 import { mailDelivery } from "../src/patient/notifications/mail.service.js";
 import { deliverNextWelcomeEmail } from "../src/patient/notifications/welcome-email.worker.js";
 import { welcomeEmail } from "../src/patient/notifications/welcome-email.js";
+import sharp from "sharp";
 let db: MongoMemoryReplSet;
 let token = "";
 let otherToken = "";
@@ -332,6 +333,41 @@ test("profile edits persist and cannot change roles or password hashes", async (
     .auth(token, { type: "bearer" })
     .send({ role: "staff" })
     .expect(400);
+});
+test("profile fields reject invalid edits and preserve the saved account", async () => {
+  for (const data of [
+    { fullName: "Patient123" }, { nic: "123456789X" }, { email: "invalid@" },
+    { phone: "123" }, { dateOfBirth: "2099-01-01" }, { dateOfBirth: "2001-02-29" },
+    { address: "a" }, { district: "Unknown" }, { gender: "invalid" },
+    { username: "changed" }, { passwordHash: "changed" },
+  ]) await request(app).patch("/api/patient/profile").auth(token, { type: "bearer" }).send(data).expect(400);
+  await request(app).patch("/api/patient/profile").auth(token, { type: "bearer" }).send({ email: "other@example.com" }).expect(409);
+  const saved = await request(app).get("/api/patient/profile").auth(token, { type: "bearer" }).expect(200);
+  assert.equal(saved.body.fullName, "Updated Patient");
+  assert.equal(saved.body.email, person.email);
+});
+test("profile photo uploads persist, normalize, stay private, and can be removed", async () => {
+  const png = await sharp({ create: { width: 400, height: 300, channels: 3, background: "#087cba" } }).png().toBuffer();
+  const profileImage = `data:image/png;base64,${png.toString("base64")}`;
+  await request(app).patch("/api/patient/profile").send({ profileImage }).expect(401);
+  const uploaded = await request(app).patch("/api/patient/profile").auth(token, { type: "bearer" }).send({ profileImage }).expect(200);
+  assert.match(uploaded.body.profileImage, /^data:image\/jpeg;base64,/);
+  const metadata = await sharp(Buffer.from(uploaded.body.profileImage.split(",")[1], "base64")).metadata();
+  assert.equal(metadata.width, 256); assert.equal(metadata.height, 256);
+  assert.equal(metadata.exif, undefined);
+  const fresh = await request(app).post("/api/patient/auth/login").send({ identifier: person.email, password: person.password }).expect(200);
+  assert.equal(fresh.body.patient.profileImage, uploaded.body.profileImage);
+  const other = await request(app).get("/api/patient/profile").auth(otherToken, { type: "bearer" }).expect(200);
+  assert.equal(other.body.profileImage, null);
+  for (const bad of ["data:image/jpeg;base64,aGVsbG8=", "data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=", profileImage.replace("image/png", "image/jpeg")])
+    await request(app).patch("/api/patient/profile").auth(token, { type: "bearer" }).send({ profileImage: bad, fullName: "Must Not Save" }).expect(400);
+  const unchanged = await request(app).get("/api/patient/profile").auth(token, { type: "bearer" }).expect(200);
+  assert.equal(unchanged.body.fullName, "Updated Patient");
+  assert.equal(unchanged.body.profileImage, uploaded.body.profileImage);
+  const oversized = `data:image/jpeg;base64,${Buffer.alloc(5 * 1024 * 1024 + 3).toString("base64")}`;
+  await request(app).patch("/api/patient/profile").auth(token, { type: "bearer" }).send({ profileImage: oversized }).expect(400);
+  const removed = await request(app).patch("/api/patient/profile").auth(token, { type: "bearer" }).send({ profileImage: null }).expect(200);
+  assert.equal(removed.body.profileImage, null);
 });
 test("nurse registration and authentication are separate from patient JWTs", async () => {
   const additionalHospital = await Hospital.create({
