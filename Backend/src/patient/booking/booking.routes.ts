@@ -104,17 +104,18 @@ bookingRoutes.post("/appointments", async (req, res) => {
     const counter = await QueueCounter.findOneAndUpdate(
       { hospitalId: data.hospitalId, date: data.date, department: data.department },
       { $inc: { sequence: 1 } },
-      { new: true, upsert: true, session, setDefaultsOnInsert: true },
+      { new: true, returnDocument: "after", upsert: true, session, setDefaultsOnInsert: true },
     );
     const prefix = data.department.replace(/[^a-z0-9]/gi, "").slice(0, 1).toUpperCase() || "Q";
+    const sequence = counter?.sequence || 1;
     await QueueEntry.create([{
       appointmentId: created._id,
       patientId: patient._id,
       hospitalId: data.hospitalId,
       department: data.department,
       date: data.date,
-      sequence: counter.sequence,
-      token: `${prefix}-${String(counter.sequence).padStart(3, "0")}`,
+      sequence,
+      token: `${prefix}-${String(sequence).padStart(3, "0")}`,
     }], { session });
     return created;
   });
