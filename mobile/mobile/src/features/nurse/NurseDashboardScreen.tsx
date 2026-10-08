@@ -128,7 +128,7 @@ export default function NurseDashboardScreen() {
         </View>
 
         {/* Search Input Button */}
-        <Pressable
+        {/*<Pressable
           onPress={() => router.push("/nurse/patients")}
           style={[
             s.inputBox,
@@ -154,7 +154,7 @@ export default function NurseDashboardScreen() {
             placeholderTextColor="#8ea4c2"
             style={[s.input, { paddingVertical: 8, fontSize: 13, color: C.navy }]}
           />
-        </Pressable>
+        </Pressable>*/}
       </LinearGradient>
 
       {/* Today's Queue Card */}

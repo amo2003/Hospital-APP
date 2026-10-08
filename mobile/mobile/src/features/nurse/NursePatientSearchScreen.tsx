@@ -11,9 +11,6 @@ import { NurseTabs } from "./NurseShared";
 
 const filters = [
   { label: "All", value: "all" },
-  { label: "Admitted", value: "confirmed" },
-  { label: "Outpatient", value: "outpatient" },
-  { label: "Discharged", value: "cancelled" },
 ] as const;
 
 export default function NursePatientSearchScreen() {

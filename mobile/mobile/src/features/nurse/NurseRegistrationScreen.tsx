@@ -8,6 +8,7 @@ import { nurseApi, nurseMessageOf } from "./api";
 import { Button, C, ErrorMessage, Field, Screen, Select, s } from "../patient/shared/ui";
 import { districts } from "../patient/auth/RegisterScreen";
 import { Icon } from "../patient/shared/icons";
+import DateField from "../patient/shared/DateField";
 
 const departments = ["General OPD", "General Medicine", "Cardiology", "Dermatology", "Paediatrics", "Emergency", "Surgical Ward"];
 const toIsoDate = (value: string) => {
@@ -83,7 +84,7 @@ export default function NurseRegistrationScreen() {
         {step === 0 ? <>
           <Field label="Full Name" icon="user" placeholder="Enter your full name" value={data.fullName} onChangeText={(v) => update("fullName", v)} autoComplete="name" />
           <Field label="Nurse ID / NIC Number" icon="id" placeholder="Enter your nurse ID or NIC" value={data.nic} onChangeText={(v) => update("nic", v)} autoCapitalize="characters" />
-          <Field label="Date of Birth" icon="calendar" placeholder="DD / MM / YYYY" value={data.dateOfBirth} onChangeText={(v) => update("dateOfBirth", v)} />
+          <DateField label="Date of Birth" value={data.dateOfBirth} onChange={(v) => update("dateOfBirth", v)} />
           <Select label="Department / Ward" icon="calendar" placeholder="Select department" value={data.department} options={departments.map((value) => ({ label: value, value }))} onChange={(v) => { update("department", v); update("ward", v); }} />
           <Text style={[s.label, { fontSize: 13, marginBottom: 7 }]}>Gender</Text>
           <View style={[s.row, { justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 8 }]}>
