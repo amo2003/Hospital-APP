@@ -117,7 +117,7 @@ export default function NurseDashboardScreen() {
           </View>
           <Pressable
             accessibilityLabel={t("Notifications")}
-            onPress={() => router.push("/nurse/digital-queue")}
+            onPress={() => router.push("/nurse/notifications")}
             style={[
               s.iconTile,
               { width: 44, height: 44, borderRadius: 22, backgroundColor: "#ffffff20" },

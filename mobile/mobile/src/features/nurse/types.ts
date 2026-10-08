@@ -57,3 +57,13 @@ export type NurseQueueEntry = {
   hospital: string;
   position: number;
 };
+
+export type NurseNotification = {
+  id: string;
+  type: "appointment" | "queue" | "general";
+  title: string;
+  description: string;
+  read: boolean;
+  createdAt: string;
+  patient: { patientId: string; fullName: string } | null;
+};

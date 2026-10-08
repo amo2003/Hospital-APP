@@ -6,8 +6,38 @@ import { Appointment, QueueEntry, QueueCounter } from "../patient/booking/bookin
 import { Patient } from "../patient/auth/patient.model.js";
 import { ApiError } from "../patient/shared/errors.js";
 import { localToday, resolveDoctorDecision } from "../patient/booking/booking.service.js";
+import { Notification } from "../patient/notifications/notification.model.js";
 
 export const nurseRoutes = Router();
+
+nurseRoutes.get("/notifications", async (req, res) => {
+  const filters = z.object({
+    type: z.enum(["all", "appointment", "queue", "general"]).default("all"),
+    read: z.enum(["all", "read", "unread"]).default("all"),
+  }).parse(req.query);
+  const query: Record<string, unknown> = {};
+  if (filters.type !== "all") query.type = filters.type;
+  if (filters.read !== "all") query.read = filters.read === "read";
+  const notifications = await Notification.find(query)
+    .populate("patientId", "patientId fullName")
+    .sort({ createdAt: -1 })
+    .limit(100)
+    .lean();
+  res.json(notifications.map((notification: any) => ({
+    id: String(notification._id),
+    type: notification.type,
+    title: notification.title,
+    description: notification.description,
+    read: notification.read,
+    createdAt: notification.createdAt,
+    patient: notification.patientId
+      ? {
+          patientId: notification.patientId.patientId,
+          fullName: notification.patientId.fullName,
+        }
+      : null,
+  })));
+});
 
 nurseRoutes.get("/profile", (req, res) => {
   res.json(publicNurse(req.nurse));
