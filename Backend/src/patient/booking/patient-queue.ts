@@ -55,6 +55,7 @@ export async function patientQueue(appointment: InstanceType<typeof Appointment>
     serverTime: new Date().toISOString(),
     patientsAhead: entries.filter((a) => a.queueNumber < own.queueNumber && (a.status === "waiting" || a.status === "serving")).length,
     nowServing: entries.find((a) => a.status === "serving")?.queueNumber ?? null,
+    estimatedWaitMinutes: entries.filter((a) => a.queueNumber < own.queueNumber && (a.status === "waiting" || a.status === "serving")).length * 5,
     // Names and persistent patient identifiers never leave the server for others.
     entries: entries.filter((a) => a.status !== "cancelled" || a.isYou),
   };

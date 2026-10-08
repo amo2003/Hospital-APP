@@ -7,6 +7,8 @@ import { Appointment } from "../booking/booking.models.js";
 import { ApiError } from "../shared/errors.js";
 import { MAX_PHOTO_TEXT, normalizeProfilePhoto } from "./profile-photo.js";
 import { medicalSchema } from "./medical.validation.js";
+import { PaymentSlip } from "../payments/payment.models.js";
+import { AppointmentEmail } from "../notifications/appointment-email.js";
 const profileSchema = personalSchema.partial().extend({
   medicalDetails: medicalSchema.optional(),
   profileImage: z.string().max(MAX_PHOTO_TEXT, "Choose a photo smaller than 5 MB.").nullable().optional(),
@@ -39,6 +41,8 @@ profileRoutes.delete("/", async (req, res) => {
   await Patient.db.transaction(async (session) => {
     await Patient.deleteOne({ _id: patient._id }, { session });
     await Appointment.deleteMany({ patientId: patient._id }, { session });
+    await PaymentSlip.deleteMany({ patientId: patient._id }, { session });
+    await AppointmentEmail.deleteMany({ patientId: patient._id }, { session });
   });
   res.sendStatus(204);
 });

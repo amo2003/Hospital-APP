@@ -1,7 +1,8 @@
 import { LanguagePicker } from "../../patient/auth/LanguagePicker";
 import { Text } from "../../patient/i18n/LanguageProvider";
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import {
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -12,38 +13,40 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { QueueHeader } from '../components/QueueHeader';
 import { QueueBottomWaves } from '../components/QueueBottomWaves';
 import { ScreenSwitcher } from '../components/ScreenSwitcher';
-import { BottomTabs } from '@/features/patient/shared/ui';
-import type { DoctorAlertItem } from '../types';
-
-const DOCTOR_ALERTS: DoctorAlertItem[] = [
-  {
-    id: 'da1',
-    type: 'checkin',
-    title: 'Patient Check-in',
-    time: '9:20 AM',
-    description: 'Patient A-020 has checked in. Appointment 10:15 AM',
-    iconType: 'dot',
-  },
-  {
-    id: 'da2',
-    type: 'queue',
-    title: 'Queue Alert',
-    time: '8:45 AM',
-    description: 'Queue is growing quickly. 12 patients waiting.',
-    iconType: 'queue',
-  },
-  {
-    id: 'da3',
-    type: 'schedule',
-    title: 'Schedule Change',
-    time: 'Yesterday',
-    description: 'Morning clinic starts 15 min late. Schedule updated.',
-    iconType: 'schedule',
-  },
-];
+import { doctorApi, type DoctorNotification } from '@/features/doctor/shared/doctorApi';
+import { useFocusEffect } from 'expo-router';
 
 export function DoctorNotificationsScreen() {
-  const renderIcon = (type: DoctorAlertItem['iconType']) => {
+  const [alerts, setAlerts] = useState<DoctorNotification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      const load = () => doctorApi.getNotifications()
+        .then((result) => {
+          if (active) {
+            setAlerts(result);
+            setError('');
+          }
+        })
+        .catch((reason) => {
+          if (active) setError(reason instanceof Error ? reason.message : 'Could not load doctor notifications.');
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+      setLoading(true);
+      void load();
+      const timer = setInterval(load, 15000);
+      return () => {
+        active = false;
+        clearInterval(timer);
+      };
+    }, []),
+  );
+
+  const renderIcon = (type: DoctorNotification['iconType']) => {
     switch (type) {
       case 'dot':
         return (
@@ -84,7 +87,12 @@ export function DoctorNotificationsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.listContainer}>
-          {DOCTOR_ALERTS.map((item) => (
+          {loading && <ActivityIndicator color="#0c3564" />}
+          {!!error && <Text style={styles.emptyText}>{error}</Text>}
+          {!loading && !error && alerts.length === 0 && (
+            <Text style={styles.emptyText}>No doctor notifications for today.</Text>
+          )}
+          {alerts.map((item) => (
             <View key={item.id} style={styles.card}>
               <View style={styles.iconCircle}>
                 {renderIcon(item.iconType)}
@@ -93,7 +101,7 @@ export function DoctorNotificationsScreen() {
               <View style={styles.cardContent}>
                 <View style={styles.cardHeader}>
                   <Text style={styles.cardTitle}>{item.title}</Text>
-                  <Text style={styles.cardTime}>{item.time}</Text>
+                  <Text style={styles.cardTime}>{new Date(item.time).toLocaleTimeString()}</Text>
                 </View>
                 <Text style={styles.cardBody}>{item.description}</Text>
               </View>
@@ -105,7 +113,7 @@ export function DoctorNotificationsScreen() {
         <View style={styles.actionsRow}>
           <TouchableOpacity
             style={styles.filledButton}
-            onPress={() => router.push('/patient/appointment-history' as any)}
+            onPress={() => router.push('/doctor/appointments')}
             activeOpacity={0.7}
           >
             <Text style={styles.filledButtonText}>Appointment Schedule</Text>
@@ -113,7 +121,7 @@ export function DoctorNotificationsScreen() {
 
           <TouchableOpacity
             style={styles.outlineButton}
-            onPress={() => router.push('/patient/queue' as any)}
+            onPress={() => router.push('/doctor/patients')}
             activeOpacity={0.7}
           >
             <Text style={styles.outlineButtonText}>Patient List</Text>
@@ -124,7 +132,6 @@ export function DoctorNotificationsScreen() {
       {/* Decorative Wave & Bottom Tabs */}
       <QueueBottomWaves />
       <LanguagePicker />
-      <BottomTabs active="notifications" />
     </View>
   );
 }
@@ -192,6 +199,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#526e8d',
     lineHeight: 18,
+  },
+  emptyText: {
+    color: '#65809f',
+    fontSize: 13,
+    textAlign: 'center',
+    paddingVertical: 24,
   },
   actionsRow: {
     flexDirection: 'row',

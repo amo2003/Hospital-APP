@@ -108,6 +108,8 @@ let pendingAction = null; // { type: "doctor" | "nurse", ... }
 
 // ──────────────── VIEW NAVIGATION ────────────────
 function showLogin() {
+  const paymentScreen = document.getElementById("paymentsView");
+  if (paymentScreen) paymentScreen.style.display = "none";
   loginView.style.display = "flex";
   dashboardView.style.display = "none";
   approvalsView.style.display = "none";
@@ -116,6 +118,8 @@ function showLogin() {
 }
 
 function showDashboard() {
+  const paymentScreen = document.getElementById("paymentsView");
+  if (paymentScreen) paymentScreen.style.display = "none";
   loginView.style.display = "none";
   dashboardView.style.display = "flex";
   approvalsView.style.display = "none";
@@ -125,6 +129,8 @@ function showDashboard() {
 }
 
 function showApprovals(tab = "pending") {
+  const paymentScreen = document.getElementById("paymentsView");
+  if (paymentScreen) paymentScreen.style.display = "none";
   loginView.style.display = "none";
   dashboardView.style.display = "none";
   approvalsView.style.display = "flex";
@@ -134,6 +140,8 @@ function showApprovals(tab = "pending") {
 }
 
 function showNurses(tab = "pending") {
+  const paymentScreen = document.getElementById("paymentsView");
+  if (paymentScreen) paymentScreen.style.display = "none";
   loginView.style.display = "none";
   dashboardView.style.display = "none";
   approvalsView.style.display = "none";
@@ -143,6 +151,8 @@ function showNurses(tab = "pending") {
 }
 
 function showReports(period = "daily") {
+  const paymentScreen = document.getElementById("paymentsView");
+  if (paymentScreen) paymentScreen.style.display = "none";
   loginView.style.display = "none";
   dashboardView.style.display = "none";
   approvalsView.style.display = "none";

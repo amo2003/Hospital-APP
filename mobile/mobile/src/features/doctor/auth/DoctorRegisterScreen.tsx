@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { Platform, Pressable, View } from "react-native";
-import * as DocumentPicker from "expo-document-picker";
+import { pickDocument } from "@/utils/document-picker";
 import { router } from "expo-router";
 import { Text } from "@/features/patient/i18n/LanguageProvider";
 import {
@@ -59,6 +59,7 @@ export default function DoctorRegisterScreen() {
   const fileInputRef = useRef<any>(null);
 
   async function handlePickPdf() {
+    setError("");
     if (Platform.OS === "web") {
       if (fileInputRef.current) {
         fileInputRef.current.click();
@@ -67,7 +68,7 @@ export default function DoctorRegisterScreen() {
     }
 
     try {
-      const res = await DocumentPicker.getDocumentAsync({
+      const res = await pickDocument({
         type: "application/pdf",
         copyToCacheDirectory: true,
       });
@@ -81,7 +82,7 @@ export default function DoctorRegisterScreen() {
         update("licenseUrl", name);
       }
     } catch (err) {
-      console.warn("Document picker error:", err);
+      setError(doctorMessageOf(err));
     }
   }
 

@@ -126,6 +126,16 @@ export interface DoctorAppointment {
   department: string;
 }
 
+export interface DoctorNotification {
+  id: string;
+  type: "checkin" | "queue" | "schedule";
+  title: string;
+  time: string;
+  description: string;
+  iconType: "dot" | "queue" | "schedule";
+  status: string;
+}
+
 export interface DoctorPatientItem {
   id: string;
   appointmentId: string;
@@ -238,6 +248,8 @@ export const doctorApi = {
     }>("/login", "POST", { identifier, password }, false),
 
   me: () => request<{ doctor: DoctorProfile }>("/me"),
+
+  getNotifications: () => request<DoctorNotification[]>("/notifications"),
 
   getDashboard: () => request<DoctorDashboardData>("/dashboard"),
 

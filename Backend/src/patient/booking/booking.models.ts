@@ -20,6 +20,9 @@ export const Doctor = mongoose.model(
       required: true,
     },
     weekdays: [Number],
+    feeLkr: { type: Number, min: 0, default: 0 },
+    paymentInstructions: { type: String, default: "" },
+    paymentRevision: { type: Number, default: 0 },
     slots: {
       type: [String],
       default: () => ["09:00", "10:00", "12:00", "16:00", "18:00"],
@@ -45,6 +48,14 @@ const schema = new Schema(
     date: { type: String, required: true },
     time: { type: String, required: true },
     doctorQueueNumber: { type: Number, min: 1 },
+    payment: {
+      amountLkr: { type: Number, default: 0, min: 0 },
+      status: { type: String, enum: ["not_required", "pending", "approved", "rejected"], default: "not_required" },
+      rejectionReason: { type: String, maxlength: 500 },
+      slipId: { type: Schema.Types.ObjectId, ref: "PaymentSlip" },
+      reviewedAt: Date,
+      reviewedBy: { type: Schema.Types.ObjectId, ref: "Admin" },
+    },
     status: {
       type: String,
       enum: ["confirmed", "cancelled", "completed"],

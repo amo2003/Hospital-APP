@@ -10,6 +10,7 @@ import {
   C,
   ErrorMessage,
   Notice,
+  NotificationBell,
   Screen,
   Wave,
   s,
@@ -52,7 +53,7 @@ export default function HomeScreen() {
             accessibilityLabel="Notifications"
             onPress={() => router.push("/patient/notifications")}
           >
-            <Icon name="bell" color="#fff" size={29} />
+            <NotificationBell color="#fff" size={29} />
           </Pressable>
         </View>
         <View style={[s.row, { justifyContent: "space-between" }]}>

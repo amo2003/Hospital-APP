@@ -229,7 +229,7 @@ export default function DoctorAppointmentsScreen() {
             accessibilityRole="button"
             accessibilityLabel="Notifications"
             style={styles.bellBtn}
-            onPress={() => {}}
+            onPress={() => router.push("/doctor/notifications")}
           >
             <Icon name="bell" color="#102e57" size={20} />
             {counts.waiting > 0 && <View style={styles.bellBadgeDot} />}
@@ -572,7 +572,7 @@ export default function DoctorAppointmentsScreen() {
         <Pressable
           accessibilityRole="button"
           style={styles.tabItem}
-          onPress={() => {}}
+          onPress={() => router.push("/doctor/notifications")}
         >
           <Icon name="bell" color={C.muted} size={20} />
           <Text style={styles.tabLabel}>Notifications</Text>

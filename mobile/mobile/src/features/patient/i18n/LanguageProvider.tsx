@@ -11,11 +11,15 @@ import { translations } from "./translations";
 import { nurseTranslations } from "../../nurse/translations";
 import { queueTranslations } from "../../queue-notification/translations";
 import { profileTranslations } from "../profile/translations";
+import { paymentTranslations } from "../payments/translations";
+import { doctorTranslations } from "../../doctor/translations";
 const dictionary = {
   ...translations,
   ...nurseTranslations,
   ...queueTranslations,
   ...profileTranslations,
+  ...paymentTranslations,
+  ...doctorTranslations,
 };
 export type Language = "en" | "si" | "ta";
 const KEY = "@careplus/language";

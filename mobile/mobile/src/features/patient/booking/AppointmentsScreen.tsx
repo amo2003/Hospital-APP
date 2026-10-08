@@ -1,6 +1,6 @@
 import { Text } from "../i18n/LanguageProvider";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, AppState, Modal, View } from "react-native";
+import { ActivityIndicator, AppState, Modal, Pressable, StyleSheet, View } from "react-native";
 import { useFocusEffect, router } from "expo-router";
 import { api, messageOf } from "../shared/api";
 import type { Appointment } from "../shared/types";
@@ -28,7 +28,14 @@ export default function AppointmentsScreen({
   const [cancel, setCancel] = useState<Appointment | null>(null);
   const [doctorFilter, setDoctorFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
+  const [paymentFilter, setPaymentFilter] = useState<"all" | "approved" | "rejected" | "pending">("all");
   const [retry, setRetry] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+  useFocusEffect(useCallback(() => {
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []));
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -93,9 +100,11 @@ export default function AppointmentsScreen({
   const visible = items
     .filter(
       (item) =>
-        !history ||
-        ((!doctorFilter || item.doctorId?._id === doctorFilter) &&
-          (!dateFilter || item.date === dateFilter)),
+        (!history ||
+          ((!doctorFilter || item.doctorId?._id === doctorFilter) &&
+            (!dateFilter || item.date === dateFilter))) &&
+        (paymentFilter === "all" ||
+          item.payment?.status === paymentFilter),
     )
     .sort((a, b) =>
       history
@@ -115,6 +124,30 @@ export default function AppointmentsScreen({
         title={history ? "Appointment History" : "Today's Appointments"}
         back={() => router.replace("/patient/home")}
       />
+      {/* ── Payment status filter pills ── */}
+      <View style={pf.row}>
+        {(
+          [
+            { key: "all",      label: "All" },
+            { key: "approved", label: "Approved" },
+            { key: "pending",  label: "Pending" },
+            { key: "rejected", label: "Rejected" },
+          ] as const
+        ).map(({ key, label }) => (
+          <Pressable
+            key={key}
+            onPress={() => setPaymentFilter(key)}
+            style={[pf.pill, paymentFilter === key && pf[`pill_${key}`]]}
+          >
+            <Text
+              translate={false}
+              style={[pf.pillText, paymentFilter === key && pf[`pillText_${key}`]]}
+            >
+              {label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
       {history && (
         <>
           <Select
@@ -173,13 +206,17 @@ export default function AppointmentsScreen({
               style={{ marginTop: 9 }}
             />
           )}
-          {isUpcoming(item) && (
+          {isUpcoming(item) && !!item.createdAt && now < new Date(item.createdAt).getTime() + 30 * 60_000 && (
+            <>
+            <Text style={[s.body, { marginTop: 10 }]}>Cancellation time remaining</Text>
+            <Text translate={false} style={s.body}>{Math.max(0, Math.ceil((new Date(item.createdAt).getTime() + 30 * 60_000 - now) / 60_000))} min</Text>
             <Button
               title="Cancel Appointment"
               outline
               onPress={() => setCancel(item)}
               style={{ marginTop: 9 }}
             />
+            </>
           )}
         </View>
       ))}
@@ -208,6 +245,7 @@ export default function AppointmentsScreen({
               This will release your reserved time. You can book another
               appointment afterwards.
             </Text>
+            <Text style={s.body}>You can cancel within 30 minutes of booking, before your appointment starts.</Text>
             <ErrorMessage message={error} />
             <Button
               title="Yes, cancel appointment"
@@ -231,3 +269,46 @@ export default function AppointmentsScreen({
 export function PatientAppointmentHistoryScreen() {
   return <AppointmentsScreen history />;
 }
+
+const pf = StyleSheet.create({
+  row: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  pill: {
+    flex: 1,
+    paddingVertical: 7,
+    borderRadius: 20,
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: C.line,
+    backgroundColor: C.white,
+  },
+  pill_all: {
+    backgroundColor: C.navy,
+    borderColor: C.navy,
+  },
+  pill_approved: {
+    backgroundColor: "#16a34a",
+    borderColor: "#16a34a",
+  },
+  pill_pending: {
+    backgroundColor: "#b45309",
+    borderColor: "#b45309",
+  },
+  pill_rejected: {
+    backgroundColor: "#dc2626",
+    borderColor: "#dc2626",
+  },
+  pillText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: C.muted,
+  },
+  pillText_all: { color: C.white },
+  pillText_approved: { color: "#fff" },
+  pillText_pending: { color: "#fff" },
+  pillText_rejected: { color: "#fff" },
+});

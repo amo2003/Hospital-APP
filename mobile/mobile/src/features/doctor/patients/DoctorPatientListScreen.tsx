@@ -199,7 +199,7 @@ export default function DoctorPatientListScreen() {
             accessibilityRole="button"
             accessibilityLabel="Notifications"
             style={styles.bellBtn}
-            onPress={() => {}}
+            onPress={() => router.push("/doctor/notifications")}
           >
             <Icon name="bell" color="#102e57" size={20} />
             {counts.waiting > 0 && <View style={styles.bellBadgeDot} />}
