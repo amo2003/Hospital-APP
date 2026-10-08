@@ -1,14 +1,16 @@
+import { assignApprovedQueue } from "../patient/booking/patient-queue.js";
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
 import { DoctorAccount, ClinicalNote, publicDoctor } from "./doctor.model.js";
-import { Appointment, QueueEntry } from "../patient/booking/booking.models.js";
+import { Appointment, Hospital, QueueEntry } from "../patient/booking/booking.models.js";
 import { appointmentTimeHasPassed, resolveDoctorDecision } from "../patient/booking/booking.service.js";
 import { Patient } from "../patient/auth/patient.model.js";
 import { ApiError } from "../patient/shared/errors.js";
 import { authenticateDoctor } from "./doctor.middleware.js";
 import { Notification } from "../patient/notifications/notification.model.js";
+import { queueAppointmentEmail } from "../patient/notifications/appointment-email.js";
 
 export const doctorRoutes = Router();
 
@@ -490,83 +492,91 @@ doctorRoutes.patch(
         })
         .parse(req.body);
 
-      const appointment = await Appointment.findById(id);
-      if (!appointment) {
-        throw new ApiError(404, "Appointment not found.");
-      }
+      // Commit the doctor's decision and its email together so retries cannot
+      // lose the confirmation email or enqueue duplicates.
+      const result = await Appointment.db.transaction(async (session) => {
+        const appointment = await Appointment.findById(id).session(session);
+        if (!appointment) {
+          throw new ApiError(404, "Appointment not found.");
+        }
 
-      // Strict Authorization check: appointment must belong to this doctor's catalogue ID
-      if (
-        !doctor.doctorCatalogId ||
-        !appointment.doctorId.equals(doctor.doctorCatalogId)
-      ) {
-        throw new ApiError(
-          403,
-          "You are not authorized to update this appointment.",
-        );
-      }
+        // Strict Authorization check: appointment must belong to this doctor's catalogue ID
+        if (
+          !doctor.doctorCatalogId ||
+          !appointment.doctorId.equals(doctor.doctorCatalogId)
+        ) {
+          throw new ApiError(
+            403,
+            "You are not authorized to update this appointment.",
+          );
+        }
 
-      // Terminal checks
-      if (appointment.status === "completed") {
-        throw new ApiError(409, "Completed appointments cannot be modified.");
-      }
+        // Terminal checks
+        if (appointment.status === "completed") {
+          throw new ApiError(409, "Completed appointments cannot be modified.");
+        }
 
-      if (appointment.status === "cancelled") {
-        throw new ApiError(409, "Cancelled appointments cannot be modified.");
-      }
+        if (appointment.status === "cancelled") {
+          throw new ApiError(409, "Cancelled appointments cannot be modified.");
+        }
 
-      const currentDecision = getDoctorDecision(appointment);
-      if (currentDecision === "rejected" && decision === "accepted") {
-        throw new ApiError(409, "Rejected appointments cannot be accepted.");
-      }
+        const currentDecision = getDoctorDecision(appointment);
+        if (currentDecision === "rejected" && decision === "accepted") {
+          throw new ApiError(409, "Rejected appointments cannot be accepted.");
+        }
 
-      // Idempotent
-      if (appointment.doctorDecision === decision) {
-        return res.json({
-          message: `Appointment is already ${decision}.`,
-          appointment: {
-            id: String(appointment._id),
-            appointmentId: appointment.appointmentId,
-            status: appointment.status,
-            doctorDecision: appointment.doctorDecision,
-            date: appointment.date,
-            time: appointment.time,
+        // Idempotent
+        if (appointment.doctorDecision === decision) {
+          return { appointment, already: true };
+        }
+
+        if (decision === "accepted") await assignApprovedQueue(appointment, session);
+        appointment.doctorDecision = decision;
+        await appointment.save({ session });
+        if (decision === "accepted") {
+          const patient = await Patient.findById(appointment.patientId).session(session);
+          const hospital = await Hospital.findById(appointment.hospitalId).session(session);
+          if (!patient || !hospital) throw new ApiError(404, "Appointment details are unavailable.");
+          await queueAppointmentEmail("doctor-confirmed", {
+            id: appointment._id, patientId: patient._id, email: patient.email,
+            name: patient.fullName, reference: appointment.appointmentId,
+            doctor: doctor.fullName, hospital: hospital.name, department: appointment.department,
+            date: appointment.date, time: appointment.time, amount: 0, createdAt: appointment.createdAt,
+          }, session);
+        }
+
+        await Notification.updateOne(
+          {
+            patientId: appointment.patientId,
+            seedKey: `appointment:${appointment._id}:doctor-${decision}`,
           },
-        });
-      }
-
-      appointment.doctorDecision = decision;
-      await appointment.save();
-
-      await Notification.updateOne(
-        {
-          patientId: appointment.patientId,
-          seedKey: `appointment:${appointment._id}:doctor-${decision}`,
-        },
-        {
-          $setOnInsert: {
-            type: "appointment",
-            title: decision === "accepted" ? "Appointment Confirmed" : "Appointment Declined",
-            description: decision === "accepted"
-              ? `Your appointment on ${appointment.date} at ${appointment.time} was confirmed by the doctor.`
-              : `Your appointment on ${appointment.date} at ${appointment.time} was declined by the doctor.`,
-            action: "appointment-reminder",
-            read: false,
+          {
+            $setOnInsert: {
+              type: "appointment",
+              title: decision === "accepted" ? "Appointment Confirmed" : "Appointment Declined",
+              description: decision === "accepted"
+                ? `Your appointment on ${appointment.date} at ${appointment.time} was confirmed by the doctor.`
+                : `Your appointment on ${appointment.date} at ${appointment.time} was declined by the doctor.`,
+              action: "appointment-reminder",
+              read: false,
+            },
           },
-        },
-        { upsert: true },
-      );
-
-      // If rejected, safely cancel any active queue entry
-      if (decision === "rejected") {
-        await QueueEntry.updateMany(
-          { appointmentId: appointment._id, status: { $in: ["waiting", "serving"] } },
-          { $set: { status: "cancelled" } },
+          { upsert: true, session },
         );
-      }
 
+        // If rejected, safely cancel any active queue entry
+        if (decision === "rejected") {
+          await QueueEntry.updateMany(
+            { appointmentId: appointment._id, status: { $in: ["waiting", "serving"] } },
+            { $set: { status: "cancelled" } },
+            { session },
+          );
+        }
+        return { appointment, already: false };
+      });
+      const { appointment } = result;
       res.json({
-        message: `Appointment request ${decision} successfully.`,
+        message: result.already ? `Appointment is already ${decision}.` : `Appointment request ${decision} successfully.`,
         appointment: {
           id: String(appointment._id),
           appointmentId: appointment.appointmentId,
@@ -857,11 +867,11 @@ doctorRoutes.get("/patient-record", authenticateDoctor, async (req, res, next) =
       doctorName: doctor.fullName,
     }));
 
-    // Latest vitals
+    // Clinician-recorded vitals are separate from the patient's saved measurements.
     const latestVitals = notesDocs[0]?.vitals || {
-      bloodPressure: "130/85",
-      bloodSugar: "142",
-      weight: "78 kg",
+      bloodPressure: "",
+      bloodSugar: "",
+      weight: "",
     };
 
     const age = calculateAge(patientDoc.dateOfBirth);
@@ -879,6 +889,11 @@ doctorRoutes.get("/patient-record", authenticateDoctor, async (req, res, next) =
         email: patientDoc.email,
         address: patientDoc.address,
         district: patientDoc.district,
+        medicalDetails: {
+          bloodGroup: patientDoc.medicalDetails?.bloodGroup ?? null,
+          heightCm: patientDoc.medicalDetails?.heightCm ?? null,
+          weightKg: patientDoc.medicalDetails?.weightKg ?? null,
+        },
       },
       appointment: appointment
         ? {
@@ -965,9 +980,9 @@ doctorRoutes.post(
         appointmentId: apptObjectId,
         note: data.note,
         vitals: {
-          bloodPressure: data.vitals?.bloodPressure || "130/85",
-          bloodSugar: data.vitals?.bloodSugar || "142",
-          weight: data.vitals?.weight || "78 kg",
+          bloodPressure: data.vitals?.bloodPressure || "",
+          bloodSugar: data.vitals?.bloodSugar || "",
+          weight: data.vitals?.weight || "",
         },
       });
 

@@ -1,3 +1,4 @@
+import type { MedicalDetails } from "@/features/patient/shared/types";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { DoctorStorage } from "./doctorStorage";
@@ -179,6 +180,7 @@ export interface DoctorDashboardData {
 
 export interface DoctorPatientRecordData {
   patient: {
+    medicalDetails: MedicalDetails;
     id: string;
     patientId: string;
     fullName: string;

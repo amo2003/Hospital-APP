@@ -9,7 +9,7 @@ interface QueueBottomWavesProps {
 
 export function QueueBottomWaves({ showLeaves = false }: QueueBottomWavesProps) {
   return (
-    <View style={styles.container} pointerEvents="none">
+    <View style={[styles.container, { pointerEvents: "none" }]}>
       {/* Decorative SVG Waves */}
       <Svg
         width="100%"

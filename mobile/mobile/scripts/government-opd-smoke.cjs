@@ -47,7 +47,7 @@ async function main() {
       uploaded = true; data = { id: "slip-test", filename: "payment-slip.jpg", uploadedAt: new Date().toISOString() }; status = 201;
     } else if (url.pathname.endsWith("/appointments") && req.method() === "POST") {
       const body = req.postDataJSON();
-      assert.equal(body.expectedFeeLkr, 1500); assert.equal(body.slipId, "slip-test"); assert.ok(uploaded);
+      assert.equal(body.expectedFeeLkr, undefined); assert.equal(body.slipId, undefined); assert.equal(uploaded, false);
       appointment = { ...body, _id: "appointment-test", appointmentId: "OPD-TEST", doctorId: doctor, hospitalId: hospital, patientId: patient,
         status: "confirmed", createdAt: new Date().toISOString(), payment: { amountLkr: 1500, status: "pending", slipId: { _id: "slip-test", uploadedAt: new Date().toISOString() } } };
       data = appointment; status = 201;
@@ -74,81 +74,27 @@ async function main() {
     await page.getByRole("button", { name: date, exact: true }).click();
     await page.getByRole("radio", { name: "9:15 AM", exact: true }).click();
     await page.getByRole("button", { name: "Next", exact: true }).click();
-    await expect(page.getByText("Payment instructions", { exact: true })).toBeVisible();
-    await expect(page.getByText("LKR 1500.00", { exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Next", exact: true })).toBeDisabled();
-    const chooser = page.waitForEvent("filechooser");
-    await page.getByRole("button", { name: "Upload payment slip", exact: true }).click();
-    await (await chooser).setFiles({ name: "receipt.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aJ1sAAAAASUVORK5CYII=", "base64") });
-    await expect(page.getByText("Payment slip uploaded")).toBeVisible();
-    await page.screenshot({ path: path.join(out, "patient-payment.png"), fullPage: true });
-    await page.getByRole("button", { name: "Next", exact: true }).click();
+
+    await expect(page.getByText("Your OPD appointment", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Upload payment slip", exact: true })).toHaveCount(0);
+    await expect(page.getByText("Appointment fee", { exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "Confirm Appointment", exact: true }).click();
     await expect(page.getByText("Appointment booked", { exact: true })).toBeVisible();
-    await expect(page.getByText("Awaiting payment approval", { exact: true })).toBeVisible();
+    await expect(page.getByText("Awaiting payment approval", { exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "View Appointment", exact: true }).click();
     await expect(page.getByRole("button", { name: "Cancel Appointment", exact: true })).toBeVisible();
-
-    const admin = await browser.newPage({ viewport: { width: 393, height: 852 } });
-    admin.on("pageerror", (error) => errors.push(error.message));
+    await expect(page.getByText("Payment", { exact: true })).toHaveCount(0);
+    const admin = await browser.newPage();
     await admin.addInitScript(() => { localStorage.setItem("careplus_admin_token", "test-admin"); localStorage.setItem("careplus_admin_user", JSON.stringify({ adminId: "test-admin" })); });
-    let approved = false;
-    const rejectedAppointment = { ...appointment, _id: "appointment-reject", appointmentId: "OPD-REVIEW", payment: { ...appointment.payment } };
-    await admin.route("**/api/admin/**", async (route) => {
-      const req = route.request(); const url = new URL(req.url()); let data = {};
-      if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers });
-      if (url.pathname.endsWith("/doctor-fees")) data = [doctor];
-      else if (url.pathname.includes("/doctor-fees/")) { Object.assign(doctor, req.postDataJSON()); data = doctor; }
-      else if (url.pathname.endsWith("/payments")) {
-        const all = [appointment, rejectedAppointment];
-        const items = all.filter((a) => url.searchParams.get("status") === "all" || a.payment.status === url.searchParams.get("status"));
-        data = { items, total: items.length, page: 1, counts: Object.fromEntries(["pending", "approved", "rejected"].map((status) => [status, all.filter((a) => a.payment.status === status).length])) };
-      }
-      else if (url.pathname.endsWith("/approve")) { approved = true; appointment.payment.status = "approved"; data = appointment; }
-      else if (url.pathname.endsWith("/reject")) { rejectedAppointment.payment.status = "rejected"; rejectedAppointment.payment.rejectionReason = req.postDataJSON().reason; data = rejectedAppointment; }
-      else if (url.pathname.endsWith("/slip")) return route.fulfill({ headers, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aJ1sAAAAASUVORK5CYII=", "base64") });
-      else if (url.pathname.endsWith("/dashboard")) data = { totalDoctors: 1, totalNurses: 0, totalPatients: 1, pendingApprovals: 0, recentActivity: [] };
-      await route.fulfill({ headers, contentType: "application/json", body: JSON.stringify(data) });
-    });
-    await admin.goto(`${base}/admin/`);
-    await admin.getByRole("button", { name: "Manage doctor fees" }).click();
-    await admin.getByLabel("Select doctor", { exact: true }).selectOption(doctor._id);
-    await admin.getByLabel("Appointment fee (LKR)").fill("1750");
-    await admin.getByRole("button", { name: "Save doctor fee", exact: true }).click();
-    await expect(admin.getByText("Doctor fee saved.", { exact: false })).toBeVisible();
-    assert.equal(doctor.feeLkr, 1750);
-    await admin.screenshot({ path: path.join(out, "admin-payments.png"), fullPage: true });
-    await admin.getByRole("tab", { name: "Payment review" }).click();
-    await expect(admin.locator("#pendingPaymentsCount")).toHaveText("2");
-    for (const width of [320, 393, 1280]) {
-      await admin.setViewportSize({ width, height: 900 });
-      assert.ok(await admin.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `No horizontal overflow at ${width}px`);
-    }
-    await admin.setViewportSize({ width: 393, height: 852 });
-    await admin.screenshot({ path: path.join(out, "admin-payment-review.png"), fullPage: true });
-    await admin.locator('[data-review="appointment-test"]').click();
-    await expect(admin.getByRole("button", { name: "Approve payment", exact: true })).toBeDisabled();
-    const download = admin.waitForEvent("download");
-    await admin.getByRole("button", { name: "Download original slip", exact: true }).click();
-    await download;
-    await admin.getByLabel("I checked the receipt and received the correct amount.").check();
-    await admin.getByRole("button", { name: "Approve payment", exact: true }).click();
-    await expect(admin.getByText("Payment approved. The patient notification email is queued for delivery.")).toBeVisible();
-    assert.ok(approved);
-    await admin.locator('[data-review="appointment-reject"]').click();
-    await admin.getByRole("button", { name: "Reject payment", exact: true }).click();
-    await expect(admin.getByText("Enter a rejection reason of at least 5 characters.")).toBeVisible();
-    await admin.getByLabel("Reason for rejection", { exact: false }).fill("The receipt amount is incorrect.");
-    await admin.screenshot({ path: path.join(out, "admin-payment-decision.png"), fullPage: true });
-    await admin.getByRole("button", { name: "Reject payment", exact: true }).click();
-    await expect(admin.getByText("Payment rejected. The patient can see your reason in their appointment details.")).toBeVisible();
-    await expect(admin.locator("#rejectedPaymentsCount")).toHaveText("1");
-    await admin.locator('[data-status="rejected"]').click();
-    await admin.getByRole("button", { name: "View payment details" }).click();
-    await expect(admin.locator(".pay-rejection")).toContainText("The receipt amount is incorrect.");
-    await expect(admin.locator("#paymentDecisionActions")).toBeHidden();
+    admin.on("pageerror", (error) => errors.push(error.message));
+    await admin.route("**/api/admin/**", (route) => route.fulfill({ headers, contentType: "application/json", body: JSON.stringify({ totalDoctors: 1, totalNurses: 0, totalPatients: 1, pendingApprovals: 0, recentActivity: [] }) }));
+    await admin.goto(base + "/admin/");
+    await expect(admin.getByRole("button", { name: "View reports" })).toBeVisible();
+    await expect(admin.locator("#viewPaymentsBtn")).toHaveCount(0);
+    await expect(admin.locator("#viewPaymentReviewsBtn")).toHaveCount(0);
+    await expect(admin.locator("#paymentsView")).toHaveCount(0);
     assert.deepEqual(errors, []);
-    console.log("PASS: patient booking and receipt upload; admin fee saving, responsive review views, private receipt download, approval and rejection with reason.");
+    console.log("PASS: four-step OPD booking without receipt/fee; existing payment records hidden; cancellation retained; admin payments disabled.");
   } finally { await browser.close(); await new Promise((resolve) => server.close(resolve)); }
 }
 main().catch((error) => { console.error(error); process.exitCode = 1; });

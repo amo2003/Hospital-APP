@@ -28,6 +28,11 @@ type GoogleIdentityAPI = {
 declare global {
   interface Window {
     google?: { accounts: { id: GoogleIdentityAPI } };
+    careplusGoogleIdentity?: {
+      api: GoogleIdentityAPI;
+      clientId: string;
+      onResponse?: (response: { credential: string }) => void;
+    };
   }
 }
 let loadPromise: Promise<GoogleIdentityAPI> | undefined;
@@ -87,34 +92,45 @@ export default function GoogleSignInButton({
   useEffect(() => {
     if (!clientId) return;
     let active = true;
+    let receive: ((response: { credential: string }) => void) | undefined;
     loadGoogle()
       .then((google) => {
         if (!active || !host.current) return;
-        google.initialize({
-          client_id: clientId,
-          auto_select: false,
-          ux_mode: "popup",
-          callback: (response) => {
-            if (!active || handlers.current.disabled || inFlight.current)
-              return;
-            inFlight.current = true;
-            setBusy(true);
-            handlers.current.onError("");
-            Promise.resolve()
-              .then(() => {
-                if (!response.credential)
-                  throw new Error("Google sign-in could not be completed.");
-                return handlers.current.onCredential(response.credential);
-              })
-              .catch((error) => {
-                if (active) handlers.current.onError(messageOf(error));
-              })
-              .finally(() => {
-                inFlight.current = false;
-                if (active) setBusy(false);
-              });
-          },
-        });
+        receive = (response) => {
+          if (!active || handlers.current.disabled || inFlight.current) return;
+          inFlight.current = true;
+          setBusy(true);
+          handlers.current.onError("");
+          Promise.resolve()
+            .then(() => {
+              if (!response.credential)
+                throw new Error("Google sign-in could not be completed.");
+              return handlers.current.onCredential(response.credential);
+            })
+            .catch((error) => {
+              if (active) handlers.current.onError(messageOf(error));
+            })
+            .finally(() => {
+              inFlight.current = false;
+              if (host.current) setBusy(false);
+            });
+        };
+        // The page owns one GSI client; remounts and language changes only replace its handler/button.
+        let identity = window.careplusGoogleIdentity;
+        if (!identity || identity.api !== google) {
+          identity = { api: google, clientId };
+          const current = identity;
+          google.initialize({
+            client_id: clientId,
+            auto_select: false,
+            ux_mode: "popup",
+            callback: (response) => current.onResponse?.(response),
+          });
+          window.careplusGoogleIdentity = identity;
+        }
+        if (identity.clientId !== clientId)
+          throw new Error("Google configuration changed. Reload this page.");
+        identity.onResponse = receive;
         host.current.replaceChildren();
         google.renderButton(host.current, {
           type: "standard",
@@ -134,6 +150,9 @@ export default function GoogleSignInButton({
       });
     return () => {
       active = false;
+      if (receive && window.careplusGoogleIdentity?.onResponse === receive) {
+        window.careplusGoogleIdentity!.onResponse = undefined;
+      }
     };
   }, [clientId, language, attempt]);
   if (!clientId)

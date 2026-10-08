@@ -1,6 +1,6 @@
 import { Text } from "../../patient/i18n/LanguageProvider";
 import React from 'react';
-import {
+import { Platform,
   ActivityIndicator,
   ScrollView,
   StyleSheet,
@@ -142,10 +142,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e1ecf6',
     marginBottom: 14,
-    shadowColor: '#034ea2',
+    ...Platform.select({
+      web: { boxShadow: '0px 2px 12px rgba(3, 78, 162, 0.04)' },
+      default: { shadowColor: '#034ea2',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
-    shadowRadius: 6,
+    shadowRadius: 6, },
+    }),
     elevation: 2,
   },
   doctorEyebrow: {
@@ -172,10 +175,13 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     paddingHorizontal: 16,
     alignItems: 'center',
-    shadowColor: '#000',
+    ...Platform.select({
+      web: { boxShadow: '0px 3px 10px rgba(0, 0, 0, 0.08)' },
+      default: { shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.08,
-    shadowRadius: 5,
+    shadowRadius: 5, },
+    }),
     elevation: 3,
   },
   statusBoxLabel: {
@@ -204,10 +210,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e1ecf6',
     marginBottom: 14,
-    shadowColor: '#034ea2',
+    ...Platform.select({
+      web: { boxShadow: '0px 2px 8px rgba(3, 78, 162, 0.03)' },
+      default: { shadowColor: '#034ea2',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.03,
-    shadowRadius: 4,
+    shadowRadius: 4, },
+    }),
     elevation: 1,
   },
   cardSmallLabel: {

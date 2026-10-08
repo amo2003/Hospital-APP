@@ -131,8 +131,7 @@ function ChoiceLayout({
         </Text>
         <View style={{ alignSelf: "center", width: "80%", maxWidth: 330 }}>
           <View
-            pointerEvents="none"
-            style={{ position: "absolute", alignSelf: "center", top: -20 }}
+            style={{ pointerEvents: "none", position: "absolute", alignSelf: "center", top: -20 }}
           >
             <HeartMark size={320} opacity={0.2} />
           </View>

@@ -46,9 +46,9 @@ export function Wave({
 }) {
   return (
     <View
-      pointerEvents="none"
       style={[
         {
+          pointerEvents: "none",
           position: "absolute",
           left: 0,
           right: 0,
@@ -90,7 +90,7 @@ export function Wave({
 }
 export function Leaves({ small = false }: { small?: boolean }) {
   return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+    <View style={[StyleSheet.absoluteFill, { pointerEvents: "none" }]}>
       <Image
         source={assets.top}
         resizeMode="contain"
@@ -419,8 +419,8 @@ export function Steps({
                 height: 1,
                 backgroundColor: C.line,
                 top: 16,
-                left: "65%",
-                width: "70%",
+                left: "50%",
+                right: "-50%",
               }}
             />
           )}

@@ -58,10 +58,10 @@ export default function DoctorLoginScreen() {
 
   return (
     <Screen>
-      <View style={{ marginHorizontal: -24, height: 260 }}>
+      <View style={{ marginHorizontal: -24, minHeight: 260 }}>
         <Wave top />
         <Leaves small />
-        <View style={{ alignItems: "center", paddingTop: 65 }}>
+        <View style={{ alignItems: "center", paddingTop: 65, paddingBottom: 12, paddingHorizontal: 16 }}>
           <Text style={[s.title, { fontSize: 21 }]}>CarePlus Hospital</Text>
           <Text style={[s.subtitle, { fontSize: 11, marginTop: 2 }]}>
             Doctor Portal
@@ -71,10 +71,10 @@ export default function DoctorLoginScreen() {
             resizeMode="contain"
             style={{ width: 220, height: 95, marginTop: 6 }}
           />
-          <Text style={[s.title, { fontSize: 26, marginTop: -2 }]}>
+          <Text style={[s.title, { fontSize: 22, marginTop: -2, textAlign: "center" }]}>
             Welcome, Doctor!
           </Text>
-          <Text style={[s.subtitle, { fontWeight: "700", marginTop: 2 }]}>
+          <Text style={[s.subtitle, { fontWeight: "700", marginTop: 2, textAlign: "center" }]}>
             Sign in to access your OPD dashboard
           </Text>
         </View>

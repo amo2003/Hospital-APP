@@ -40,7 +40,7 @@ export function QueueHeader({ title, subtitle, onBack }: QueueHeaderProps) {
       </View>
 
       {/* Organic Curved Wave */}
-      <View style={styles.waveWrapper} pointerEvents="none">
+      <View style={[styles.waveWrapper, { pointerEvents: "none" }]}>
         <Svg
           width="100%"
           height={38}

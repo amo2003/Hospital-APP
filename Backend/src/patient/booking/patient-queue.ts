@@ -1,5 +1,5 @@
 import type { ClientSession } from "mongoose";
-import { Appointment, DoctorQueueCounter, QueueEntry } from "./booking.models.js";
+import { Appointment, DoctorQueueCounter, QueueEntry, QueueCounter } from "./booking.models.js";
 
 export async function allocateDoctorNumber(doctorId: string, date: string, session: ClientSession, reserve = true) {
   const key = `${doctorId}:${date}`;
@@ -9,7 +9,7 @@ export async function allocateDoctorNumber(doctorId: string, date: string, sessi
   );
   // Lock the doctor/day counter, then number existing bookings in their original
   // creation order. This also upgrades bookings made before doctor numbering.
-  const existing = await Appointment.find({ doctorId, date }).sort({ createdAt: 1, _id: 1 }).session(session);
+  const existing = await Appointment.find({ doctorId, date, doctorDecision: "accepted" }).sort({ createdAt: 1, _id: 1 }).session(session);
   let sequence = Math.max(counter?.sequence || 0, ...existing.map((a) => a.doctorQueueNumber || 0));
   for (const appointment of existing) {
     if (!appointment.doctorQueueNumber) {
@@ -21,13 +21,41 @@ export async function allocateDoctorNumber(doctorId: string, date: string, sessi
   return sequence + (reserve ? 1 : 0);
 }
 
+// Called inside the doctor's acceptance transaction, before saving the decision.
+export async function assignApprovedQueue(appointment: InstanceType<typeof Appointment>, session: ClientSession) {
+  appointment.doctorQueueNumber = await allocateDoctorNumber(String(appointment.doctorId), appointment.date, session);
+  // Keep a legacy staff token if this booking already has one.
+  if (await QueueEntry.exists({ appointmentId: appointment._id }).session(session)) return;
+  const counter = await QueueCounter.findOneAndUpdate(
+    { hospitalId: appointment.hospitalId, date: appointment.date, department: appointment.department },
+    { $inc: { sequence: 1 } }, { returnDocument: "after", upsert: true, session },
+  );
+  const sequence = counter!.sequence;
+  const prefix = appointment.department.replace(/[^a-z0-9]/gi, "").slice(0, 1).toUpperCase() || "Q";
+  await QueueEntry.create([{
+    appointmentId: appointment._id, patientId: appointment.patientId,
+    hospitalId: appointment.hospitalId, department: appointment.department,
+    date: appointment.date, sequence, token: `${prefix}-${String(sequence).padStart(3, "0")}`,
+  }], { session });
+}
+
 export async function patientQueue(appointment: InstanceType<typeof Appointment>, patient: { _id: unknown; fullName: string }) {
-  if (await Appointment.exists({ doctorId: appointment.doctorId, date: appointment.date, doctorQueueNumber: { $exists: false } })) {
+  if (appointment.doctorDecision !== "accepted") {
+    // Older pending bookings may have a number stored; never expose it before approval.
+    appointment.doctorQueueNumber = undefined;
+    await appointment.populate([{ path: "doctorId", select: "name specialty" }, { path: "hospitalId", select: "name" }]);
+    return {
+      appointment, queueNumber: null, status: appointment.status === "cancelled" ? "cancelled" : appointment.doctorDecision === "rejected" ? "rejected" : "pending",
+      startsAt: null, serverTime: new Date().toISOString(), patientsAhead: 0,
+      nowServing: null, estimatedWaitMinutes: null, entries: [],
+    };
+  }
+  if (await Appointment.exists({ doctorId: appointment.doctorId, date: appointment.date, doctorDecision: "accepted", doctorQueueNumber: { $exists: false } })) {
     await Appointment.db.transaction(async (session) => {
       await allocateDoctorNumber(String(appointment.doctorId), appointment.date, session, false);
     });
   }
-  const bookings = await Appointment.find({ doctorId: appointment.doctorId, date: appointment.date })
+  const bookings = await Appointment.find({ doctorId: appointment.doctorId, date: appointment.date, doctorDecision: "accepted" })
     .select("patientId time status doctorQueueNumber createdAt")
     .sort({ createdAt: 1, _id: 1 });
   const states = await QueueEntry.find({ appointmentId: { $in: bookings.map((a) => a._id) } }).select("appointmentId status");

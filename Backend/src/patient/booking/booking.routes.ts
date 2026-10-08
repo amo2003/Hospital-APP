@@ -1,11 +1,12 @@
 import { Router } from "express";
 import { z } from "zod";
-import { Appointment, Doctor, DoctorQueueCounter, Hospital, QueueEntry, QueueCounter } from "./booking.models.js";
+import { Appointment, Doctor, Hospital, QueueEntry } from "./booking.models.js";
 import { Patient } from "../auth/patient.model.js";
 import { ApiError } from "../shared/errors.js";
 import { OPD_SLOTS, localToday, slotIsFuture, validateBookingDate, resolveDoctorDecision } from "./booking.service.js";
-import { allocateDoctorNumber, patientQueue } from "./patient-queue.js";
-import { PaymentSlip } from "../payments/payment.models.js";
+import { patientQueue } from "./patient-queue.js";
+// Government OPD: payment implementation preserved but disabled.
+// import { PaymentSlip } from "../payments/payment.models.js";
 import { queueAppointmentEmail } from "../notifications/appointment-email.js";
 import { Notification } from "../notifications/notification.model.js";
 export const bookingRoutes = Router();
@@ -60,6 +61,7 @@ bookingRoutes.get("/appointments", async (req, res) => {
       const obj = apt.toObject();
       return {
         ...obj,
+        doctorQueueNumber: apt.doctorDecision === "accepted" ? apt.doctorQueueNumber : undefined,
         doctorDecision: resolveDoctorDecision(apt),
       };
     }),
@@ -69,7 +71,7 @@ bookingRoutes.get("/queue", async (req, res) => {
   const { appointmentId } = z.object({ appointmentId: objectId.optional() }).parse(req.query);
   const appointment = await Appointment.findOne({
     patientId: req.patient!._id,
-    ...(appointmentId ? { _id: appointmentId } : { status: "confirmed", date: { $gte: localToday() } }),
+    ...(appointmentId ? { _id: appointmentId } : { status: "confirmed", doctorDecision: { $ne: "rejected" }, date: { $gte: localToday() } }),
   }).sort({ date: 1, time: 1 });
   if (!appointment) {
     if (appointmentId) throw new ApiError(404, "Appointment not found.");
@@ -86,10 +88,11 @@ bookingRoutes.post("/appointments", async (req, res) => {
       department: z.string().min(1).max(100),
       date: z.string(),
       time: z.string().regex(/^\d{2}:\d{2}$/),
-      expectedFeeLkr: z.number().nonnegative().optional(),
-      slipId: objectId.optional(),
+      // expectedFeeLkr: z.number().nonnegative().optional(),
+      // slipId: objectId.optional(),
     })
     .parse(req.body);
+  /* Government OPD: paid booking retry logic disabled.
   // A retried confirmation after a network timeout must not create a second paid booking.
   if (data.slipId) {
     const existing = await Appointment.findOne({ patientId: req.patient!._id, "payment.slipId": data.slipId });
@@ -101,6 +104,7 @@ bookingRoutes.post("/appointments", async (req, res) => {
       return;
     }
   }
+  */
   validateBookingDate(data.date);
   const [doctor, hospital] = await Promise.all([
     Doctor.findOne({
@@ -128,7 +132,6 @@ bookingRoutes.post("/appointments", async (req, res) => {
       400,
       "This appointment slot is unavailable. Please choose another.",
     );
-  await DoctorQueueCounter.updateOne({ _id: `${data.doctorId}:${data.date}` }, { $setOnInsert: { sequence: 0, revision: 0 } }, { upsert: true });
   const appointment = await Appointment.db.transaction(async (session) => {
     const patient = await Patient.findOneAndUpdate(
       { _id: req.patient!._id },
@@ -136,6 +139,7 @@ bookingRoutes.post("/appointments", async (req, res) => {
       { session },
     );
     if (!patient) throw new ApiError(401, "Please sign in again.");
+    /* Government OPD: stored doctor fees must not block free bookings.
     // Serialize against fee edits so the receipt is attached to the price the patient saw.
     const pricedDoctor = await Doctor.findOneAndUpdate({ _id: doctor._id, active: true },
       { $inc: { paymentRevision: 1 } }, { session, returnDocument: "after" });
@@ -145,37 +149,25 @@ bookingRoutes.post("/appointments", async (req, res) => {
       throw new ApiError(409, "The doctor fee has changed. Select the doctor again to review the latest fee.");
     if (amountLkr > 0 && (!data.slipId || !pricedDoctor.paymentInstructions.trim()))
       throw new ApiError(400, "Upload your payment slip before confirming the appointment.");
-    const doctorQueueNumber = await allocateDoctorNumber(data.doctorId, data.date, session);
+    */
+    const amountLkr = 0;
     const created = (
 
-      await Appointment.create([{ ...data, patientId: patient._id, doctorDecision: "pending", doctorQueueNumber,
-        payment: { amountLkr, status: amountLkr > 0 ? "pending" : "not_required", ...(amountLkr > 0 ? { slipId: data.slipId } : {}) },
+      await Appointment.create([{ ...data, patientId: patient._id, doctorDecision: "pending",
+        // payment: { amountLkr, status: amountLkr > 0 ? "pending" : "not_required", ...(amountLkr > 0 ? { slipId: data.slipId } : {}) },
+        payment: { amountLkr: 0, status: "not_required" },
       }], {
         session,
       })
     )[0];
+    /* Government OPD: no receipt attachment.
     if (amountLkr > 0) {
       const slip = await PaymentSlip.findOneAndUpdate({ _id: data.slipId, patientId: patient._id,
         doctorId: doctor._id, appointmentId: { $exists: false }, expiresAt: { $gt: new Date() } },
         { $set: { appointmentId: created._id }, $unset: { expiresAt: 1 } }, { session });
       if (!slip) throw new ApiError(400, "This payment slip is unavailable. Please upload it again.");
     }
-    const counter = await QueueCounter.findOneAndUpdate(
-      { hospitalId: data.hospitalId, date: data.date, department: data.department },
-      { $inc: { sequence: 1 } },
-      { new: true, returnDocument: "after", upsert: true, session, setDefaultsOnInsert: true },
-    );
-    const prefix = data.department.replace(/[^a-z0-9]/gi, "").slice(0, 1).toUpperCase() || "Q";
-    const sequence = counter?.sequence || 1;
-    await QueueEntry.create([{
-      appointmentId: created._id,
-      patientId: patient._id,
-      hospitalId: data.hospitalId,
-      department: data.department,
-      date: data.date,
-      sequence,
-      token: `${prefix}-${String(sequence).padStart(3, "0")}`,
-    }], { session });
+    */
     await Notification.create([{
       patientId: patient._id,
       seedKey: `appointment:${created._id}:booked`,

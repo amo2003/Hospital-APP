@@ -54,20 +54,20 @@ export type Appointment = {
   time: string;
   doctorQueueNumber?: number;
   createdAt?: string;
-  payment?: { amountLkr: number; status: "not_required" | "pending" | "approved"; reviewedAt?: string };
+  payment?: { amountLkr: number; status: "not_required" | "pending" | "approved" | "rejected"; reviewedAt?: string; rejectionReason?: string };
   status: "confirmed" | "cancelled" | "completed";
   doctorDecision?: "pending" | "accepted" | "rejected";
 };
 export type Slot = { time: string; available: boolean };
 export type PatientQueue = {
   appointment: Appointment;
-  queueNumber: number;
-  status: "waiting" | "serving" | "completed" | "cancelled";
-  startsAt: string;
+  queueNumber: number | null;
+  status: "pending" | "rejected" | "waiting" | "serving" | "completed" | "cancelled";
+  startsAt: string | null;
   serverTime: string;
   patientsAhead: number;
   nowServing: number | null;
-  estimatedWaitMinutes: number;
+  estimatedWaitMinutes: number | null;
   entries: {
     queueNumber: number;
     isYou: boolean;

@@ -1,4 +1,11 @@
 export const paymentTranslations: Record<string, readonly [string, string]> = {
+  "Appointment details will be emailed to you.": ["හමුවීමේ විස්තර ඔබට විද්‍යුත් තැපෑලෙන් ලැබේ.", "சந்திப்பு விவரங்கள் உங்களுக்கு மின்னஞ்சலில் அனுப்பப்படும்."],
+  "Payment slip upload timed out. Please try again.": ["ගෙවීම් රිසිට්පත එක් කිරීමට ගත වූ කාලය ඉක්මවා ඇත. නැවත උත්සාහ කරන්න.", "கட்டண ரசீது பதிவேற்ற நேரம் முடிந்தது. மீண்டும் முயற்சிக்கவும்."],
+  "Payment slip upload failed. Please try again. (UPLOAD_NETWORK)": ["ගෙවීම් රිසිට්පත එක් කිරීම අසාර්ථකයි. නැවත උත්සාහ කරන්න. (UPLOAD_NETWORK)", "கட்டண ரசீது பதிவேற்றம் தோல்வியடைந்தது. மீண்டும் முயற்சிக்கவும். (UPLOAD_NETWORK)"],
+  "Payment slip upload failed. Please try again. (UPLOAD_NATIVE)": ["ගෙවීම් රිසිට්පත එක් කිරීම අසාර්ථකයි. නැවත උත්සාහ කරන්න. (UPLOAD_NATIVE)", "கட்டண ரசீது பதிவேற்றம் தோல்வியடைந்தது. மீண்டும் முயற்சிக்கவும். (UPLOAD_NATIVE)"],
+  "Payment rejected": ["ගෙවීම ප්‍රතික්ෂේප කර ඇත", "கட்டணம் நிராகரிக்கப்பட்டது"],
+  "Payment rejection reason": ["ගෙවීම ප්‍රතික්ෂේප කිරීමට හේතුව", "கட்டணம் நிராகரிக்கப்பட்டதற்கான காரணம்"],
+  "Please contact the hospital about your payment.": ["ඔබේ ගෙවීම පිළිබඳව රෝහල අමතන්න.", "உங்கள் கட்டணம் குறித்து மருத்துவமனையைத் தொடர்புகொள்ளவும்."],
   "File uploads need an updated app. Install the latest CarePlus APK or use the web app to upload your document.": ["ගොනු එක් කිරීමට යාවත්කාලීන app එක අවශ්‍යයි. නවතම CarePlus APK එක ස්ථාපනය කරන්න හෝ ගොනුව එක් කිරීමට web app එක භාවිත කරන්න.", "கோப்புகளைப் பதிவேற்ற புதுப்பிக்கப்பட்ட செயலி தேவை. சமீபத்திய CarePlus APK ஐ நிறுவவும் அல்லது ஆவணத்தைப் பதிவேற்ற இணையச் செயலியைப் பயன்படுத்தவும்."],
   "Payment": ["ගෙවීම", "கட்டணம்"],
   "Appointment fee": ["හමුවීම් ගාස්තුව", "சந்திப்புக் கட்டணம்"],

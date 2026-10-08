@@ -1,6 +1,6 @@
 import { Text } from "../../patient/i18n/LanguageProvider";
 import React, { useState } from 'react';
-import {
+import { Platform,
   Modal,
   Pressable,
   StyleSheet,
@@ -160,10 +160,13 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.28)',
-    shadowColor: '#000',
+    ...Platform.select({
+      web: { boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.2)' },
+      default: { shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowRadius: 4, },
+    }),
     elevation: 6,
     paddingHorizontal: 2,
     paddingVertical: 2,
@@ -215,10 +218,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 18,
-    shadowColor: '#000',
+    ...Platform.select({
+      web: { boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.15)' },
+      default: { shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
-    shadowRadius: 10,
+    shadowRadius: 10, },
+    }),
     elevation: 8,
   },
   modalHeader: {

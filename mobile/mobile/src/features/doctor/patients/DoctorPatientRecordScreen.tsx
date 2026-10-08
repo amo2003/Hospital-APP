@@ -1,3 +1,4 @@
+import PatientMedicalDetails from "./PatientMedicalDetails";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -59,9 +60,9 @@ export default function DoctorPatientRecordScreen() {
       });
       setRecord(data);
       if (data.vitals) {
-        setBpInput(data.vitals.bloodPressure || "130/85");
-        setBsInput(data.vitals.bloodSugar || "142");
-        setWtInput(data.vitals.weight || "78 kg");
+        setBpInput(data.vitals.bloodPressure || "");
+        setBsInput(data.vitals.bloodSugar || "");
+        setWtInput(data.vitals.weight || "");
       }
     } catch (err) {
       setError(doctorMessageOf(err));
@@ -135,9 +136,9 @@ export default function DoctorPatientRecordScreen() {
   const patient = record?.patient;
   const appointment = record?.appointment;
   const vitals = record?.vitals || {
-    bloodPressure: "130/85",
-    bloodSugar: "142",
-    weight: "78 kg",
+    bloodPressure: "",
+    bloodSugar: "",
+    weight: "",
   };
 
   const isCompleted = appointment?.status === "completed";
@@ -305,10 +306,11 @@ export default function DoctorPatientRecordScreen() {
           {/* ──────────────── 4A. TAB 1: OVERVIEW ──────────────── */}
           {activeTab === "overview" && (
             <View>
-              {/* Vitals — recorded today */}
+              <PatientMedicalDetails details={patient.medicalDetails} birthDate={patient.dateOfBirth} />
+              {/* Clinician-recorded vitals */}
               <View style={styles.sectionHeaderRow}>
                 <Text style={styles.sectionHeaderTitle}>
-                  Vitals — recorded today
+                  Latest recorded vitals
                 </Text>
               </View>
 
@@ -321,7 +323,7 @@ export default function DoctorPatientRecordScreen() {
                     </Text>
                   </View>
                   <Text style={styles.vitalLabel}>Blood pressure</Text>
-                  <Text style={styles.vitalValue}>{vitals.bloodPressure}</Text>
+                  <Text style={styles.vitalValue}>{vitals.bloodPressure || "--"}</Text>
                 </View>
 
                 {/* 2. Blood Sugar Card */}
@@ -332,7 +334,7 @@ export default function DoctorPatientRecordScreen() {
                     </Text>
                   </View>
                   <Text style={styles.vitalLabel}>Blood sugar</Text>
-                  <Text style={styles.vitalValue}>{vitals.bloodSugar}</Text>
+                  <Text style={styles.vitalValue}>{vitals.bloodSugar || "--"}</Text>
                 </View>
 
                 {/* 3. Weight Card */}
@@ -343,7 +345,7 @@ export default function DoctorPatientRecordScreen() {
                     </Text>
                   </View>
                   <Text style={styles.vitalLabel}>Weight</Text>
-                  <Text style={styles.vitalValue}>{vitals.weight}</Text>
+                  <Text style={styles.vitalValue}>{vitals.weight || "--"}</Text>
                 </View>
               </View>
 

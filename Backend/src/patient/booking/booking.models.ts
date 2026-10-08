@@ -50,7 +50,8 @@ const schema = new Schema(
     doctorQueueNumber: { type: Number, min: 1 },
     payment: {
       amountLkr: { type: Number, default: 0, min: 0 },
-      status: { type: String, enum: ["not_required", "pending", "approved"], default: "not_required" },
+      status: { type: String, enum: ["not_required", "pending", "approved", "rejected"], default: "not_required" },
+      rejectionReason: { type: String, maxlength: 500 },
       slipId: { type: Schema.Types.ObjectId, ref: "PaymentSlip" },
       reviewedAt: Date,
       reviewedBy: { type: Schema.Types.ObjectId, ref: "Admin" },

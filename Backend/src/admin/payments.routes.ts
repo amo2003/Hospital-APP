@@ -24,14 +24,16 @@ adminPaymentRoutes.patch("/doctor-fees/:id", async (req, res) => {
   res.json(doctor);
 });
 adminPaymentRoutes.get("/payments", async (req, res) => {
-  const query = z.object({ doctorId: id.optional(), status: z.enum(["pending", "approved", "all"]).default("pending"),
+  const query = z.object({ doctorId: id.optional(), status: z.enum(["pending", "approved", "rejected", "all"]).default("pending"),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), page: z.coerce.number().int().min(1).default(1) }).parse(req.query);
-  const filter = { "payment.slipId": { $exists: true }, ...(query.status !== "all" ? { "payment.status": query.status } : {}),
+  const baseFilter = { "payment.slipId": { $exists: true },
     ...(query.doctorId ? { doctorId: query.doctorId } : {}), ...(query.date ? { date: query.date } : {}) };
-  const [items, total] = await Promise.all([Appointment.find(filter).populate("doctorId", "name specialty").populate("hospitalId", "name")
+  const filter = { ...baseFilter, ...(query.status !== "all" ? { "payment.status": query.status } : {}) };
+  const [items, total, pending, approved, rejected] = await Promise.all([Appointment.find(filter).populate("doctorId", "name specialty").populate("hospitalId", "name")
     .populate("patientId", "fullName patientId").populate("payment.slipId", "filename contentType uploadedAt size")
-    .sort({ createdAt: -1 }).skip((query.page - 1) * 30).limit(30).lean(), Appointment.countDocuments(filter)]);
-  res.json({ items, total, page: query.page });
+    .sort({ createdAt: -1 }).skip((query.page - 1) * 30).limit(30).lean(), Appointment.countDocuments(filter),
+    ...(["pending", "approved", "rejected"] as const).map((status) => Appointment.countDocuments({ ...baseFilter, "payment.status": status }))]);
+  res.json({ items, total, page: query.page, counts: { pending, approved, rejected } });
 });
 adminPaymentRoutes.get("/payments/:id/slip", async (req, res) => {
   const appointment = await Appointment.findById(id.parse(req.params.id));
@@ -46,6 +48,7 @@ adminPaymentRoutes.patch("/payments/:id/approve", async (req, res) => {
     const appointment = await Appointment.findById(appointmentId).session(session);
     if (!appointment?.payment?.slipId) throw new ApiError(404, "Payment not found.");
     if (appointment.payment.status === "approved") return appointment;
+    if (appointment.payment.status !== "pending") throw new ApiError(409, "This payment has already been reviewed. Refresh the list.");
     if (appointment.status !== "confirmed" || appointment.doctorDecision === "rejected" || !slotIsFuture(appointment.date, appointment.time))
       throw new ApiError(400, "Only active, upcoming appointments can have payments approved.");
     const patient = await Patient.findById(appointment.patientId).session(session);
@@ -60,6 +63,26 @@ adminPaymentRoutes.patch("/payments/:id/approve", async (req, res) => {
       email: patient.email, name: patient.fullName, reference: appointment.appointmentId, doctor: doctor.name,
       hospital: hospital.name, department: appointment.department, date: appointment.date, time: appointment.time,
       amount: appointment.payment.amountLkr, createdAt: appointment.createdAt }, session);
+    return appointment;
+  });
+  res.json(result);
+});
+
+adminPaymentRoutes.patch("/payments/:id/reject", async (req, res) => {
+  const appointmentId = id.parse(req.params.id);
+  const { reason } = z.object({ reason: z.string().trim().min(5, "Enter a rejection reason (at least 5 characters).").max(500) }).parse(req.body);
+  const result = await Appointment.db.transaction(async (session) => {
+    const appointment = await Appointment.findById(appointmentId).session(session);
+    if (!appointment?.payment?.slipId) throw new ApiError(404, "Payment not found.");
+    if (appointment.payment.status === "rejected" && appointment.payment.rejectionReason === reason) return appointment;
+    if (appointment.payment.status !== "pending") throw new ApiError(409, "This payment has already been reviewed. Refresh the list.");
+    if (appointment.status !== "confirmed" || appointment.doctorDecision === "rejected" || !slotIsFuture(appointment.date, appointment.time))
+      throw new ApiError(400, "Only active, upcoming appointments can have payments reviewed.");
+    appointment.payment.status = "rejected";
+    appointment.payment.rejectionReason = reason;
+    appointment.payment.reviewedAt = new Date();
+    appointment.payment.reviewedBy = req.admin!._id;
+    await appointment.save({ session });
     return appointment;
   });
   res.json(result);

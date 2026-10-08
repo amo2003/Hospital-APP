@@ -1,6 +1,6 @@
 import { Text } from "../../patient/i18n/LanguageProvider";
 import React from 'react';
-import {
+import { Platform,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -142,10 +142,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
-    shadowColor: '#000',
+    ...Platform.select({
+      web: { boxShadow: '0px 3px 10px rgba(0, 0, 0, 0.1)' },
+      default: { shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.1,
-    shadowRadius: 5,
+    shadowRadius: 5, },
+    }),
     elevation: 3,
   },
   bannerColumn: {
@@ -191,10 +194,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e1ecf6',
     marginBottom: 20,
-    shadowColor: '#034ea2',
+    ...Platform.select({
+      web: { boxShadow: '0px 2px 12px rgba(3, 78, 162, 0.03)' },
+      default: { shadowColor: '#034ea2',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.03,
-    shadowRadius: 6,
+    shadowRadius: 6, },
+    }),
     elevation: 1,
   },
   timelineItem: {
