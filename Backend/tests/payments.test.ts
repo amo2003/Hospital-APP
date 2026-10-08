@@ -178,3 +178,42 @@ test("expired slips and simultaneous attempts cannot reuse a receipt or leave pa
   await Appointment.updateOne({ _id: created._id }, { $set: { doctorDecision: "rejected" } });
   await request(app).patch(`/api/admin/payments/${created._id}/approve`).set(auth(adminToken)).expect(400);
 });
+
+test("admin rejection requires a reason, is audited and visible to the patient, without cancelling the booking", async () => {
+  const slip = await upload().expect(201);
+  const booked = await book("18:00", { slipId: slip.body.id }).expect(201);
+  const url = `/api/admin/payments/${booked.body._id}/reject`;
+  const reason = "Receipt amount does not match the appointment fee.";
+  await request(app).patch(url).set(auth(token)).send({ reason }).expect(401);
+  for (const reason of ["", "no", "x".repeat(501)]) await request(app).patch(url).set(auth(adminToken)).send({ reason }).expect(400);
+  for (let i = 0; i < 2; i++) {
+    const result = await request(app).patch(url).set(auth(adminToken)).send({ reason }).expect(200);
+    assert.equal(result.body.payment.status, "rejected");
+    assert.equal(result.body.payment.rejectionReason, reason);
+    assert.ok(result.body.payment.reviewedAt);
+    assert.ok(result.body.payment.reviewedBy);
+    assert.equal(result.body.status, "confirmed");
+  }
+  await request(app).patch(`/api/admin/payments/${booked.body._id}/approve`).set(auth(adminToken)).expect(409);
+  const list = await request(app).get("/api/admin/payments").query({ status: "rejected", doctorId, date }).set(auth(adminToken)).expect(200);
+  assert.equal(list.body.counts.rejected, 1);
+  assert.equal(list.body.items[0]._id, booked.body._id);
+  const patientList = await request(app).get(`${root}/booking/appointments`).set(auth(token)).expect(200);
+  assert.equal(patientList.body.find((a: { _id: string }) => a._id === booked.body._id).payment.rejectionReason, reason);
+  assert.equal((await QueueEntry.findOne({ appointmentId: booked.body._id }))?.status, "waiting");
+  assert.equal(await AppointmentEmail.countDocuments({ _id: `payment-approved:${booked.body._id}` }), 0);
+});
+
+test("concurrent approval and rejection produce one final decision", async () => {
+  const slip = await upload().expect(201);
+  const booked = await book("18:15", { slipId: slip.body.id }).expect(201);
+  const url = `/api/admin/payments/${booked.body._id}`;
+  const results = await Promise.all([
+    request(app).patch(`${url}/approve`).set(auth(adminToken)),
+    request(app).patch(`${url}/reject`).set(auth(adminToken)).send({ reason: "The receipt is unreadable." }),
+  ]);
+  assert.deepEqual(results.map((result) => result.status).sort(), [200, 409]);
+  const saved = await Appointment.findById(booked.body._id);
+  assert.equal(saved?.payment?.status, results[0].status === 200 ? "approved" : "rejected");
+  assert.equal(await AppointmentEmail.countDocuments({ _id: `payment-approved:${booked.body._id}` }), results[0].status === 200 ? 1 : 0);
+});

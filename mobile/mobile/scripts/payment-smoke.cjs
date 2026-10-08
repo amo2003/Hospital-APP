@@ -93,35 +93,62 @@ async function main() {
     admin.on("pageerror", (error) => errors.push(error.message));
     await admin.addInitScript(() => { localStorage.setItem("careplus_admin_token", "test-admin"); localStorage.setItem("careplus_admin_user", JSON.stringify({ adminId: "test-admin" })); });
     let approved = false;
+    const rejectedAppointment = { ...appointment, _id: "appointment-reject", appointmentId: "OPD-REVIEW", payment: { ...appointment.payment } };
     await admin.route("**/api/admin/**", async (route) => {
       const req = route.request(); const url = new URL(req.url()); let data = {};
       if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers });
       if (url.pathname.endsWith("/doctor-fees")) data = [doctor];
       else if (url.pathname.includes("/doctor-fees/")) { Object.assign(doctor, req.postDataJSON()); data = doctor; }
-      else if (url.pathname.endsWith("/payments")) data = { items: approved && url.searchParams.get("status") === "pending" ? [] : [appointment], total: approved ? 0 : 1, page: 1 };
-      else if (url.pathname.endsWith("/approve")) { approved = true; data = appointment; }
-      else if (url.pathname.endsWith("/slip")) return route.fulfill({ headers, contentType: "image/jpeg", body: Buffer.from("test image") });
+      else if (url.pathname.endsWith("/payments")) {
+        const all = [appointment, rejectedAppointment];
+        const items = all.filter((a) => url.searchParams.get("status") === "all" || a.payment.status === url.searchParams.get("status"));
+        data = { items, total: items.length, page: 1, counts: Object.fromEntries(["pending", "approved", "rejected"].map((status) => [status, all.filter((a) => a.payment.status === status).length])) };
+      }
+      else if (url.pathname.endsWith("/approve")) { approved = true; appointment.payment.status = "approved"; data = appointment; }
+      else if (url.pathname.endsWith("/reject")) { rejectedAppointment.payment.status = "rejected"; rejectedAppointment.payment.rejectionReason = req.postDataJSON().reason; data = rejectedAppointment; }
+      else if (url.pathname.endsWith("/slip")) return route.fulfill({ headers, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aJ1sAAAAASUVORK5CYII=", "base64") });
       else if (url.pathname.endsWith("/dashboard")) data = { totalDoctors: 1, totalNurses: 0, totalPatients: 1, pendingApprovals: 0, recentActivity: [] };
       await route.fulfill({ headers, contentType: "application/json", body: JSON.stringify(data) });
     });
     await admin.goto(`${base}/admin/`);
-    await admin.getByRole("button", { name: "Doctor fees & payment slips" }).click();
-    await expect(admin.getByText("Slip uploaded:", { exact: false })).toBeVisible();
-    await admin.getByLabel("Doctor", { exact: true }).first().selectOption(doctor._id);
-    await admin.getByLabel("Amount (LKR)").fill("1750");
-    await admin.getByRole("button", { name: "Save fee", exact: true }).click();
+    await admin.getByRole("button", { name: "Manage doctor fees" }).click();
+    await admin.getByLabel("Select doctor", { exact: true }).selectOption(doctor._id);
+    await admin.getByLabel("Appointment fee (LKR)").fill("1750");
+    await admin.getByRole("button", { name: "Save doctor fee", exact: true }).click();
     await expect(admin.getByText("Doctor fee saved.", { exact: false })).toBeVisible();
     assert.equal(doctor.feeLkr, 1750);
     await admin.screenshot({ path: path.join(out, "admin-payments.png"), fullPage: true });
+    await admin.getByRole("tab", { name: "Payment review" }).click();
+    await expect(admin.locator("#pendingPaymentsCount")).toHaveText("2");
+    for (const width of [320, 393, 1280]) {
+      await admin.setViewportSize({ width, height: 900 });
+      assert.ok(await admin.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `No horizontal overflow at ${width}px`);
+    }
+    await admin.setViewportSize({ width: 393, height: 852 });
+    await admin.screenshot({ path: path.join(out, "admin-payment-review.png"), fullPage: true });
+    await admin.locator('[data-review="appointment-test"]').click();
+    await expect(admin.getByRole("button", { name: "Approve payment", exact: true })).toBeDisabled();
     const download = admin.waitForEvent("download");
-    await admin.getByRole("button", { name: "Download slip", exact: true }).click();
+    await admin.getByRole("button", { name: "Download original slip", exact: true }).click();
     await download;
-    admin.once("dialog", (dialog) => dialog.accept());
+    await admin.getByLabel("I checked the receipt and received the correct amount.").check();
     await admin.getByRole("button", { name: "Approve payment", exact: true }).click();
     await expect(admin.getByText("Payment approved. The patient notification email is queued for delivery.")).toBeVisible();
     assert.ok(approved);
+    await admin.locator('[data-review="appointment-reject"]').click();
+    await admin.getByRole("button", { name: "Reject payment", exact: true }).click();
+    await expect(admin.getByText("Enter a rejection reason of at least 5 characters.")).toBeVisible();
+    await admin.getByLabel("Reason for rejection", { exact: false }).fill("The receipt amount is incorrect.");
+    await admin.screenshot({ path: path.join(out, "admin-payment-decision.png"), fullPage: true });
+    await admin.getByRole("button", { name: "Reject payment", exact: true }).click();
+    await expect(admin.getByText("Payment rejected. The patient can see your reason in their appointment details.")).toBeVisible();
+    await expect(admin.locator("#rejectedPaymentsCount")).toHaveText("1");
+    await admin.locator('[data-status="rejected"]').click();
+    await admin.getByRole("button", { name: "View payment details" }).click();
+    await expect(admin.locator(".pay-rejection")).toContainText("The receipt amount is incorrect.");
+    await expect(admin.locator("#paymentDecisionActions")).toBeHidden();
     assert.deepEqual(errors, []);
-    console.log("PASS: patient slip upload, five-step booking, payment status, cancellation option, admin fees, private receipt download and approval.");
+    console.log("PASS: patient booking and receipt upload; admin fee saving, responsive review views, private receipt download, approval and rejection with reason.");
   } finally { await browser.close(); await new Promise((resolve) => server.close(resolve)); }
 }
 main().catch((error) => { console.error(error); process.exitCode = 1; });
