@@ -419,8 +419,8 @@ export function Steps({
                 height: 1,
                 backgroundColor: C.line,
                 top: 16,
-                left: "65%",
-                width: "70%",
+                left: "50%",
+                right: "-50%",
               }}
             />
           )}

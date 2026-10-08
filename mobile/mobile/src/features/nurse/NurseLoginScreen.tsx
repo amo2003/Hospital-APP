@@ -65,14 +65,14 @@ export default function NurseLoginScreen() {
         <ErrorMessage message={error} />
         <Button title="Log In" onPress={login} loading={busy} />
         <View style={[s.row, { marginVertical: 14 }]}>
-          <View style={{ flex: 1, height: 1, backgroundColor: C.line }} />
+          {/*<View style={{ flex: 1, height: 1, backgroundColor: C.line }} />
           <Text style={{ color: C.muted, fontSize: 11, textAlign: "center" }}>OR</Text>
-          <View style={{ flex: 1, height: 1, backgroundColor: C.line }} />
+          <View style={{ flex: 1, height: 1, backgroundColor: C.line }} />*/}
         </View>
-        <Pressable style={[s.inputBox, { justifyContent: "center", minHeight: 54, paddingLeft: 50, paddingRight: 16, paddingVertical: 12 }]} onPress={() => setError("Nurse Google sign-in is not available. Use your Staff ID and password.")}>
+        {/*<Pressable style={[s.inputBox, { justifyContent: "center", minHeight: 54, paddingLeft: 50, paddingRight: 16, paddingVertical: 12 }]} onPress={() => setError("Nurse Google sign-in is not available. Use your Staff ID and password.")}>
           <View style={{ position: "absolute", left: 18 }}><GoogleLogo size={21} /></View>
           <Text style={{ color: C.navy, fontSize: 13, fontWeight: "700", flexShrink: 1, textAlign: "center" }}>Continue with Google</Text>
-        </Pressable>
+        </Pressable>*/}
       </View>
       <Pressable style={s.centerLink} onPress={() => router.push("/nurse/register")}>
         <Text style={{ color: C.muted, fontSize: 11, textAlign: "center" }}>Don’t have an account? <Text style={s.link}>Sign Up</Text></Text>

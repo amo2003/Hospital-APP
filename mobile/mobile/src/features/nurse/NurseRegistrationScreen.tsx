@@ -66,16 +66,17 @@ export default function NurseRegistrationScreen() {
             <Text style={{ color: "#d5e6f5", fontSize: 11, marginTop: 4, textAlign: "center" }}>Step {step + 1} of 3 - { ["Personal Details", "Contact Details", "Account Setup"][step] }</Text>
           </View>
         </View>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: 4 }}>
-          {["Personal", "Contact", "Account"].map((label, index) => <View key={label} style={{ flex: 1, alignItems: "center", flexDirection: "row", justifyContent: "center" }}>
-            {index > 0 && <View style={{ position: "absolute", width: "100%", height: 1, backgroundColor: index <= step ? "#d9efff" : "#7694b1", left: "-50%" }} />}
-            <View style={{ zIndex: 1, alignItems: "center", flex: 1, paddingHorizontal: 3 }}>
+        <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "center", marginTop: 4, position: "relative" }}>
+          {/* single continuous line behind all circles */}
+          <View style={{ position: "absolute", top: 14, left: "16%", right: "16%", height: 1, backgroundColor: "#7694b1" }} />
+          {["Personal", "Contact", "Account"].map((label, index) => (
+            <View key={label} style={{ flex: 1, alignItems: "center", zIndex: 1 }}>
               <View style={{ width: 30, height: 30, borderRadius: 16, backgroundColor: index <= step ? "#fff" : "#21496e", borderWidth: 1, borderColor: "#d8eafb", alignItems: "center", justifyContent: "center" }}>
                 {index < step ? <Icon name="check" size={17} /> : <Text style={{ color: index === step ? C.blue : "#d5e6f5", fontSize: 12, fontWeight: "700" }}>{index + 1}</Text>}
               </View>
               <Text style={{ color: "#e0edf8", fontSize: 9, marginTop: 4, textAlign: "center" }}>{label}</Text>
             </View>
-          </View>)}
+          ))}
         </View>
       </LinearGradient>
       <View style={[s.card, { borderWidth: 0, padding: 20, borderRadius: 20, marginTop: -33 }]}>
