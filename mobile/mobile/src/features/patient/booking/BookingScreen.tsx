@@ -21,7 +21,8 @@ import {
   s,
 } from "../shared/ui";
 import { Icon } from "../shared/icons";
-import PaymentStep, { paymentLabel, type UploadedSlip } from "../payments/PaymentStep";
+// Government OPD: payment screen preserved but disabled.
+// import PaymentStep, { paymentLabel, type UploadedSlip } from "../payments/PaymentStep";
 export const today = () =>
   new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Colombo",
@@ -61,8 +62,8 @@ export default function BookingScreen() {
   const [booking, setBooking] = useState(false);
   const [confirmed, setConfirmed] = useState<Appointment | null>(null);
   const [retry, setRetry] = useState(0);
-  const [slip, setSlip] = useState<UploadedSlip | null>(null);
-  const [uploading, setUploading] = useState(false);
+  // const [slip, setSlip] = useState<UploadedSlip | null>(null);
+  // const [uploading, setUploading] = useState(false);
   useEffect(() => {
     if (step !== 0) return;
     let active = true;
@@ -120,7 +121,7 @@ export default function BookingScreen() {
   const hospital = hospitals.find((h) => h._id === hospitalId);
   const doctor = doctors.find((d) => d._id === doctorId);
   function changeStep(value: number) {
-    if (booking || uploading) return;
+    if (booking /* || uploading */) return;
     setError("");
     setLoading(value < 3);
     if (value === 2) {
@@ -143,19 +144,24 @@ export default function BookingScreen() {
       setError("Select an available time slot.");
       return;
     }
+    /* Government OPD: receipt validation disabled.
     if (step === 3 && (doctor?.feeLkr || 0) > 0 && (!slip || slip.doctorId !== doctorId)) {
       setError("Upload your payment slip before confirming the appointment.");
       return;
     }
-    if (step < 4) {
+    */
+    // Paid flow used step < 4; OPD confirms at step 3.
+    if (step < 3) {
       changeStep(step + 1);
       return;
     }
     setBooking(true);
     try {
       setConfirmed(
-        await api.book({ hospitalId, department, doctorId, date, time, expectedFeeLkr: doctor?.feeLkr || 0,
-          ...((doctor?.feeLkr || 0) > 0 && slip?.doctorId === doctorId ? { slipId: slip.id } : {}) }),
+        await api.book({ hospitalId, department, doctorId, date, time,
+          // expectedFeeLkr: doctor?.feeLkr || 0,
+          // ...((doctor?.feeLkr || 0) > 0 && slip?.doctorId === doctorId ? { slipId: slip.id } : {})
+        }),
       );
     } catch (e) {
       setError(messageOf(e));
@@ -173,7 +179,8 @@ export default function BookingScreen() {
         />
         <AppointmentCard appointment={confirmed} />
         <View style={{ marginTop: 12 }}>
-          <Notice>Appointment details will be emailed to you. Paid bookings receive another email after payment approval.</Notice>
+          {/* <Notice>Appointment details will be emailed to you. Paid bookings receive another email after payment approval.</Notice> */}
+          <Notice>Appointment details will be emailed to you.</Notice>
           <Notice>You can cancel within 30 minutes of booking, before your appointment starts.</Notice>
           <Notice>
             Please arrive at least 15 minutes early and bring a valid ID and
@@ -221,18 +228,18 @@ export default function BookingScreen() {
               <Button
                 title="Back"
                 outline
-                disabled={booking || uploading}
+                disabled={booking /* || uploading */}
                 onPress={() => changeStep(step - 1)}
                 style={{ flex: 1 }}
               />
               <Button
-                title={step === 4 ? "Confirm Appointment" : "Next"}
+                title={step === 3 ? "Confirm Appointment" : "Next"}
                 arrow
                 loading={booking}
                 disabled={
-                  loading || uploading ||
-                  (step === 2 && (!time || !slots.some((slot) => slot.time === time && slot.available))) ||
-                  (step === 3 && (doctor?.feeLkr || 0) > 0 && (!slip || slip.doctorId !== doctorId))
+                  loading /* || uploading */ ||
+                  (step === 2 && (!time || !slots.some((slot) => slot.time === time && slot.available)))
+                  // || (step === 3 && (doctor?.feeLkr || 0) > 0 && (!slip || slip.doctorId !== doctorId))
                 }
                 onPress={next}
                 style={{ flex: 1.5 }}
@@ -249,7 +256,7 @@ export default function BookingScreen() {
             "Book Appointment",
             "Select Doctor",
             "Select Date & Time",
-            "Payment",
+            // "Payment",
             "Review Appointment",
           ][step]
         }
@@ -261,7 +268,7 @@ export default function BookingScreen() {
       />
       <Steps
         current={step}
-        labels={["Hospital", "Doctor", "Date & Time", "Payment", "Confirm"]}
+        labels={["Hospital", "Doctor", "Date & Time", /* "Payment", */ "Confirm"]}
       />
       {step === 0 ? (
         <>
@@ -320,7 +327,10 @@ export default function BookingScreen() {
                 key={d._id}
                 accessibilityRole="radio"
                 accessibilityState={{ checked: doctorId === d._id }}
-                onPress={() => { if (doctorId !== d._id) setSlip(null); setDoctor(d._id); }}
+                onPress={() => {
+                  // if (doctorId !== d._id) setSlip(null);
+                  setDoctor(d._id);
+                }}
                 style={[
                   s.card,
                   s.row,
@@ -479,8 +489,10 @@ export default function BookingScreen() {
             </View>
           )}
         </>
+      /* Government OPD: payment step preserved but disabled.
       ) : step === 3 ? (
         doctor ? <PaymentStep doctor={doctor} slip={slip?.doctorId === doctorId ? slip : null} onChange={setSlip} onBusy={setUploading} /> : null
+      */
       ) : (
         <>
           <View style={s.card}>
@@ -492,8 +504,10 @@ export default function BookingScreen() {
             <Row label="Doctor" value={doctor?.name || ""} />
             <Row label="Date" value={dateLabel(date)} />
             <Row label="Time" value={timeLabel(time)} />
+            {/* Government OPD: fee/payment summary disabled.
             <Row label="Appointment fee" value={`LKR ${(doctor?.feeLkr || 0).toFixed(2)}`} />
             <Row label="Payment" value={(doctor?.feeLkr || 0) > 0 ? "Slip ready for admin review" : "No payment required"} />
+            */}
           </View>
           <View style={{ marginTop: 16 }}>
             <Notice>Check your details, then confirm your appointment.</Notice>
@@ -527,7 +541,7 @@ export default function BookingScreen() {
             <Button
               title="Back"
               outline
-              disabled={booking || uploading}
+              disabled={booking /* || uploading */}
               onPress={() => {
                 changeStep(step - 1);
               }}
@@ -535,10 +549,10 @@ export default function BookingScreen() {
             />
           )}
           <Button
-            title={step === 4 ? "Confirm Appointment" : "Next"}
+            title={step === 3 ? "Confirm Appointment" : "Next"}
             arrow
             loading={booking}
-            disabled={loading || uploading || (step === 3 && (doctor?.feeLkr || 0) > 0 && (!slip || slip.doctorId !== doctorId))}
+            disabled={loading /* || uploading || (step === 3 && (doctor?.feeLkr || 0) > 0 && (!slip || slip.doctorId !== doctorId)) */}
             onPress={next}
             style={{ flex: step >= 2 ? 1.5 : 1 }}
           />
@@ -570,7 +584,7 @@ export function AppointmentCard({ appointment }: { appointment: Appointment }) {
         </View>
       </View>
       <Row label="Appointment ID" value={appointment.appointmentId} />
-      {!!appointment.doctorQueueNumber && (
+      {appointment.doctorDecision === "accepted" && !!appointment.doctorQueueNumber && (
         <Row label="Your Queue" value={`#${appointment.doctorQueueNumber}`} />
       )}
       <Row
@@ -584,6 +598,7 @@ export function AppointmentCard({ appointment }: { appointment: Appointment }) {
       />
       <Row label="Date" value={dateLabel(appointment.date)} />
       <Row label="Time" value={timeLabel(appointment.time)} />
+      {/* Government OPD: payment details preserved but hidden.
       <Row label="Appointment fee" value={`LKR ${(appointment.payment?.amountLkr || 0).toFixed(2)}`} />
       <Row label="Payment" value={paymentLabel(appointment.payment?.status)} />
       {appointment.payment?.status === "rejected" && (
@@ -593,6 +608,7 @@ export function AppointmentCard({ appointment }: { appointment: Appointment }) {
           <Text style={s.body}>Please contact the hospital about your payment.</Text>
         </View>
       )}
+      */}
       <Row
         label="Status"
         value={

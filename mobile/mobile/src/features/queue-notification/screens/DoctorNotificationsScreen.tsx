@@ -1,7 +1,7 @@
 import { LanguagePicker } from "../../patient/auth/LanguagePicker";
 import { Text } from "../../patient/i18n/LanguageProvider";
 import React, { useCallback, useState } from 'react';
-import {
+import { Platform,
   ActivityIndicator,
   ScrollView,
   StyleSheet,
@@ -158,10 +158,13 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     borderWidth: 1,
     borderColor: '#e1ecf6',
-    shadowColor: '#034ea2',
+    ...Platform.select({
+      web: { boxShadow: '0px 2px 10px rgba(3, 78, 162, 0.03)' },
+      default: { shadowColor: '#034ea2',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.03,
-    shadowRadius: 5,
+    shadowRadius: 5, },
+    }),
     elevation: 1,
   },
   iconCircle: {

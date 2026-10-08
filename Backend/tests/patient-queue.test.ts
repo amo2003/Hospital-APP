@@ -1,3 +1,4 @@
+import { DoctorAccount } from "../src/doctor/doctor.model.js";
 import { before, after, test } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
@@ -28,18 +29,29 @@ before(async () => {
 });
 after(async () => { await mongoose.disconnect(); await db?.stop(); });
 
-test("doctor queues use booking order, protect names and isolate doctors/dates; appointments can be today-only", async () => {
+test("doctor queues use approval order, protect names and isolate doctors/dates; appointments can be today-only", async () => {
   const doctor = await Doctor.create({ name: "Queue Test Doctor", specialty: "General Medicine", hospitalId, weekdays: [0,1,2,3,4,5,6] });
   const secondDoctor = await Doctor.create({ name: "Second Queue Doctor", specialty: "General Medicine", hospitalId, weekdays: [0,1,2,3,4,5,6] });
   const day = new Date(); day.setDate(day.getDate() + 5);
   const queueDate = day.toISOString().slice(0, 10);
   const payload = { doctorId: String(doctor._id), hospitalId, department: "General Medicine", date: queueDate };
-  const book = (auth: string, time: string, extra = {}) => request(app).post("/api/patient/booking/appointments").auth(auth, { type: "bearer" }).send({ ...payload, time, ...extra });
-  const first = await book(otherToken, "18:00").expect(201);
-  const second = await book(token, "09:00").expect(201);
+  const doctorTokens = new Map<string, string>();
+  for (const [i, catalog] of [doctor, secondDoctor].entries()) {
+    const account = await DoctorAccount.create({ fullName: catalog.name, nic: "19801234567" + i, dob: "1980-01-01", gender: "Male", slmcNo: "QUEUE-" + i, specialty: "General Medicine", qualifications: "MBBS", experience: "5", hospital: "Queue test hospital", phone: "077111111" + i, email: "queue-doctor" + i + "@example.com", passwordHash: "unused", status: "approved", doctorCatalogId: catalog._id });
+    doctorTokens.set(String(catalog._id), jwt.sign({ version: 0, role: "doctor" }, process.env.JWT_SECRET!, { subject: String(account._id), issuer: "careplus", audience: "doctor", expiresIn: "1h" }));
+  }
+  const book = async (auth: string, time: string, extra: { doctorId?: string } = {}) => {
+    const result = await request(app).post("/api/patient/booking/appointments").auth(auth, { type: "bearer" }).send({ ...payload, time, ...extra }).expect(201);
+    assert.equal(result.body.doctorQueueNumber, undefined);
+    await request(app).patch(`/api/doctor/appointments/${result.body._id}/decision`).auth(doctorTokens.get(extra.doctorId || String(doctor._id))!, { type: "bearer" }).send({ decision: "accepted" }).expect(200);
+    result.body.doctorQueueNumber = (await Appointment.findById(result.body._id))!.doctorQueueNumber;
+    return result;
+  };
+  const first = await book(otherToken, "18:00");
+  const second = await book(token, "09:00");
   assert.equal(first.body.doctorQueueNumber, 1);
   assert.equal(second.body.doctorQueueNumber, 2);
-  const otherDoctor = await book(otherToken, "09:15", { doctorId: String(secondDoctor._id) }).expect(201);
+  const otherDoctor = await book(otherToken, "09:15", { doctorId: String(secondDoctor._id) });
   assert.equal(otherDoctor.body.doctorQueueNumber, 1);
   const concurrent = await Promise.all([book(token, "09:30"), book(otherToken, "09:45")]);
   assert.deepEqual(concurrent.map((r) => r.status), [201, 201]);
@@ -67,7 +79,7 @@ test("doctor queues use booking order, protect names and isolate doctors/dates; 
 
   const me = await Patient.findOne({ email: person.email });
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Colombo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-  const legacy = await Appointment.create({ ...payload, patientId: me!._id, date: today, time: "00:01" });
+  const legacy = await Appointment.create({ ...payload, patientId: me!._id, date: today, time: "00:01", doctorDecision: "accepted" });
   const todayResponse = await request(app).get("/api/patient/booking/appointments?scope=today").auth(token, { type: "bearer" }).expect(200);
   assert.ok(todayResponse.body.some((item: any) => item._id === String(legacy._id)));
   assert.ok(todayResponse.body.every((item: any) => item.date === today && item.patientId === String(me!._id)));

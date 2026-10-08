@@ -1,5 +1,13 @@
 // English source copy -> Sinhala and Tamil. Patient-entered names and identifiers remain unchanged.
 export const translations: Record<string, readonly [string, string]> = {
+  "Patient medical details": ["රෝගියාගේ වෛද්‍ය විස්තර", "நோயாளியின் மருத்துவ விவரங்கள்"],
+  "Measurements saved by the patient.": ["රෝගියා විසින් සුරකින ලද මිනුම්.", "நோயாளி சேமித்த அளவீடுகள்."],
+  "Not recorded": ["සටහන් කර නැත", "பதிவு செய்யப்படவில்லை"],
+  "Height and weight are needed to calculate BMI.": ["BMI ගණනය කිරීමට උස සහ බර අවශ්‍ය වේ.", "BMI கணக்கிட உயரமும் எடையும் தேவை."],
+  "Latest recorded vitals": ["අවසන් වරට සටහන් කළ සෞඛ්‍ය මිනුම්", "கடைசியாகப் பதிவுசெய்த உடல்நிலை அளவீடுகள்"],
+  "Awaiting doctor approval": ["වෛද්‍ය අනුමැතිය බලාපොරොත්තුවෙන්", "மருத்துவர் ஒப்புதலுக்காகக் காத்திருக்கிறது"],
+  "Your queue and waiting time will appear after doctor approval.": ["වෛද්‍යවරයා අනුමත කළ පසු ඔබේ පෝලිම් අංකය සහ රැඳී සිටීමේ කාලය පෙන්වනු ඇත.", "மருத்துவர் ஒப்புதல் அளித்த பிறகு உங்கள் வரிசை எண்ணும் காத்திருக்கும் நேரமும் காட்டப்படும்."],
+  "Approval order for this doctor and date. Other patients are shown by queue ID only.": ["මෙම වෛද්‍යවරයා සහ දිනය සඳහා අනුමත කළ අනුපිළිවෙළ. අනෙක් රෝගීන් පෝලිම් අංකයෙන් පමණක් පෙන්වයි.", "இந்த மருத்துவர் மற்றும் தேதிக்கான ஒப்புதல் வரிசை. மற்ற நோயாளிகள் வரிசை எண் மூலம் மட்டுமே காட்டப்படுவர்."],
   "Today's Appointments": ["අද හමුවීම්", "இன்றைய சந்திப்புகள்"],
   "You have no appointments today.": ["අද ඔබට හමුවීම් නොමැත.", "இன்று உங்களுக்கு சந்திப்புகள் இல்லை."],
   "All doctors": ["සියලු වෛද්‍යවරු", "அனைத்து மருத்துவர்களும்"],

@@ -1,7 +1,8 @@
 import { router } from "expo-router";
 import Constants from "expo-constants";
-import type { DocumentPickerAsset } from "expo-document-picker";
-import { uploadPaymentSlip } from "../payments/upload-payment-slip";
+// Government OPD: upload integration preserved but disabled.
+// import type { DocumentPickerAsset } from "expo-document-picker";
+// import { uploadPaymentSlip } from "../payments/upload-payment-slip";
 import { Platform } from "react-native";
 import { Storage } from "@/utils/storage";
 import type {
@@ -41,7 +42,7 @@ async function request<T>(
   method = "GET",
   body?: unknown,
   authenticated = true,
-  upload?: DocumentPickerAsset,
+  // upload?: DocumentPickerAsset,
 ): Promise<T> {
   if (!base || base.includes("YOUR_"))
     throw new ApiError(
@@ -49,13 +50,13 @@ async function request<T>(
     );
   const token = authenticated ? await Storage.getUserToken() : null;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), upload ? 60000 : 15000);
+  const timeout = setTimeout(() => controller.abort(), /* upload ? 60000 : */ 15000);
   try {
     const url = `${base}/patient${path}`;
     const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-    const response = upload
+    const response = /* upload
       ? await uploadPaymentSlip(url, upload, { headers, signal: controller.signal })
-      : await fetch(url, {
+      : */ await fetch(url, {
       method,
       headers: {
         "Content-Type": "application/json",
@@ -80,6 +81,7 @@ async function request<T>(
     return data as T;
   } catch (error) {
     if (error instanceof ApiError) throw error;
+    /* Government OPD: upload-specific errors disabled.
     if (upload) {
       const detail = error instanceof Error ? error.message : "";
       if (detail === "UPLOAD_FILE_UNAVAILABLE")
@@ -94,6 +96,7 @@ async function request<T>(
       if (__DEV__) console.warn("[payment-upload/native-v2]", code, error instanceof Error ? error.name : "UnknownError");
       throw new ApiError(`Payment slip upload failed. Please try again. (${code})`);
     }
+    */
     throw new ApiError(
       "Cannot reach CarePlus. Check your connection and try again.",
     );
@@ -170,11 +173,11 @@ export const api = {
     doctorId: string;
     date: string;
     time: string;
-    expectedFeeLkr?: number;
-    slipId?: string;
+    // expectedFeeLkr?: number;
+    // slipId?: string;
   }) => request<Appointment>("/booking/appointments", "POST", data),
-  uploadPaymentSlip: (doctorId: string, asset: DocumentPickerAsset) =>
-    request<{ id: string; filename: string; uploadedAt: string }>(`/payments/slips/${doctorId}`, "POST", undefined, true, asset),
+  // uploadPaymentSlip: (doctorId: string, asset: DocumentPickerAsset) =>
+  //   request<{ id: string; filename: string; uploadedAt: string }>(`/payments/slips/${doctorId}`, "POST", undefined, true, asset),
   cancel: (id: string) =>
     request<Appointment>(`/booking/appointments/${id}/cancel`, "PATCH"),
 };

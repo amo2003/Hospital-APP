@@ -1,4 +1,5 @@
 export const paymentTranslations: Record<string, readonly [string, string]> = {
+  "Appointment details will be emailed to you.": ["හමුවීමේ විස්තර ඔබට විද්‍යුත් තැපෑලෙන් ලැබේ.", "சந்திப்பு விவரங்கள் உங்களுக்கு மின்னஞ்சலில் அனுப்பப்படும்."],
   "Payment slip upload timed out. Please try again.": ["ගෙවීම් රිසිට්පත එක් කිරීමට ගත වූ කාලය ඉක්මවා ඇත. නැවත උත්සාහ කරන්න.", "கட்டண ரசீது பதிவேற்ற நேரம் முடிந்தது. மீண்டும் முயற்சிக்கவும்."],
   "Payment slip upload failed. Please try again. (UPLOAD_NETWORK)": ["ගෙවීම් රිසිට්පත එක් කිරීම අසාර්ථකයි. නැවත උත්සාහ කරන්න. (UPLOAD_NETWORK)", "கட்டண ரசீது பதிவேற்றம் தோல்வியடைந்தது. மீண்டும் முயற்சிக்கவும். (UPLOAD_NETWORK)"],
   "Payment slip upload failed. Please try again. (UPLOAD_NATIVE)": ["ගෙවීම් රිසිට්පත එක් කිරීම අසාර්ථකයි. නැවත උත්සාහ කරන්න. (UPLOAD_NATIVE)", "கட்டண ரசீது பதிவேற்றம் தோல்வியடைந்தது. மீண்டும் முயற்சிக்கவும். (UPLOAD_NATIVE)"],
