@@ -32,7 +32,7 @@ adminPaymentRoutes.get("/payments", async (req, res) => {
   const [items, total, pending, approved, rejected] = await Promise.all([Appointment.find(filter).populate("doctorId", "name specialty").populate("hospitalId", "name")
     .populate("patientId", "fullName patientId").populate("payment.slipId", "filename contentType uploadedAt size")
     .sort({ createdAt: -1 }).skip((query.page - 1) * 30).limit(30).lean(), Appointment.countDocuments(filter),
-    ...["pending", "approved", "rejected"].map((status) => Appointment.countDocuments({ ...baseFilter, "payment.status": status }))]);
+    ...(["pending", "approved", "rejected"] as const).map((status) => Appointment.countDocuments({ ...baseFilter, "payment.status": status }))]);
   res.json({ items, total, page: query.page, counts: { pending, approved, rejected } });
 });
 adminPaymentRoutes.get("/payments/:id/slip", async (req, res) => {

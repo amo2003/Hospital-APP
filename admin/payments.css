@@ -78,6 +78,9 @@
 #paymentsView .pay-error, #paymentReviewError { color: #aa3246; background: #fff0f2; border: 1px solid #f4d1d7; }
 .pay-dialog { margin: auto; padding: 0; width: min(440px, calc(100% - 24px)); max-height: 90vh; max-height: 90dvh; border: 1px solid #dae7f2; border-radius: 20px; color: #153657; background: white; overflow: auto; box-shadow: 0 20px 80px #001b4166; }
 .pay-dialog::backdrop { background: #071b34a6; backdrop-filter: blur(4px); }
+.pay-dialog[open] { display: flex; flex-direction: column; overflow: hidden; }
+.pay-dialog .pay-dialog-body { overflow-y: auto; min-height: 0; }
+.pay-dialog .pay-dialog-header { flex-shrink: 0; }
 .pay-dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 20px; background: #f1f8fe; border-bottom: 1px solid #e2edf5; }
 .pay-dialog-header .pay-kicker { color: #0874b9; margin-bottom: 5px; font-size: 9px; }.pay-dialog-body { padding: 20px; }
 #paymentsView .pay-dialog .pay-row > strong { font-size: 16px; }

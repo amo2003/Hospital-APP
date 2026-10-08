@@ -67,6 +67,7 @@ function paymentMessage(text, error = false) {
   payEl("paymentMessage").className = error ? "pay-error" : "pay-success";
 }
 function setPaymentTab(tab, focus = false) {
+  paymentMessage("");
   const fees = tab !== "reviews";
   payEl("feesPanel").hidden = !fees; payEl("reviewsPanel").hidden = fees;
   for (const [id, active] of [["feesTab", fees], ["reviewsTab", !fees]]) {
@@ -221,6 +222,7 @@ payEl("closePaymentReview").addEventListener("click", () => { if (!decisionBusy)
 payEl("paymentReviewDialog").addEventListener("cancel", (event) => { if (decisionBusy) event.preventDefault(); });
 payEl("paymentReviewDialog").addEventListener("close", () => { releaseReceipt(); selectedPayment = null; });
 payEl("paymentVerified").addEventListener("change", updateReviewButtons);
+payEl("paymentRejectReason").addEventListener("input", () => reviewError());
 payEl("approvePayment").addEventListener("click", () => decidePayment("approve"));
 payEl("rejectPayment").addEventListener("click", () => decidePayment("reject"));
 payEl("downloadReviewSlip").addEventListener("click", () => {
