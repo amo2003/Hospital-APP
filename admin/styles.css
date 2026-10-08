@@ -389,10 +389,15 @@ body {
   font-weight: 800;
   cursor: pointer;
   transition: opacity 0.2s;
+  display: block;
 }
 
 .btn-action-full:hover {
   opacity: 0.92;
+}
+
+.btn-action-full + .btn-action-full {
+  margin-top: 10px;
 }
 
 /* ──────────────── 4. BOTTOM TABS ──────────────── */
