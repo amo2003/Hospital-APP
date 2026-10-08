@@ -586,6 +586,13 @@ export function AppointmentCard({ appointment }: { appointment: Appointment }) {
       <Row label="Time" value={timeLabel(appointment.time)} />
       <Row label="Appointment fee" value={`LKR ${(appointment.payment?.amountLkr || 0).toFixed(2)}`} />
       <Row label="Payment" value={paymentLabel(appointment.payment?.status)} />
+      {appointment.payment?.status === "rejected" && (
+        <View style={{ marginVertical: 8 }}>
+          <Text style={s.label}>Payment rejection reason</Text>
+          <Text translate={false} style={s.body}>{appointment.payment.rejectionReason}</Text>
+          <Text style={s.body}>Please contact the hospital about your payment.</Text>
+        </View>
+      )}
       <Row
         label="Status"
         value={

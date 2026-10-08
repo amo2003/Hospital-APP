@@ -7,7 +7,7 @@ import { Button, ErrorMessage, Notice, Row, s } from "../shared/ui";
 import type { Doctor } from "../shared/types";
 
 export type UploadedSlip = { id: string; filename: string; doctorId: string };
-export const paymentLabel = (status?: string) => status === "pending" ? "Awaiting payment approval" : status === "approved" ? "Payment approved" : "No payment required";
+export const paymentLabel = (status?: string) => status === "pending" ? "Awaiting payment approval" : status === "approved" ? "Payment approved" : status === "rejected" ? "Payment rejected" : "No payment required";
 
 export default function PaymentStep({ doctor, slip, onChange, onBusy }: {
   doctor: Doctor; slip: UploadedSlip | null; onChange: (slip: UploadedSlip) => void; onBusy: (value: boolean) => void;
