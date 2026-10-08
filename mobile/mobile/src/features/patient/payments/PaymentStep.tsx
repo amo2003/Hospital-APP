@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Platform, View } from "react-native";
-import { pickDocument } from "@/utils/document-picker";
+import { View } from "react-native";
+import { pickPaymentSlip } from "./pick-payment-slip";
 import { Text } from "../i18n/LanguageProvider";
 import { api, messageOf } from "../shared/api";
 import { Button, ErrorMessage, Notice, Row, s } from "../shared/ui";
@@ -19,7 +19,7 @@ export default function PaymentStep({ doctor, slip, onChange, onBusy }: {
     setError("");
     try {
       // Open directly on the user's press so web browsers allow the file chooser.
-      const result = await pickDocument({ type: ["image/jpeg", "image/png", "application/pdf"], multiple: false, copyToCacheDirectory: true, base64: false });
+      const result = await pickPaymentSlip();
       if (result.canceled) return;
       const asset = result.assets[0];
       if (asset.size !== undefined && asset.size > 5 * 1024 * 1024) {
@@ -28,10 +28,7 @@ export default function PaymentStep({ doctor, slip, onChange, onBusy }: {
       }
       setUploading(true);
       onBusy(true);
-      const form = new FormData();
-      if (Platform.OS === "web" && asset.file) form.append("slip", asset.file, asset.name);
-      else form.append("slip", { uri: asset.uri, name: asset.name, type: asset.mimeType || "application/octet-stream" } as unknown as Blob);
-      const uploaded = await api.uploadPaymentSlip(doctor._id, form);
+      const uploaded = await api.uploadPaymentSlip(doctor._id, asset);
       onChange({ id: uploaded.id, filename: asset.name, doctorId: doctor._id });
     } catch (e) {
       setError(messageOf(e));
