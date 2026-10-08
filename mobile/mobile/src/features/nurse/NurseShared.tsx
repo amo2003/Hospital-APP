@@ -8,7 +8,7 @@ export function NurseTabs({ active }: { active: "home" | "appointments" | "notif
   const { t } = useLanguage();
   const tabs = [
     { key: "home", label: "Home", icon: "home", path: "/nurse/dashboard" },
-    { key: "appointments", label: "Appointments", icon: "calendar", path: null },
+    { key: "appointments", label: "Appointments", icon: "calendar", path: "/nurse/appointments" },
     { key: "notifications", label: "Notifications", icon: "bell", path: "/nurse/notifications" },
     { key: "profile", label: "Profile", icon: "user", path: "/nurse/profile" },
   ] as const;

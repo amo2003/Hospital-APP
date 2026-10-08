@@ -46,7 +46,7 @@ export default function NurseDashboardScreen() {
   const actions = [
     { label: "Patient Search", icon: "search" as const, path: "/nurse/patients" as const },
     { label: "Queue Mgmt", icon: "clock" as const, path: "/nurse/queue" as const },
-    { label: "Appointments", icon: "calendar" as const, path: "/nurse/queue" as const },
+    { label: "Appointments", icon: "calendar" as const, path: "/nurse/appointments" as const },
     { label: "Digital Queue", icon: "id" as const, path: "/nurse/digital-queue" as const },
     { label: "Reports", icon: "bell" as const, path: "/nurse/digital-queue" as const },
     { label: "Staff Settings", icon: "user" as const, path: "/nurse/profile" as const },

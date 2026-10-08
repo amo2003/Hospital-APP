@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useFocusEffect, router } from "expo-router";
 import { Text, useLanguage } from "../patient/i18n/LanguageProvider";
 import { C, ErrorMessage, Header, Screen, s } from "../patient/shared/ui";
@@ -8,12 +8,11 @@ import { NurseTabs } from "./NurseShared";
 import type { NurseNotification } from "./types";
 
 type TypeFilter = "all" | "appointment" | "queue" | "general";
-type ReadFilter = "all" | "unread" | "read";
 
 export default function NurseNotificationsScreen() {
   const { t } = useLanguage();
   const [type, setType] = useState<TypeFilter>("all");
-  const [read, setRead] = useState<ReadFilter>("all");
+  const [search, setSearch] = useState("");
   const [items, setItems] = useState<NurseNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -23,7 +22,7 @@ export default function NurseNotificationsScreen() {
       let active = true;
       const load = () => {
         setLoading(true);
-        nurseApi.notifications(type, read)
+        nurseApi.notifications(type, "all")
           .then((result) => {
             if (active) {
               setItems(result);
@@ -43,7 +42,7 @@ export default function NurseNotificationsScreen() {
         active = false;
         clearInterval(timer);
       };
-    }, [read, type]),
+    }, [type]),
   );
 
   const typeFilters: Array<{ key: TypeFilter; label: string }> = [
@@ -52,11 +51,13 @@ export default function NurseNotificationsScreen() {
     { key: "queue", label: "Queue" },
     { key: "general", label: "General" },
   ];
-  const readFilters: Array<{ key: ReadFilter; label: string }> = [
-    { key: "all", label: "All status" },
-    { key: "unread", label: "Unread" },
-    { key: "read", label: "Read" },
-  ];
+  const query = search.trim().toLowerCase();
+  const visibleItems = items.filter((item) => {
+    if (!query) return true;
+    return [item.title, item.description, item.patient?.fullName, item.patient?.patientId]
+      .filter(Boolean)
+      .some((value) => value!.toLowerCase().includes(query));
+  });
 
   return (
     <Screen footer={<NurseTabs active="notifications" />}>
@@ -66,6 +67,15 @@ export default function NurseNotificationsScreen() {
         back={() => router.replace("/nurse/dashboard")}
       />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+        <TextInput
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search patient or notification..."
+          placeholderTextColor={C.muted}
+          style={styles.searchInput}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
         <Text style={[s.label, { marginBottom: 8 }]}>Category</Text>
         <View style={[s.row, { flexWrap: "wrap", gap: 8, marginBottom: 14 }]}>
           {typeFilters.map((filter) => (
@@ -87,32 +97,12 @@ export default function NurseNotificationsScreen() {
             </Pressable>
           ))}
         </View>
-        <Text style={[s.label, { marginBottom: 8 }]}>Status</Text>
-        <View style={[s.row, { flexWrap: "wrap", gap: 8, marginBottom: 16 }]}>
-          {readFilters.map((filter) => (
-            <Pressable
-              key={filter.key}
-              onPress={() => setRead(filter.key)}
-              style={{
-                borderWidth: 1,
-                borderColor: read === filter.key ? C.blue : C.line,
-                backgroundColor: read === filter.key ? "#e8f4ff" : "#fff",
-                borderRadius: 16,
-                paddingHorizontal: 12,
-                paddingVertical: 7,
-              }}
-            >
-              <Text style={{ color: C.navy, fontSize: 11, fontWeight: "700" }}>{filter.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-
         {loading && <ActivityIndicator color={C.blue} style={{ marginVertical: 24 }} />}
-        {!!error && <><ErrorMessage message={error} /><Text style={styles.retry} onPress={() => setRead((value) => value)}>Retry</Text></>}
-        {!loading && !error && items.length === 0 && (
+        {!!error && <ErrorMessage message={error} />}
+        {!loading && !error && visibleItems.length === 0 && (
           <Text style={[s.body, { textAlign: "center", marginVertical: 28 }]}>No notifications match these filters.</Text>
         )}
-        {!loading && !error && items.map((item) => (
+        {!loading && !error && visibleItems.map((item) => (
           <View key={item.id} style={[s.card, { marginBottom: 10, borderColor: item.read ? C.line : C.blue, backgroundColor: item.read ? "#fff" : "#f4faff" }]}>
             <View style={[s.row, { justifyContent: "space-between", alignItems: "flex-start", marginBottom: 5 }]}>
               <Text style={[s.title, { fontSize: 15, flex: 1 }]}>{item.title}</Text>
@@ -129,5 +119,14 @@ export default function NurseNotificationsScreen() {
 }
 
 const styles = {
-  retry: { color: C.blue, fontSize: 12, fontWeight: "700" as const, textAlign: "center" as const, marginVertical: 10 },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: C.line,
+    borderRadius: 12,
+    backgroundColor: "#fff",
+    color: C.navy,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    marginBottom: 16,
+  },
 };

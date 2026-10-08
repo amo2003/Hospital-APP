@@ -157,6 +157,37 @@ nurseRoutes.get("/patients/:patientId", async (req, res) => {
   });
 });
 
+nurseRoutes.get("/appointments", async (req, res) => {
+  const { date, status } = z.object({
+    date: z.string().trim().optional(),
+    status: z.enum(["all", "confirmed", "completed", "cancelled"]).default("all"),
+  }).parse(req.query);
+  const query: Record<string, unknown> = { hospitalId: req.nurse!.hospitalId };
+  if (date) query.date = date;
+  if (status !== "all") query.status = status;
+  const appointments = await Appointment.find(query)
+    .populate("patientId", "patientId fullName phone")
+    .populate("doctorId", "name specialty")
+    .sort({ date: -1, time: -1 })
+    .limit(100)
+    .lean();
+  res.json(appointments.map((appointment: any) => ({
+    id: String(appointment._id),
+    appointmentId: appointment.appointmentId,
+    date: appointment.date,
+    time: appointment.time,
+    status: appointment.status,
+    doctorDecision: resolveDoctorDecision(appointment),
+    department: appointment.department,
+    patient: appointment.patientId
+      ? { patientId: appointment.patientId.patientId, fullName: appointment.patientId.fullName, phone: appointment.patientId.phone }
+      : null,
+    doctor: appointment.doctorId
+      ? { name: appointment.doctorId.name, specialty: appointment.doctorId.specialty }
+      : null,
+  })));
+});
+
 nurseRoutes.get("/queue", async (req, res) => {
   const { date, allDepartments } = z.object({
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
