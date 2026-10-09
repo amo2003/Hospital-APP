@@ -1,5 +1,9 @@
 // English source copy -> Sinhala and Tamil. Patient-entered names and identifiers remain unchanged.
 export const translations: Record<string, readonly [string, string]> = {
+  "Appearance": ["පෙනුම", "தோற்றம்"],
+  "Light theme": ["ආලෝක තේමාව", "ஒளி தீம்"],
+  "Dark theme": ["අඳුරු තේමාව", "இருண்ட தீம்"],
+  "Unable to save theme. Please try again.": ["තේමාව සුරැකිය නොහැක. නැවත උත්සාහ කරන්න.", "தீமைச் சேமிக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்."],
   "Patient medical details": ["රෝගියාගේ වෛද්‍ය විස්තර", "நோயாளியின் மருத்துவ விவரங்கள்"],
   "Measurements saved by the patient.": ["රෝගියා විසින් සුරකින ලද මිනුම්.", "நோயாளி சேமித்த அளவீடுகள்."],
   "Not recorded": ["සටහන් කර නැත", "பதிவு செய்யப்படவில்லை"],

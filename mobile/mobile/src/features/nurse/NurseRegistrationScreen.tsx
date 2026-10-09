@@ -1,8 +1,7 @@
 import { Text, useLanguage } from "../patient/i18n/LanguageProvider";
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, View, LinearGradient } from '@/theme/primitives';
 import { router } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import type { NurseRegistration } from "./types";
 import { nurseApi, nurseMessageOf } from "./api";
 import { Button, C, ErrorMessage, Field, Screen, Select, s } from "../patient/shared/ui";

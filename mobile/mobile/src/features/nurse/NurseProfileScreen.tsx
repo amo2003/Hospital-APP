@@ -1,9 +1,10 @@
+import ThemeSelector from "@/theme/ThemeSelector";
 import { Text, useLanguage } from "../patient/i18n/LanguageProvider";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Modal, Pressable, View } from "react-native";
+import { ActivityIndicator, Modal } from 'react-native';
+import { Pressable, View, LinearGradient } from '@/theme/primitives';
 import { router, useFocusEffect } from "expo-router";
 import { Storage } from "@/utils/storage";
-import { LinearGradient } from "expo-linear-gradient";
 import { Button, C, ErrorMessage, Field, Screen, Select, s } from "../patient/shared/ui";
 import { Icon } from "../patient/shared/icons";
 import { nurseApi, nurseMessageOf } from "./api";
@@ -75,6 +76,7 @@ export default function NurseProfileScreen() {
         <Text style={{ color: "#d5e7f6", fontSize: 11, marginTop: 4 }}>Nurse ID: {profile.nurseId}</Text>
         <Text style={{ color: "#168245", backgroundColor: "#e1f5e9", borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, fontSize: 9, fontWeight: "700", marginTop: 7 }}>● {profile.status === "active" ? "Active" : "Inactive"}</Text>
       </LinearGradient>
+      <ThemeSelector />
       {!editing ? <>
         <Text style={[s.title, { fontSize: 16, marginBottom: 9 }]}>Account Information</Text>
         <View style={[s.card, { padding: 10, borderWidth: 0, borderRadius: 17 }]}>
