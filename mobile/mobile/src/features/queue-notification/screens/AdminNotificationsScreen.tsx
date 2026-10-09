@@ -1,12 +1,8 @@
 import { LanguagePicker } from "../../patient/auth/LanguagePicker";
 import { Text } from "../../patient/i18n/LanguageProvider";
 import React from 'react';
-import { Platform,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
+import { ScrollView, TouchableOpacity, View } from '@/theme/primitives';
 import { router } from 'expo-router';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { QueueHeader } from '../components/QueueHeader';

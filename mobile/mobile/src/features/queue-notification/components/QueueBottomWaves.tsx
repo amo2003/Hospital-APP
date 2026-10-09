@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { View } from '@/theme/primitives';
 import Svg, { Path } from 'react-native-svg';
 import { BottomLeaves } from '@/features/patient/shared/BottomLeaves';
 

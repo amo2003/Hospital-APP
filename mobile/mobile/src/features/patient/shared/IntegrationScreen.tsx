@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { View } from "react-native";
+import { View } from '@/theme/primitives';
 import { BottomTabs, Button, Header, Notice, Screen } from "./ui";
 export function QueueScreen() {
   return (

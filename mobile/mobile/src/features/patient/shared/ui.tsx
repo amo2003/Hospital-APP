@@ -1,21 +1,7 @@
 import { Text, useLanguage } from "../i18n/LanguageProvider";
 import React, { useCallback, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Image,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-  type TextInputProps,
-  type ViewStyle,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
+import { ActivityIndicator, Image, Modal, Platform, StyleSheet, type TextInputProps, type ViewStyle } from 'react-native';
+import { KeyboardAvoidingView, Pressable, ScrollView, TextInput, View, SafeAreaView, LinearGradient } from '@/theme/primitives';
 import { router, useFocusEffect, usePathname } from "expo-router";
 import Svg, { Path } from "react-native-svg";
 import { Icon, type IconName } from "./icons";
