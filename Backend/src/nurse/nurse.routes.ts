@@ -248,12 +248,25 @@ nurseRoutes.get("/queue", async (req, res) => {
     hospital: entry.hospitalId?.name || "",
     position: waitingPositions.get(String(entry._id)) || 0,
   }));
-  res.json({ date: queueDate, entries: queue });
+  // Surface future approved queues separately; they must not inflate today's count.
+  const today = localToday();
+  const upcomingDates = await QueueEntry.aggregate([
+    { $match: { hospitalId: req.nurse!.hospitalId, date: { $gt: today }, status: "waiting",
+      ...(allDepartments !== "true" ? { department: req.nurse!.accessDepartment } : {}) } },
+    { $lookup: { from: Appointment.collection.name, localField: "appointmentId", foreignField: "_id", as: "appointment" } },
+    { $match: { "appointment.doctorDecision": "accepted", "appointment.status": "confirmed" } },
+    { $group: { _id: "$date", count: { $sum: 1 } } },
+    { $sort: { _id: 1 } },
+    { $project: { _id: 0, date: "$_id", count: 1 } },
+  ]);
+  res.set("Cache-Control", "no-store");
+  res.json({ date: queueDate, today, entries: queue, upcomingDates });
 });
 
 nurseRoutes.post("/queue/call-next", async (req, res) => {
   const { date } = z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() }).parse(req.query);
   const queueDate = date || localToday();
+  if (queueDate > localToday()) throw new ApiError(409, "Patients can be called on their appointment date.");
 
   let activeServing = await QueueEntry.findOne({
     hospitalId: req.nurse!.hospitalId,

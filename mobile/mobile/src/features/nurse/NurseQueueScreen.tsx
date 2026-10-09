@@ -1,48 +1,28 @@
 import { Text, useLanguage } from "../patient/i18n/LanguageProvider";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { ActivityIndicator, Modal } from 'react-native';
 import { Pressable, ScrollView, View, LinearGradient } from '@/theme/primitives';
-import { router, useFocusEffect } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Button, C, ErrorMessage, Screen, s } from "../patient/shared/ui";
 import { Icon } from "../patient/shared/icons";
 import { nurseApi, nurseMessageOf } from "./api";
 import type { NurseQueueEntry } from "./types";
+import { useNurseQueue } from "./useNurseQueue";
 import { NurseTabs } from "./NurseShared";
 
 const tabs = ["waiting", "serving", "completed"] as const;
 
 export default function NurseQueueScreen() {
   const { t } = useLanguage();
-  const [entries, setEntries] = useState<NurseQueueEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [filter, setFilter] = useState<(typeof tabs)[number]>("waiting");
   const [specializationFilter, setSpecializationFilter] = useState<string>("all");
   const [selected, setSelected] = useState<NurseQueueEntry | null>(null);
   const [busy, setBusy] = useState(false);
   const [retry, setRetry] = useState(0);
 
-  const loadQueue = useCallback(() => {
-    let active = true;
-    setLoading(true);
-    setError("");
-    nurseApi
-      .queue(undefined, true)
-      .then((data) => {
-        if (active) setEntries(data.entries);
-      })
-      .catch((e) => {
-        if (active) setError(nurseMessageOf(e));
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [retry]);
-
-  useFocusEffect(loadQueue);
+  const params = useLocalSearchParams<{ date?: string }>();
+  const selectedDate = typeof params.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(params.date) ? params.date : undefined;
+  const { entries, setEntries, loading, error, setError, upcomingDates, queueDate, today } = useNurseQueue(selectedDate, retry, busy);
 
   const waitingEntries = entries.filter((entry) => entry.status === "waiting");
   const servingEntries = entries.filter((entry) => entry.status === "serving");
@@ -65,8 +45,8 @@ export default function NurseQueueScreen() {
     setBusy(true);
     setError("");
     try {
-      await nurseApi.callNext();
-      const data = await nurseApi.queue(undefined, true);
+      await nurseApi.callNext(selectedDate);
+      const data = await nurseApi.queue(selectedDate, true);
       setEntries(data.entries);
       setFilter("serving");
     } catch (e) {
@@ -82,7 +62,7 @@ export default function NurseQueueScreen() {
     setError("");
     try {
       await nurseApi.completeQueue(currentServing.id);
-      const data = await nurseApi.queue(undefined, true);
+      const data = await nurseApi.queue(selectedDate, true);
       setEntries(data.entries);
       setFilter("waiting");
     } catch (e) {
@@ -99,7 +79,7 @@ export default function NurseQueueScreen() {
     try {
       await nurseApi.cancelQueue(selected.id);
       setSelected(null);
-      const data = await nurseApi.queue(undefined, true);
+      const data = await nurseApi.queue(selectedDate, true);
       setEntries(data.entries);
     } catch (e) {
       setError(nurseMessageOf(e));
@@ -228,6 +208,24 @@ export default function NurseQueueScreen() {
         </View>
       </LinearGradient>
 
+      <View style={[s.card, { marginBottom: 14 }]}>
+        <Text style={s.label}>Queue date</Text>
+        <Text translate={false} style={[s.title, { fontSize: 16, marginBottom: 8 }]}>{queueDate}</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <Pressable accessibilityRole="button" disabled={busy} onPress={() => router.setParams({ date: "" })} style={{ padding: 10 }}>
+            <Text style={s.link}>Today</Text>
+          </Pressable>
+          {upcomingDates.map((item) => (
+            <Pressable key={item.date} accessibilityRole="button" disabled={busy} onPress={() => router.setParams({ date: item.date })}
+              style={{ padding: 10, borderRadius: 12, backgroundColor: selectedDate === item.date ? "#e8f4fc" : "transparent" }}>
+              <Text translate={false} style={s.link}>{item.date} ({item.count})</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+        <Text style={[s.body, { fontSize: 12 }]}>Select an appointment date to view its queue.</Text>
+        {!!queueDate && queueDate !== today && <Text style={[s.body, { marginTop: 6 }]}>Patients can be called on their appointment date.</Text>}
+      </View>
+
       {/* Prominent Action Buttons: Call Next Patient / Complete */}
       <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
         {currentServing ? (
@@ -255,7 +253,7 @@ export default function NurseQueueScreen() {
               <Button
                 title="Call Next Patient"
                 loading={busy}
-                disabled={waitingEntries.length === 0}
+                disabled={busy || loading || queueDate !== today || waitingEntries.length === 0}
                 onPress={handleCallNext}
                 style={{ borderRadius: 13, overflow: "hidden" }}
               />
