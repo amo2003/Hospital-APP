@@ -1,7 +1,7 @@
 // Government OPD: payment screen preserved below; disabled, not deleted.
 export {};
 // import { useState } from "react";
-// import { View } from "react-native";
+// import { View } from '@/theme/primitives';
 // import { pickPaymentSlip } from "./pick-payment-slip";
 // import { Text } from "../i18n/LanguageProvider";
 // import { api, messageOf } from "../shared/api";
