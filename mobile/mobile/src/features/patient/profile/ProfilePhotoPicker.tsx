@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Image, View } from "react-native";
+import { Image } from 'react-native';
+import { View } from '@/theme/primitives';
 import { Button, C, ErrorMessage } from "../shared/ui";
 import { Icon } from "../shared/icons";
 import { Text, useLanguage } from "../i18n/LanguageProvider";

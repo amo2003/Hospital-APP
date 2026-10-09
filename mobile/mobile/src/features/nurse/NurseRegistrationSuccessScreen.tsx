@@ -1,7 +1,6 @@
 import { Text, useLanguage } from "../patient/i18n/LanguageProvider";
 import { router, useLocalSearchParams } from "expo-router";
-import { Pressable, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { Pressable, View, LinearGradient } from '@/theme/primitives';
 import { Button, C, Row, Screen, s } from "../patient/shared/ui";
 import { Icon } from "../patient/shared/icons";
 

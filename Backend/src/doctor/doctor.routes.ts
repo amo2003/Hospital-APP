@@ -811,7 +811,7 @@ doctorRoutes.patch(
       if (status === "completed") {
         await QueueEntry.updateMany(
           { appointmentId: appointment._id, status: { $in: ["waiting", "serving"] } },
-          { $set: { status: "completed" } },
+          { $set: { status: "completed", completedAt: new Date() } },
         );
       } else if (status === "cancelled") {
         await QueueEntry.updateMany(

@@ -1,8 +1,8 @@
 import { Text, useLanguage } from "../patient/i18n/LanguageProvider";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Pressable, TextInput, View } from "react-native";
+import { ActivityIndicator } from 'react-native';
+import { Pressable, TextInput, View, LinearGradient } from '@/theme/primitives';
 import { router, useFocusEffect } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import { C, ErrorMessage, Screen, s } from "../patient/shared/ui";
 import { Icon } from "../patient/shared/icons";
 import { nurseApi, nurseMessageOf } from "./api";
@@ -46,9 +46,9 @@ export default function NurseDashboardScreen() {
   const actions = [
     { label: "Patient Search", icon: "search" as const, path: "/nurse/patients" as const },
     { label: "Queue Mgmt", icon: "clock" as const, path: "/nurse/queue" as const },
-    { label: "Appointments", icon: "calendar" as const, path: "/nurse/queue" as const },
+    { label: "Appointments", icon: "calendar" as const, path: "/nurse/appointments" as const },
     { label: "Digital Queue", icon: "id" as const, path: "/nurse/digital-queue" as const },
-    { label: "Reports", icon: "bell" as const, path: "/nurse/digital-queue" as const },
+    { label: "Reports", icon: "id" as const, path: "/nurse/reports" as const },
     { label: "Staff Settings", icon: "user" as const, path: "/nurse/profile" as const },
   ];
 
@@ -117,7 +117,7 @@ export default function NurseDashboardScreen() {
           </View>
           <Pressable
             accessibilityLabel={t("Notifications")}
-            onPress={() => router.push("/nurse/digital-queue")}
+            onPress={() => router.push("/nurse/notifications")}
             style={[
               s.iconTile,
               { width: 44, height: 44, borderRadius: 22, backgroundColor: "#ffffff20" },

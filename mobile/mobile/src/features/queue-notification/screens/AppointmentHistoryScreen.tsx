@@ -1,12 +1,7 @@
 import { Text, useLanguage } from "../../patient/i18n/LanguageProvider";
 import React, { useState } from 'react';
-import { Platform,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
+import { ScrollView, TextInput, TouchableOpacity, View } from '@/theme/primitives';
 import { router } from 'expo-router';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { QueueHeader } from '../components/QueueHeader';

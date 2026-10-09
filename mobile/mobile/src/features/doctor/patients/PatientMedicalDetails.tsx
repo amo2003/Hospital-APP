@@ -1,4 +1,4 @@
-import { View } from "react-native";
+import { View } from '@/theme/primitives';
 import { Text } from "@/features/patient/i18n/LanguageProvider";
 import { C, s } from "@/features/patient/shared/ui";
 import type { MedicalDetails } from "@/features/patient/shared/types";

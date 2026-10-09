@@ -1,13 +1,7 @@
 import { Text } from "../../patient/i18n/LanguageProvider";
 import React, { useEffect, useRef, useState } from "react";
-import {
-  Platform,
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Platform, ActivityIndicator, StyleSheet } from 'react-native';
+import { ScrollView, TextInput, TouchableOpacity, View } from '@/theme/primitives';
 import { router } from "expo-router";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { QueueHeader } from "../components/QueueHeader";
@@ -29,6 +23,7 @@ export function PatientNotificationsScreen() {
   >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
   const deleting = useRef(new Set<string>());
   function removeLocal(id: string) {
     setNotifications((current) => current.filter((item) => item._id !== id));
@@ -83,6 +78,8 @@ export function PatientNotificationsScreen() {
   }, []);
 
   const filtered = notifications.filter((item) => {
+    const query = search.trim().toLowerCase();
+    if (query && !`${item.title} ${item.description}`.toLowerCase().includes(query)) return false;
     if (activeFilter === "All") return true;
     if (activeFilter === "Appointment") return item.type === "appointment";
     if (activeFilter === "Queue") return item.type === "queue";
@@ -178,6 +175,15 @@ export function PatientNotificationsScreen() {
             );
           })}
         </View>
+        <TextInput
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search notifications..."
+          placeholderTextColor="#839cb8"
+          style={styles.searchInput}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
 
         {/* Notifications List */}
         <View style={styles.listContainer}>
@@ -281,6 +287,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
+    marginBottom: 16,
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: '#d5e4f2',
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    color: '#0e2b4d',
+    paddingHorizontal: 13,
+    paddingVertical: 10,
     marginBottom: 16,
   },
   pill: {

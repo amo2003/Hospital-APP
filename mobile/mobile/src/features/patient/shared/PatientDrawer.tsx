@@ -1,13 +1,7 @@
+import ThemeSelector from "@/theme/ThemeSelector";
 import { useEffect, useState } from "react";
-import {
-  Animated,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Modal, StyleSheet } from 'react-native';
+import { Animated, Pressable, ScrollView, View, SafeAreaView } from '@/theme/primitives';
 import { router, type Href } from "expo-router";
 import { Text, useLanguage } from "../i18n/LanguageProvider";
 import { LanguagePicker } from "../auth/LanguagePicker";
@@ -160,6 +154,7 @@ export default function PatientDrawer({ onClose }: { onClose: () => void }) {
                 </View>
               )}
               {item(busy ? "Logging out..." : "Log Out", "logout", logout)}
+              <ThemeSelector />
             </ScrollView>
           </SafeAreaView>
         </Animated.View>

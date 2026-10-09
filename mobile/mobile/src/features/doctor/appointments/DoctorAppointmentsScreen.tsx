@@ -1,3 +1,4 @@
+import ThemeSelector from "@/theme/ThemeSelector";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -10,6 +11,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
+
+import { ActivityIndicator, Modal, RefreshControl, StyleSheet } from 'react-native';
+import { Pressable, ScrollView, View, SafeAreaView } from '@/theme/primitives';
+import { router } from "expo-router";
 import { Text } from "@/features/patient/i18n/LanguageProvider";
 import { C, s } from "@/features/patient/shared/ui";
 import { Icon } from "@/features/patient/shared/icons";
@@ -875,6 +880,7 @@ export default function DoctorAppointmentsScreen() {
               </Text>
             </View>
 
+            <ThemeSelector />
             <View style={{ height: 1, backgroundColor: "#f0f4f9", marginVertical: 8 }} />
 
             <Pressable

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from '@/theme/primitives';
 import { useLanguage, type Language } from "../i18n/LanguageProvider";
 export function LanguagePicker() {
   const { language, setLanguage, t } = useLanguage();

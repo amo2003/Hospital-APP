@@ -3,7 +3,8 @@ import Constants from "expo-constants";
 // Government OPD: upload integration preserved but disabled.
 // import type { DocumentPickerAsset } from "expo-document-picker";
 // import { uploadPaymentSlip } from "../payments/upload-payment-slip";
-import { Platform } from "react-native";
+import { Platform } from 'react-native';
+
 import { Storage } from "@/utils/storage";
 import type {
   Appointment,

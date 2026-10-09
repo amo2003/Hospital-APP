@@ -1,5 +1,5 @@
 import React from "react";
-import { View } from "react-native";
+import { View } from '@/theme/primitives';
 import { router, useLocalSearchParams } from "expo-router";
 import { Text } from "@/features/patient/i18n/LanguageProvider";
 import {

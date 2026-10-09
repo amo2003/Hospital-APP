@@ -5,7 +5,8 @@ import React, {
   useState,
   type ReactNode,
 } from "react";
-import { Text as NativeText, type TextProps } from "react-native";
+import { type TextProps } from 'react-native';
+import { Text as NativeText } from '@/theme/primitives';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { translations } from "./translations";
 import { nurseTranslations } from "../../nurse/translations";

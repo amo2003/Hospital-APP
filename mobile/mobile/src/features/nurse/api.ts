@@ -1,8 +1,9 @@
 import { router } from "expo-router";
 import Constants from "expo-constants";
-import { Platform } from "react-native";
+import { Platform } from 'react-native';
+
 import { Storage } from "@/utils/storage";
-import type { Nurse, NursePatient, NurseQueueEntry, NurseRegistration } from "./types";
+import type { Nurse, NurseAppointment, NurseNotification, NursePatient, NurseQueueEntry, NurseRegistration, NurseReport } from "./types";
 
 const configuredBase = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "");
 const devHost = Constants.expoConfig?.hostUri?.split(":")[0] ||
@@ -51,6 +52,7 @@ async function request<T>(path: string, method = "GET", body?: unknown, authenti
 }
 
 export const nurseApi = {
+  report: (from: string, to: string) => request<NurseReport>(`/reports/completed?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
   register: (data: NurseRegistration) => request<{ nurse: Nurse }>("/auth/register", "POST", data, false),
   login: (identifier: string, password: string) => request<{ token: string; nurse: Nurse }>("/auth/login", "POST", { identifier, password }, false),
   profile: () => request<Nurse>("/profile"),
@@ -63,6 +65,9 @@ export const nurseApi = {
     const query = [date ? `date=${encodeURIComponent(date)}` : "", allDepartments ? "allDepartments=true" : ""].filter(Boolean).join("&");
     return request<{ date: string; entries: NurseQueueEntry[] }>(`/queue${query ? `?${query}` : ""}`);
   },
+  notifications: (type = "all", read = "all") =>
+    request<NurseNotification[]>(`/notifications?type=${type}&read=${read}`),
+  appointments: () => request<NurseAppointment[]>("/appointments"),
   callNext: () => request<NurseQueueEntry>("/queue/call-next", "POST"),
   completeQueue: (id: string) => request<NurseQueueEntry>(`/queue/${encodeURIComponent(id)}/complete`, "PATCH"),
   cancelQueue: (id: string) => request<{ id: string; token: string; status: string }>(`/queue/${encodeURIComponent(id)}/cancel`, "PATCH"),

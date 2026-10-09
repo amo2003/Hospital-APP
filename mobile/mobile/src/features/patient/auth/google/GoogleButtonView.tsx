@@ -1,4 +1,5 @@
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { ActivityIndicator } from 'react-native';
+import { Pressable, View } from '@/theme/primitives';
 import { Text } from "../../i18n/LanguageProvider";
 import { GoogleLogo } from "../../shared/icons";
 import { C, s } from "../../shared/ui";

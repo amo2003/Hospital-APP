@@ -1,16 +1,7 @@
 import PatientMedicalDetails from "./PatientMedicalDetails";
 import React, { useCallback, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { ActivityIndicator, Modal, RefreshControl, StyleSheet } from 'react-native';
+import { Pressable, ScrollView, TextInput, View, SafeAreaView } from '@/theme/primitives';
 import { router, useLocalSearchParams } from "expo-router";
 import { Text } from "@/features/patient/i18n/LanguageProvider";
 import { C, s } from "@/features/patient/shared/ui";

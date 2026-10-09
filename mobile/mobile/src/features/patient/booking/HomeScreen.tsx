@@ -1,8 +1,8 @@
 import { Text, useLanguage } from "../i18n/LanguageProvider";
 import { useState } from "react";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { ActivityIndicator } from 'react-native';
+import { Pressable, View, LinearGradient } from '@/theme/primitives';
 import { router } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import { usePatient } from "../shared/session";
 import {
   BottomTabs,

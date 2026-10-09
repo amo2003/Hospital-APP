@@ -1,5 +1,7 @@
 // Nurse UI copy. Identity values and patient records are never translated.
+import { reportTranslations } from "./reports/translations";
 export const nurseTranslations: Record<string, readonly [string, string]> = {
+  ...reportTranslations,
   waiting: ["බලා සිටින", "காத்திருப்போர்"],
   serving: ["සේවය ලබන", "சேவை பெறுவோர்"],
   completed: ["අවසන් කළ", "முடிந்தவை"],

@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
-import { Platform } from "react-native";
+import { Platform } from 'react-native';
+
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import GoogleButtonView, { type GoogleButtonProps } from "./GoogleButtonView";
 import { messageOf } from "../../shared/api";

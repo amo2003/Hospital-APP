@@ -6,8 +6,45 @@ import { Appointment, QueueEntry, QueueCounter } from "../patient/booking/bookin
 import { Patient } from "../patient/auth/patient.model.js";
 import { ApiError } from "../patient/shared/errors.js";
 import { localToday, resolveDoctorDecision } from "../patient/booking/booking.service.js";
+import { Notification } from "../patient/notifications/notification.model.js";
+import { completedQueueReport, reportQuerySchema } from "./reports/reports.service.js";
 
 export const nurseRoutes = Router();
+
+nurseRoutes.get("/reports/completed", async (req, res) => {
+  const { from, to } = reportQuerySchema.parse(req.query);
+  res.set("Cache-Control", "no-store");
+  res.json(await completedQueueReport(req.nurse!, from, to));
+});
+
+nurseRoutes.get("/notifications", async (req, res) => {
+  const filters = z.object({
+    type: z.enum(["all", "appointment", "queue", "general"]).default("all"),
+    read: z.enum(["all", "read", "unread"]).default("all"),
+  }).parse(req.query);
+  const query: Record<string, unknown> = {};
+  if (filters.type !== "all") query.type = filters.type;
+  if (filters.read !== "all") query.read = filters.read === "read";
+  const notifications = await Notification.find(query)
+    .populate("patientId", "patientId fullName")
+    .sort({ createdAt: -1 })
+    .limit(100)
+    .lean();
+  res.json(notifications.map((notification: any) => ({
+    id: String(notification._id),
+    type: notification.type,
+    title: notification.title,
+    description: notification.description,
+    read: notification.read,
+    createdAt: notification.createdAt,
+    patient: notification.patientId
+      ? {
+          patientId: notification.patientId.patientId,
+          fullName: notification.patientId.fullName,
+        }
+      : null,
+  })));
+});
 
 nurseRoutes.get("/profile", (req, res) => {
   res.json(publicNurse(req.nurse));
@@ -127,6 +164,37 @@ nurseRoutes.get("/patients/:patientId", async (req, res) => {
   });
 });
 
+nurseRoutes.get("/appointments", async (req, res) => {
+  const { date, status } = z.object({
+    date: z.string().trim().optional(),
+    status: z.enum(["all", "confirmed", "completed", "cancelled"]).default("all"),
+  }).parse(req.query);
+  const query: Record<string, unknown> = { hospitalId: req.nurse!.hospitalId };
+  if (date) query.date = date;
+  if (status !== "all") query.status = status;
+  const appointments = await Appointment.find(query)
+    .populate("patientId", "patientId fullName phone")
+    .populate("doctorId", "name specialty")
+    .sort({ date: -1, time: -1 })
+    .limit(100)
+    .lean();
+  res.json(appointments.map((appointment: any) => ({
+    id: String(appointment._id),
+    appointmentId: appointment.appointmentId,
+    date: appointment.date,
+    time: appointment.time,
+    status: appointment.status,
+    doctorDecision: resolveDoctorDecision(appointment),
+    department: appointment.department,
+    patient: appointment.patientId
+      ? { patientId: appointment.patientId.patientId, fullName: appointment.patientId.fullName, phone: appointment.patientId.phone }
+      : null,
+    doctor: appointment.doctorId
+      ? { name: appointment.doctorId.name, specialty: appointment.doctorId.specialty }
+      : null,
+  })));
+});
+
 nurseRoutes.get("/queue", async (req, res) => {
   const { date, allDepartments } = z.object({
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -148,32 +216,6 @@ nurseRoutes.get("/queue", async (req, res) => {
     .populate("patientId", "patientId fullName gender")
     .populate("hospitalId", "name")
     .sort({ department: 1, sequence: 1 }).lean();
-
-  if (!entries.length) {
-    const fallbackFilter: Record<string, unknown> = {
-      date: queueDate,
-      status: { $ne: "cancelled" },
-    };
-    if (allDepartments !== "true") {
-      fallbackFilter.department = req.nurse!.accessDepartment;
-    }
-    entries = await QueueEntry.find(fallbackFilter)
-      .populate("appointmentId", "doctorDecision status")
-      .populate("patientId", "patientId fullName gender")
-      .populate("hospitalId", "name")
-      .sort({ department: 1, sequence: 1 }).lean();
-  }
-
-  if (!entries.length && allDepartments !== "true") {
-    entries = await QueueEntry.find({
-      date: queueDate,
-      status: { $ne: "cancelled" },
-    })
-      .populate("appointmentId", "doctorDecision status")
-      .populate("patientId", "patientId fullName gender")
-      .populate("hospitalId", "name")
-      .sort({ department: 1, sequence: 1 }).lean();
-  }
 
   // Active queue must exclude appointments that are pending doctor approval or rejected
   entries = (entries as any[]).filter((entry) => {
@@ -219,6 +261,7 @@ nurseRoutes.post("/queue/call-next", async (req, res) => {
   });
   if (!activeServing) {
     activeServing = await QueueEntry.findOne({
+      hospitalId: req.nurse!.hospitalId,
       date: queueDate,
       status: "serving",
     });
@@ -245,6 +288,7 @@ nurseRoutes.post("/queue/call-next", async (req, res) => {
 
   if (!eligible) {
     const fallbackCandidates = await QueueEntry.find({
+      hospitalId: req.nurse!.hospitalId,
       date: queueDate,
       status: "waiting",
     })
@@ -297,9 +341,10 @@ nurseRoutes.patch("/queue/:id/complete", async (req, res) => {
   const entry = await QueueEntry.findOneAndUpdate(
     {
       _id: id,
+      hospitalId: req.nurse!.hospitalId,
       status: "serving",
     },
-    { $set: { status: "completed" } },
+    { $set: { status: "completed", completedAt: new Date() } },
     { returnDocument: "after" },
   )
     .populate("patientId", "patientId fullName gender")
@@ -330,6 +375,7 @@ nurseRoutes.patch("/queue/:id/cancel", async (req, res) => {
   const entry = await QueueEntry.findOneAndUpdate(
     {
       _id: id,
+      hospitalId: req.nurse!.hospitalId,
       status: { $in: ["waiting", "serving"] },
     },
     { $set: { status: "cancelled" } },
