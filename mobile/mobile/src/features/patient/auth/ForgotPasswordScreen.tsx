@@ -1,6 +1,6 @@
 import { Text } from "../i18n/LanguageProvider";
 import { useState } from "react";
-import { View } from "react-native";
+import { View } from '@/theme/primitives';
 import { router } from "expo-router";
 import { api, messageOf } from "../shared/api";
 import { emailError, passwordError } from "./validation";
