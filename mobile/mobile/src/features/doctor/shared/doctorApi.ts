@@ -252,6 +252,12 @@ export const doctorApi = {
 
   me: () => request<{ doctor: DoctorProfile }>("/me"),
 
+  updateProfile: (data: Partial<DoctorProfile>) =>
+    request<{ message: string; doctor: DoctorProfile }>("/profile", "PATCH", data),
+
+  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+    request<{ message: string }>("/change-password", "POST", data),
+
   getNotifications: () => request<DoctorNotification[]>("/notifications"),
 
   getDashboard: () => request<DoctorDashboardData>("/dashboard"),

@@ -1,5 +1,17 @@
 import ThemeSelector from "@/theme/ThemeSelector";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { router, useLocalSearchParams } from "expo-router";
+
 import { ActivityIndicator, Modal, RefreshControl, StyleSheet } from 'react-native';
 import { Pressable, ScrollView, View, SafeAreaView } from '@/theme/primitives';
 import { router } from "expo-router";
@@ -101,8 +113,17 @@ const getWeekDays = (referenceDateStr: string) => {
 type FilterType = "all" | "confirmed" | "completed";
 
 export default function DoctorAppointmentsScreen() {
+  const { date: paramDate } = useLocalSearchParams<{ date?: string }>();
   const todayStr = useMemo(() => getTodayDateStr(), []);
-  const [selectedDate, setSelectedDate] = useState(todayStr);
+  const [selectedDate, setSelectedDate] = useState(() =>
+    typeof paramDate === "string" && paramDate ? paramDate : todayStr,
+  );
+
+  useEffect(() => {
+    if (typeof paramDate === "string" && paramDate && paramDate !== selectedDate) {
+      setSelectedDate(paramDate);
+    }
+  }, [paramDate]);
   const weekDays = useMemo(() => getWeekDays(selectedDate), [selectedDate]);
   const [appointments, setAppointments] = useState<DoctorAppointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -574,7 +595,7 @@ export default function DoctorAppointmentsScreen() {
         <Pressable
           accessibilityRole="button"
           style={styles.tabItem}
-          onPress={() => setMenuOpen(true)}
+          onPress={() => router.push("/doctor/profile")}
         >
           <Icon name="user" color={C.muted} size={20} />
           <Text style={styles.tabLabel}>Profile</Text>

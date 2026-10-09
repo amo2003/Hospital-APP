@@ -568,6 +568,7 @@ navHome.addEventListener("click", () => showDashboard());
 navApprovals.addEventListener("click", () => showApprovals("pending"));
 if (navReports) navReports.addEventListener("click", () => showReports("daily"));
 if (navReportsFromApprovals) navReportsFromApprovals.addEventListener("click", () => showReports("daily"));
+if (navProfile) navProfile.addEventListener("click", () => logoutBtn.click());
 
 logoutBtn.addEventListener("click", () => {
   localStorage.removeItem("careplus_admin_token");
@@ -660,13 +661,20 @@ async function loadReportData(period = "daily") {
 
     // 3. Middle Metric Cards
     if (noShowRateVal) noShowRateVal.innerText = data.metrics?.noShowRate ?? "0.0%";
-    if (noShowBadge) noShowBadge.innerText = `${data.metrics?.cancelledAppointments ?? 0} cancelled`;
+    const cancelledCount = Number(data.metrics?.cancelledAppointments ?? data.summary?.cancelledAppointments ?? 0);
+    if (noShowBadge) {
+      noShowBadge.innerText = `${cancelledCount} cancelled`;
+      noShowBadge.className = `metric-trend-badge ${cancelledCount > 0 ? "amber" : "neutral"}`;
+    }
 
     if (peakHoursVal) peakHoursVal.innerText = data.metrics?.peakHours ?? "N/A";
     if (peakHoursBadge) peakHoursBadge.innerText = data.metrics?.busiestDay ?? "Busiest: N/A";
 
     // 4. Dark Summary Card
-    if (summaryCancelledCount) summaryCancelledCount.innerText = data.summary?.cancelledAppointments ?? 0;
+    if (summaryCancelledCount) {
+      summaryCancelledCount.innerText = cancelledCount;
+      summaryCancelledCount.className = `summary-row-value ${cancelledCount > 0 ? "amber" : "muted"}`;
+    }
 
   } catch (err) {
     console.error("Failed to load report data:", err);
