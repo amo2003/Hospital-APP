@@ -1,11 +1,6 @@
 import React from 'react';
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { StyleSheet } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from '@/theme/primitives';
 import { router } from 'expo-router';
 import { QueueHeader } from '@/features/queue-notification/components/QueueHeader';
 import { SCREEN_ROUTES } from '@/features/queue-notification/components/ScreenSwitcher';
