@@ -1,3 +1,4 @@
+import ThemeSelector from "@/theme/ThemeSelector";
 import {
   filterName,
   filterNic,
@@ -7,7 +8,8 @@ import {
 } from "../auth/validation";
 import { Text, useLanguage } from "../i18n/LanguageProvider";
 import { useState } from "react";
-import { Modal, Pressable, View } from "react-native";
+import { Modal } from 'react-native';
+import { Pressable, View } from '@/theme/primitives';
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { LanguagePicker } from "../auth/LanguagePicker";
 import { Storage } from "@/utils/storage";
@@ -359,6 +361,7 @@ function PatientProfileScreen() {
         />
       ) : (
         <View style={{ gap: 15 }}>
+          <ThemeSelector />
           <Text style={s.title}>Language</Text>
           <LanguagePicker />
           <Button
