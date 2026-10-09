@@ -1,6 +1,7 @@
 import { Text } from "../i18n/LanguageProvider";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Image, Pressable, View } from "react-native";
+import { Image } from 'react-native';
+import { Pressable, View } from '@/theme/primitives';
 import { router } from "expo-router";
 import { Storage, type UserPath } from "@/utils/storage";
 import { assets, Button, C, ErrorMessage, Leaves, s, Wave } from "../shared/ui";
