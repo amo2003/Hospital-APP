@@ -1,15 +1,7 @@
+import ThemeSelector from "@/theme/ThemeSelector";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { ActivityIndicator, Modal, RefreshControl, StyleSheet } from 'react-native';
+import { Pressable, ScrollView, TextInput, View, SafeAreaView } from '@/theme/primitives';
 import { router } from "expo-router";
 import { Text } from "@/features/patient/i18n/LanguageProvider";
 import { C, s } from "@/features/patient/shared/ui";
@@ -185,7 +177,7 @@ export default function DoctorPatientListScreen() {
       <SafeAreaView edges={["top"]} style={styles.safeHeaderArea}>
         {/* ──────────────── 1. HEADER (CarePlus Style) ──────────────── */}
         <View style={styles.headerRow}>
-          <Pressable
+            <Pressable
             accessibilityRole="button"
             accessibilityLabel="Back to dashboard"
             style={styles.backBtn}
@@ -850,6 +842,7 @@ export default function DoctorPatientListScreen() {
 
             <View style={styles.drawerDivider} />
 
+            <ThemeSelector />
             <Pressable
               accessibilityRole="button"
               style={styles.drawerLogoutBtn}
