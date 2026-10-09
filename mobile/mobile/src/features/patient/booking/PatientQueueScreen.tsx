@@ -45,89 +45,101 @@ export default function PatientQueueScreen() {
               {timeLabel(queue.appointment.time)}
             </Text>
           </View>
-          <View style={[s.row, { marginBottom: 16 }]}>
-            <View style={[s.card, { flex: 1, gap: 8 }]}>
-              <Text style={s.label}>Your Queue</Text>
-              <Text translate={false} style={s.title}>
-                #{queue.queueNumber}
+          {queue.queueNumber == null ? (
+            <Notice>
+              {queue.status === "rejected"
+                ? "Appointment Declined"
+                : queue.status === "cancelled"
+                  ? "Cancelled"
+                  : "Your queue and waiting time will appear after doctor approval."}
+            </Notice>
+          ) : (
+            <>
+              <View style={[s.row, { marginBottom: 16 }]}>
+                <View style={[s.card, { flex: 1, gap: 8 }]}>
+                  <Text style={s.label}>Your Queue</Text>
+                  <Text translate={false} style={s.title}>
+                    #{queue.queueNumber}
+                  </Text>
+                  <Text
+                    style={s.body}
+                  >{`${queue.patientsAhead} patients ahead`}</Text>
+                </View>
+                <View style={[s.card, { flex: 1, gap: 8 }]}>
+                  <Text style={s.label}>Now Serving</Text>
+                  <Text translate={false} style={s.title}>
+                    {queue.nowServing ? `#${queue.nowServing}` : "--"}
+                  </Text>
+                </View>
+              </View>
+              <View style={[s.card, { marginBottom: 16, gap: 8 }]}>
+                <Text style={s.label}>Time until appointment</Text>
+                <Text
+                  translate={false}
+                  style={{ color: C.blue, fontSize: 28, fontWeight: "700" }}
+                >
+                  {waiting}
+                </Text>
+                <Text style={s.body}>
+                  {queue.status === "serving"
+                    ? "Now Serving"
+                    : queue.status === "completed"
+                      ? "Completed"
+                      : queue.status === "cancelled"
+                        ? "Cancelled"
+                        : started
+                          ? "Appointment time reached"
+                          : "Counts down to your scheduled appointment time."}
+                </Text>
+              </View>
+              <Text style={[s.title, { fontSize: 18, marginBottom: 12 }]}>
+                {"Doctor's Queue"}
               </Text>
-              <Text
-                style={s.body}
-              >{`${queue.patientsAhead} patients ahead`}</Text>
-            </View>
-            <View style={[s.card, { flex: 1, gap: 8 }]}>
-              <Text style={s.label}>Now Serving</Text>
-              <Text translate={false} style={s.title}>
-                {queue.nowServing ? `#${queue.nowServing}` : "--"}
+              <Text style={[s.body, { marginBottom: 16 }]}>
+                Approval order for this doctor and date. Other patients are
+                shown by queue ID only.
               </Text>
-            </View>
-          </View>
-          <View style={[s.card, { marginBottom: 16, gap: 8 }]}>
-            <Text style={s.label}>Time until appointment</Text>
-            <Text
-              translate={false}
-              style={{ color: C.blue, fontSize: 28, fontWeight: "700" }}
-            >
-              {waiting}
-            </Text>
-            <Text style={s.body}>
-              {queue.status === "serving"
-                ? "Now Serving"
-                : queue.status === "completed"
-                  ? "Completed"
-                  : queue.status === "cancelled"
-                    ? "Cancelled"
-                    : started
-                      ? "Appointment time reached"
-                      : "Counts down to your scheduled appointment time."}
-            </Text>
-          </View>
-          <Text style={[s.title, { fontSize: 18, marginBottom: 12 }]}>
-            {"Doctor's Queue"}
-          </Text>
-          <Text style={[s.body, { marginBottom: 16 }]}>
-            Booking order for this doctor and date. Other patients are shown by
-            queue ID only.
-          </Text>
-          {queue.entries.map((entry) => (
-            <View
-              key={entry.queueNumber}
-              style={[
-                s.card,
-                {
-                  marginBottom: 10,
-                  gap: 5,
-                  borderColor: entry.isYou ? C.blue : C.line,
-                  backgroundColor: entry.isYou ? "#e7f4ff" : "white",
-                },
-              ]}
-            >
-              <Text
-                translate={false}
-                style={{ color: C.navy, fontSize: 16, fontWeight: "700" }}
-              >
-                {entry.name ||
-                  `Q-${String(entry.queueNumber).padStart(3, "0")}`}
+              {queue.entries.map((entry) => (
+                <View
+                  key={entry.queueNumber}
+                  style={[
+                    s.card,
+                    {
+                      marginBottom: 10,
+                      gap: 5,
+                      borderColor: entry.isYou ? C.blue : C.line,
+                      backgroundColor: entry.isYou ? "#e7f4ff" : "white",
+                    },
+                  ]}
+                >
+                  <Text
+                    translate={false}
+                    style={{ color: C.navy, fontSize: 16, fontWeight: "700" }}
+                  >
+                    {entry.name ||
+                      `Q-${String(entry.queueNumber).padStart(3, "0")}`}
+                  </Text>
+                  {entry.isYou && <Text style={s.link}>You</Text>}
+                  <Text
+                    style={s.body}
+                  >{`Token Q-${String(entry.queueNumber).padStart(3, "0")}`}</Text>
+                  <Text style={s.body}>{timeLabel(entry.time)}</Text>
+                  <Text style={s.body}>
+                    {entry.status === "serving"
+                      ? "Now Serving"
+                      : entry.status === "completed"
+                        ? "Completed"
+                        : entry.status === "cancelled"
+                          ? "Cancelled"
+                          : "Waiting"}
+                  </Text>
+                </View>
+              ))}
+              <Text style={[s.body, { marginVertical: 12 }]}>
+                Queue updates every 15 seconds while this screen is open.
               </Text>
-              {entry.isYou && <Text style={s.link}>You</Text>}
-              <Text
-                style={s.body}
-              >{`Token Q-${String(entry.queueNumber).padStart(3, "0")}`}</Text>
-              <Text style={s.body}>{timeLabel(entry.time)}</Text>
-              <Text style={s.body}>
-                {entry.status === "serving"
-                  ? "Now Serving"
-                  : entry.status === "completed"
-                    ? "Completed"
-                    : entry.status === "cancelled"
-                      ? "Cancelled"
-                      : "Waiting"}
-              </Text>
-            </View>
-          ))}
-          <Text style={[s.body, { marginVertical: 12 }]}>
-            Queue updates every 15 seconds while this screen is open.
-          </Text>
+            </>
+          )}
         </>
       )}
       <Button

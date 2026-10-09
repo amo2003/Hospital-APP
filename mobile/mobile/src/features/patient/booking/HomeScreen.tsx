@@ -26,6 +26,7 @@ export default function HomeScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { queue, loading, error, retry, waiting, started } = usePatientQueue();
   const next = queue?.appointment;
+  const approved = queue?.queueNumber != null;
   return (
     <Screen footer={<BottomTabs active="home" />}>
       {menuOpen && <PatientDrawer onClose={() => setMenuOpen(false)} />}
@@ -187,12 +188,14 @@ export default function HomeScreen() {
               marginVertical: 7,
             }}
           >
-            {queue ? `#${queue.queueNumber}` : "--"}
+            {approved ? `#${queue.queueNumber}` : "--"}
           </Text>
           <Text style={{ color: "#00a884", fontSize: 11, fontWeight: "600" }}>
-            {queue
+            {approved
               ? `${queue.patientsAhead} patients ahead`
-              : "Book an appointment"}
+              : next
+                ? "Awaiting doctor approval"
+                : "Book an appointment"}
           </Text>
         </Pressable>
 
@@ -218,11 +221,13 @@ export default function HomeScreen() {
             {waiting}
           </Text>
           <Text style={{ color: C.blue, fontSize: 11, fontWeight: "600" }}>
-            {queue
+            {approved
               ? started
                 ? "Appointment time reached"
                 : "Time until appointment"
-              : "Not available yet"}
+              : next
+                ? "Awaiting doctor approval"
+                : "Not available yet"}
           </Text>
         </Pressable>
       </View>
@@ -303,9 +308,9 @@ export default function HomeScreen() {
       >
         <Wave />
         <Notice>
-          {next
+          {approved
             ? "Queue updates every 15 seconds while this screen is open."
-            : "Your queue and waiting time will appear after booking an appointment."}
+            : "Your queue and waiting time will appear after doctor approval."}
         </Notice>
       </View>
     </Screen>

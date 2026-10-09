@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CarePlus Hospital — Admin Dashboard</title>
   <link rel="stylesheet" href="styles.css">
+  <!-- Government OPD: payment UI preserved but disabled.
   <link rel="stylesheet" href="payments.css">
+  -->
 </head>
 <body>
 
@@ -131,8 +133,10 @@
 
         <!-- View Reports Action Button (Figma 4.10) -->
         <button id="viewReportsBtn" class="btn-action-full">View reports</button>
+        <!-- Government OPD: no doctor fees or payment reviews.
         <button id="viewPaymentsBtn" class="btn-action-full">Manage doctor fees</button>
         <button id="viewPaymentReviewsBtn" class="btn-action-full">Review patient payments</button>
+        -->
 
       </main>
 
@@ -453,6 +457,8 @@
   </div>
 
   <script src="app.js"></script>
+  <!-- Government OPD: preserved for reference, not loaded.
   <script src="payments.js"></script>
+  -->
 </body>
 </html>

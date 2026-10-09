@@ -70,7 +70,7 @@ export function usePatientQueue(appointmentId?: string) {
     loading,
     error,
     retry: () => setRetry((v) => v + 1),
-    waiting: queue ? countdown(queue.startsAt, now) : "--",
-    started: queue ? now >= Date.parse(queue.startsAt) : false,
+    waiting: queue?.startsAt ? countdown(queue.startsAt, now) : "--",
+    started: queue?.startsAt ? now >= Date.parse(queue.startsAt) : false,
   };
 }

@@ -28,6 +28,7 @@ export interface PatientNotificationItem {
 }
 
 export interface PatientNotificationRecord {
+  seedKey?: string;
   _id: string;
   type: PatientNotificationItem['type'];
   title: string;

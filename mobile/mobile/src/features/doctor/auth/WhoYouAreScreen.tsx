@@ -22,8 +22,7 @@ export default function WhoYouAreScreen() {
         </Text>
         <View style={{ alignSelf: "center", width: "60%" }}>
           <View
-            pointerEvents="none"
-            style={{ position: "absolute", alignSelf: "center", top: -20 }}
+            style={{ pointerEvents: "none", position: "absolute", alignSelf: "center", top: -20 }}
           >
             <HeartMark size={320} opacity={0.2} />
           </View>

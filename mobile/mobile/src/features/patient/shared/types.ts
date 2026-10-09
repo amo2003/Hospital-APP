@@ -61,13 +61,13 @@ export type Appointment = {
 export type Slot = { time: string; available: boolean };
 export type PatientQueue = {
   appointment: Appointment;
-  queueNumber: number;
-  status: "waiting" | "serving" | "completed" | "cancelled";
-  startsAt: string;
+  queueNumber: number | null;
+  status: "pending" | "rejected" | "waiting" | "serving" | "completed" | "cancelled";
+  startsAt: string | null;
   serverTime: string;
   patientsAhead: number;
   nowServing: number | null;
-  estimatedWaitMinutes: number;
+  estimatedWaitMinutes: number | null;
   entries: {
     queueNumber: number;
     isYou: boolean;

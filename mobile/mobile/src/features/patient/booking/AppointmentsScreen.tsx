@@ -1,6 +1,6 @@
 import { Text } from "../i18n/LanguageProvider";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, AppState, Modal, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, AppState, Modal, /* Pressable, StyleSheet, */ View } from "react-native";
 import { useFocusEffect, router } from "expo-router";
 import { api, messageOf } from "../shared/api";
 import type { Appointment } from "../shared/types";
@@ -28,7 +28,8 @@ export default function AppointmentsScreen({
   const [cancel, setCancel] = useState<Appointment | null>(null);
   const [doctorFilter, setDoctorFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
-  const [paymentFilter, setPaymentFilter] = useState<"all" | "approved" | "rejected" | "pending">("all");
+  // Government OPD: payment filters preserved but disabled.
+  // const [paymentFilter, setPaymentFilter] = useState<"all" | "approved" | "rejected" | "pending">("all");
   const [retry, setRetry] = useState(0);
   const [now, setNow] = useState(() => Date.now());
   useFocusEffect(useCallback(() => {
@@ -102,9 +103,8 @@ export default function AppointmentsScreen({
       (item) =>
         (!history ||
           ((!doctorFilter || item.doctorId?._id === doctorFilter) &&
-            (!dateFilter || item.date === dateFilter))) &&
-        (paymentFilter === "all" ||
-          item.payment?.status === paymentFilter),
+            (!dateFilter || item.date === dateFilter))),
+        // && (paymentFilter === "all" || item.payment?.status === paymentFilter)
     )
     .sort((a, b) =>
       history
@@ -125,6 +125,7 @@ export default function AppointmentsScreen({
         back={() => router.replace("/patient/home")}
       />
       {/* ── Payment status filter pills ── */}
+      {/* Government OPD: payment filter controls disabled.
       <View style={pf.row}>
         {(
           [
@@ -148,6 +149,7 @@ export default function AppointmentsScreen({
           </Pressable>
         ))}
       </View>
+      */}
       {history && (
         <>
           <Select
@@ -270,6 +272,7 @@ export function PatientAppointmentHistoryScreen() {
   return <AppointmentsScreen history />;
 }
 
+/* Government OPD: payment filter styles preserved but disabled.
 const pf = StyleSheet.create({
   row: {
     flexDirection: "row",
@@ -312,3 +315,4 @@ const pf = StyleSheet.create({
   pillText_pending: { color: "#fff" },
   pillText_rejected: { color: "#fff" },
 });
+*/
