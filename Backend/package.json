@@ -1,28 +1,49 @@
 {
-  "name": "backend",
+  "name": "careplus-patient-api",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "seed": "tsx src/patient/booking/seed.ts",
+    "seed:queue": "tsx src/patient/notifications/seed.ts",
+    "db:check": "node scripts/check-database.mjs",
+    "email:check": "tsx scripts/check-email.ts",
+    "email:welcome": "tsx scripts/send-welcome-email.ts",
+    "test": "tsx --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^18.0.4",
+    "expo": "^57.0.27",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.0.0",
+    "google-auth-library": "^10.0.0",
+    "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.10.2"
+    "mongodb": "^7.6.0",
+    "mongoose": "^9.10.2",
+    "multer": "^2.4.0",
+    "nodemailer": "^10.0.16",
+    "sharp": "^0.35.5",
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^26.6.3",
-    "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "@types/multer": "^2.3.0",
+    "@types/node": "^22.0.0",
+    "@types/nodemailer": "^7.0.0",
+    "@types/react": "~19.2.4",
+    "@types/supertest": "^6.0.0",
+    "mongodb-memory-server": "^10.0.0",
+    "supertest": "^7.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^6.0.3"
   }
 }

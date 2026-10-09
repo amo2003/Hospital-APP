@@ -1,0 +1,90 @@
+import type { ClientSession } from "mongoose";
+import { Appointment, DoctorQueueCounter, QueueEntry, QueueCounter } from "./booking.models.js";
+
+export async function allocateDoctorNumber(doctorId: string, date: string, session: ClientSession, reserve = true) {
+  const key = `${doctorId}:${date}`;
+  const counter = await DoctorQueueCounter.findOneAndUpdate(
+    { _id: key }, { $inc: { revision: 1 } },
+    { upsert: true, returnDocument: "after", session },
+  );
+  // Lock the doctor/day counter, then number existing bookings in their original
+  // creation order. This also upgrades bookings made before doctor numbering.
+  const existing = await Appointment.find({ doctorId, date, doctorDecision: "accepted" }).sort({ createdAt: 1, _id: 1 }).session(session);
+  let sequence = Math.max(counter?.sequence || 0, ...existing.map((a) => a.doctorQueueNumber || 0));
+  for (const appointment of existing) {
+    if (!appointment.doctorQueueNumber) {
+      appointment.doctorQueueNumber = ++sequence;
+      await appointment.save({ session });
+    }
+  }
+  await DoctorQueueCounter.updateOne({ _id: key }, { $set: { sequence: sequence + (reserve ? 1 : 0) } }, { session });
+  return sequence + (reserve ? 1 : 0);
+}
+
+// Called inside the doctor's acceptance transaction, before saving the decision.
+export async function assignApprovedQueue(appointment: InstanceType<typeof Appointment>, session: ClientSession) {
+  appointment.doctorQueueNumber = await allocateDoctorNumber(String(appointment.doctorId), appointment.date, session);
+  // Keep a legacy staff token if this booking already has one.
+  if (await QueueEntry.exists({ appointmentId: appointment._id }).session(session)) return;
+  const counter = await QueueCounter.findOneAndUpdate(
+    { hospitalId: appointment.hospitalId, date: appointment.date, department: appointment.department },
+    { $inc: { sequence: 1 } }, { returnDocument: "after", upsert: true, session },
+  );
+  const sequence = counter!.sequence;
+  const prefix = appointment.department.replace(/[^a-z0-9]/gi, "").slice(0, 1).toUpperCase() || "Q";
+  await QueueEntry.create([{
+    appointmentId: appointment._id, patientId: appointment.patientId,
+    hospitalId: appointment.hospitalId, department: appointment.department,
+    date: appointment.date, sequence, token: `${prefix}-${String(sequence).padStart(3, "0")}`,
+  }], { session });
+}
+
+export async function patientQueue(appointment: InstanceType<typeof Appointment>, patient: { _id: unknown; fullName: string }) {
+  if (appointment.doctorDecision !== "accepted") {
+    // Older pending bookings may have a number stored; never expose it before approval.
+    appointment.doctorQueueNumber = undefined;
+    await appointment.populate([{ path: "doctorId", select: "name specialty" }, { path: "hospitalId", select: "name" }]);
+    return {
+      appointment, queueNumber: null, status: appointment.status === "cancelled" ? "cancelled" : appointment.doctorDecision === "rejected" ? "rejected" : "pending",
+      startsAt: null, serverTime: new Date().toISOString(), patientsAhead: 0,
+      nowServing: null, estimatedWaitMinutes: null, entries: [],
+    };
+  }
+  if (await Appointment.exists({ doctorId: appointment.doctorId, date: appointment.date, doctorDecision: "accepted", doctorQueueNumber: { $exists: false } })) {
+    await Appointment.db.transaction(async (session) => {
+      await allocateDoctorNumber(String(appointment.doctorId), appointment.date, session, false);
+    });
+  }
+  const bookings = await Appointment.find({ doctorId: appointment.doctorId, date: appointment.date, doctorDecision: "accepted" })
+    .select("patientId time status doctorQueueNumber createdAt")
+    .sort({ createdAt: 1, _id: 1 });
+  const states = await QueueEntry.find({ appointmentId: { $in: bookings.map((a) => a._id) } }).select("appointmentId status");
+  const statuses = new Map(states.map((entry) => [String(entry.appointmentId), entry.status]));
+  const entries = bookings.map((a, index) => {
+    const isYou = String(a.patientId) === String(patient._id);
+    const status = a.status === "cancelled" || a.status === "completed" ? a.status : statuses.get(String(a._id)) || "waiting";
+    return {
+      queueNumber: a.doctorQueueNumber || index + 1,
+      isYou,
+      ...(isYou ? { name: patient.fullName } : {}),
+      time: a.time,
+      status,
+      selected: String(a._id) === String(appointment._id),
+    };
+  }).sort((a, b) => a.queueNumber - b.queueNumber);
+  const own = entries.find((a) => a.selected)!;
+  appointment.doctorQueueNumber = own.queueNumber;
+  await appointment.populate([{ path: "doctorId", select: "name specialty" }, { path: "hospitalId", select: "name" }]);
+  return {
+    appointment,
+    queueNumber: own.queueNumber,
+    status: own.status,
+    startsAt: `${appointment.date}T${appointment.time}:00+05:30`,
+    serverTime: new Date().toISOString(),
+    patientsAhead: entries.filter((a) => a.queueNumber < own.queueNumber && (a.status === "waiting" || a.status === "serving")).length,
+    nowServing: entries.find((a) => a.status === "serving")?.queueNumber ?? null,
+    estimatedWaitMinutes: entries.filter((a) => a.queueNumber < own.queueNumber && (a.status === "waiting" || a.status === "serving")).length * 5,
+    // Names and persistent patient identifiers never leave the server for others.
+    entries: entries.filter((a) => a.status !== "cancelled" || a.isYou),
+  };
+}

@@ -1,0 +1,14 @@
+{
+  "name": "careplus-admin-portal",
+  "version": "1.0.0",
+  "description": "CarePlus Hospital Admin Web Portal (Figma 4.10)",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "build": "node -e \"console.log('Admin portal build clean.')\""
+  },
+  "keywords": ["careplus", "admin", "hospital"],
+  "author": "Achala (Member 4)",
+  "license": "ISC"
+}

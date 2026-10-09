@@ -6,7 +6,8 @@ import {
   TabTriggerSlotProps,
   TabListProps,
 } from 'expo-router/ui';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { Pressable, Text, View } from '@/theme/primitives';
 
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 

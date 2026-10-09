@@ -7,6 +7,7 @@ import '@/global.css';
 
 import { Platform } from 'react-native';
 
+
 export const Colors = {
   light: {
     text: '#000000',
