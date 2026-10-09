@@ -1,6 +1,6 @@
 import { Text, useLanguage } from "../patient/i18n/LanguageProvider";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Modal, Pressable, View } from "react-native";
+import { ActivityIndicator, Modal, Pressable, ScrollView, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { Button, C, ErrorMessage, Screen, s } from "../patient/shared/ui";
 import { LinearGradient } from "expo-linear-gradient";
@@ -17,6 +17,7 @@ export default function NurseQueueScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<(typeof tabs)[number]>("waiting");
+  const [specializationFilter, setSpecializationFilter] = useState<string>("all");
   const [selected, setSelected] = useState<NurseQueueEntry | null>(null);
   const [busy, setBusy] = useState(false);
   const [retry, setRetry] = useState(0);
@@ -48,7 +49,17 @@ export default function NurseQueueScreen() {
   const completedEntries = entries.filter((entry) => entry.status === "completed");
   const currentServing = servingEntries[0] || null;
 
-  const filtered = entries.filter((entry) => entry.status === filter);
+  // All unique specializations/departments from queue entries
+  const specializations = [
+    "all",
+    ...Array.from(new Set(entries.map((e) => e.department).filter(Boolean))).sort(),
+  ];
+
+  const filtered = entries.filter(
+    (entry) =>
+      entry.status === filter &&
+      (specializationFilter === "all" || entry.department === specializationFilter),
+  );
 
   async function handleCallNext() {
     setBusy(true);
@@ -261,8 +272,8 @@ export default function NurseQueueScreen() {
         )}
       </View>
 
-      {/* Filter Tabs */}
-      <View style={[s.row, { gap: 8, marginBottom: 14 }]}>
+      {/* Filter Tabs — Status */}
+      <View style={[s.row, { gap: 8, marginBottom: 10 }]}>
         {tabs.map((item) => {
           const active = filter === item;
           const count =
@@ -299,6 +310,45 @@ export default function NurseQueueScreen() {
           );
         })}
       </View>
+
+      {/* Specialization Filter — horizontal scroll pills */}
+      {specializations.length > 1 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ marginBottom: 14, flexGrow: 0 }}
+          contentContainerStyle={{ gap: 6, paddingHorizontal: 2 }}
+        >
+          {specializations.map((spec) => {
+            const active = specializationFilter === spec;
+            return (
+              <Pressable
+                key={spec}
+                onPress={() => setSpecializationFilter(spec)}
+                style={{
+                  backgroundColor: active ? "#086ab9" : "#fff",
+                  borderWidth: 1,
+                  borderColor: active ? "#086ab9" : "#cfe2f7",
+                  borderRadius: 20,
+                  paddingVertical: 10,
+                  paddingHorizontal: 12,
+                }}
+              >
+                <Text
+                  style={{
+                    color: active ? "#fff" : "#086ab9",
+                    fontSize: 11,
+                    fontWeight: "700",
+                    textAlign: "center",
+                  }}
+                >
+                  {spec === "all" ? "All Specializations" : spec}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
 
       <ErrorMessage message={error} />
 
