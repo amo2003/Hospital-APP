@@ -233,6 +233,8 @@ nurseRoutes.get("/queue", async (req, res) => {
   }
   const queue = entries.map((entry: any) => ({
     id: String(entry._id),
+    createdAt: entry.createdAt,
+    updatedAt: entry.updatedAt,
     token: entry.token,
     sequence: entry.sequence,
     status: entry.status,

@@ -1,7 +1,7 @@
 import { Text, useLanguage } from "../patient/i18n/LanguageProvider";
 import { useCallback, useState } from "react";
 import { ActivityIndicator } from 'react-native';
-import { Pressable, TextInput, View, LinearGradient } from '@/theme/primitives';
+import { Pressable, View, LinearGradient } from '@/theme/primitives';
 import { router, useFocusEffect } from "expo-router";
 import { C, ErrorMessage, Screen, s } from "../patient/shared/ui";
 import { Icon } from "../patient/shared/icons";
@@ -11,7 +11,7 @@ import type { NurseQueueEntry } from "./types";
 import { ActionCard, NurseTabs } from "./NurseShared";
 
 export default function NurseDashboardScreen() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { nurse } = useNurse();
   const [entries, setEntries] = useState<NurseQueueEntry[]>([]);
   const [error, setError] = useState("");
@@ -24,7 +24,7 @@ export default function NurseDashboardScreen() {
       setLoading(true);
       setError("");
       nurseApi
-        .queue()
+        .queue(undefined, true)
         .then((result) => {
           if (active) setEntries(result.entries);
         })
@@ -42,6 +42,10 @@ export default function NurseDashboardScreen() {
 
   const waiting = entries.filter((entry) => entry.status === "waiting");
   const serving = entries.find((entry) => entry.status === "serving");
+  const recentEntries = [...entries].sort((a, b) =>
+    (Date.parse(b.updatedAt || b.createdAt || "") || 0) -
+    (Date.parse(a.updatedAt || a.createdAt || "") || 0) || b.sequence - a.sequence,
+  ).slice(0, 4);
 
   const actions = [
     { label: "Patient Search", icon: "search" as const, path: "/nurse/patients" as const },
@@ -90,7 +94,7 @@ export default function NurseDashboardScreen() {
 
         {/* Staff Greeting Row */}
         <View style={[s.row, { justifyContent: "space-between", marginBottom: 18 }]}>
-          <View style={[s.row, { gap: 12 }]}>
+          <View style={[s.row, { gap: 12, flex: 1, minWidth: 0, marginRight: 12 }]}>
             <View
               style={{
                 width: 48,
@@ -108,10 +112,10 @@ export default function NurseDashboardScreen() {
             >
               <Icon name="user" size={26} color="#0c3b6b" />
             </View>
-            <View>
+            <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={{ color: "#d6e8fa", fontSize: 12 }}>{greeting}</Text>
-              <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700", marginTop: 2 }}>
-                {nurse?.fullName ? <><Text>Nurse</Text> <Text translate={false}>{nurse.fullName}</Text></> : "CarePlus Staff"}
+              <Text translate={false} style={{ color: "#fff", fontSize: 16, fontWeight: "700", marginTop: 2 }}>
+                {nurse?.fullName ? `${t("Nurse")} ${nurse.fullName}` : t("CarePlus Staff")}
               </Text>
             </View>
           </View>
@@ -256,7 +260,7 @@ export default function NurseDashboardScreen() {
         </Pressable>
       </View>
 
-      {!entries.length && !loading ? (
+      {!entries.length && !loading && !error ? (
         <View
           style={[
             s.card,
@@ -275,7 +279,7 @@ export default function NurseDashboardScreen() {
           </Text>
         </View>
       ) : (
-        entries.slice(0, 4).map((entry, idx) => {
+        recentEntries.map((entry) => {
           const initials =
             entry.patient?.fullName
               .split(/\s+/)
@@ -318,15 +322,18 @@ export default function NurseDashboardScreen() {
                 </Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: C.navy, fontSize: 13, fontWeight: "700" }}>
-                  {t("{name} checked in", { name: entry.patient?.fullName || t("Patient") })}
+                <Text translate={false} style={{ color: C.navy, fontSize: 13, fontWeight: "700" }}>
+                  {entry.patient?.fullName || t("Patient")}
                 </Text>
+                <Text style={{ color: C.blue, fontSize: 11, marginTop: 2 }}>{entry.status}</Text>
                 <Text style={[s.body, { fontSize: 11, color: "#64748b", marginTop: 2 }]}>
                   <Text>Token</Text> <Text translate={false}>{entry.token}</Text> · <Text>{entry.department}</Text>
                 </Text>
               </View>
               <Text style={{ color: "#94a3b8", fontSize: 11 }}>
-                {idx === 0 ? "Just now" : `${(idx + 1) * 4}m ago`}
+                {entry.updatedAt && Number.isFinite(Date.parse(entry.updatedAt))
+                  ? new Date(entry.updatedAt).toLocaleTimeString(language === "en" ? "en-GB" : `${language}-LK`, { timeZone: "Asia/Colombo", hour: "2-digit", minute: "2-digit" })
+                  : ""}
               </Text>
             </Pressable>
           );
