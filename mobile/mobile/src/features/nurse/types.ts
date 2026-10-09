@@ -57,3 +57,25 @@ export type NurseQueueEntry = {
   hospital: string;
   position: number;
 };
+
+export type NurseNotification = {
+  id: string;
+  type: "appointment" | "queue" | "general";
+  title: string;
+  description: string;
+  read: boolean;
+  createdAt: string;
+  patient: { patientId: string; fullName: string } | null;
+};
+
+export type NurseAppointment = {
+  id: string;
+  appointmentId: string;
+  date: string;
+  time: string;
+  status: "confirmed" | "completed" | "cancelled";
+  doctorDecision: "pending" | "accepted" | "rejected";
+  department: string;
+  patient: { patientId: string; fullName: string; phone: string } | null;
+  doctor: { name: string; specialty: string } | null;
+};

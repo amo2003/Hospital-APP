@@ -5,6 +5,7 @@ import { Platform,
   ActivityIndicator,
   ScrollView,
   StyleSheet,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -20,6 +21,7 @@ export function DoctorNotificationsScreen() {
   const [alerts, setAlerts] = useState<DoctorNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -73,6 +75,10 @@ export function DoctorNotificationsScreen() {
         );
     }
   };
+  const query = search.trim().toLowerCase();
+  const visibleAlerts = alerts.filter((item) =>
+    !query || `${item.title} ${item.description} ${item.status}`.toLowerCase().includes(query),
+  );
 
   return (
     <View style={styles.container}>
@@ -86,13 +92,22 @@ export function DoctorNotificationsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <TextInput
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search doctor notifications..."
+          placeholderTextColor="#839cb8"
+          style={styles.searchInput}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
         <View style={styles.listContainer}>
           {loading && <ActivityIndicator color="#0c3564" />}
           {!!error && <Text style={styles.emptyText}>{error}</Text>}
-          {!loading && !error && alerts.length === 0 && (
+          {!loading && !error && visibleAlerts.length === 0 && (
             <Text style={styles.emptyText}>No doctor notifications for today.</Text>
           )}
-          {alerts.map((item) => (
+          {visibleAlerts.map((item) => (
             <View key={item.id} style={styles.card}>
               <View style={styles.iconCircle}>
                 {renderIcon(item.iconType)}
@@ -145,6 +160,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 110,
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: '#d5e4f2',
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    color: '#0e2b4d',
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+    marginBottom: 16,
   },
   listContainer: {
     gap: 14,
