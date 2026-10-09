@@ -22,11 +22,12 @@ export default function NurseReportsScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [exportError, setExportError] = useState("");
+  const [exportSuccess, setExportSuccess] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [visibleCount, setVisibleCount] = useState(20);
   useFocusEffect(useCallback(() => {
     let active = true;
-    setLoading(true); setError(""); setExportError(""); setReport(null); setVisibleCount(20);
+    setLoading(true); setError(""); setExportError(""); setExportSuccess(false); setReport(null); setVisibleCount(20);
     nurseApi.report(range.from, range.to).then(data => { if (active) setReport(data); })
       .catch(cause => { if (active) setError(nurseMessageOf(cause)); })
       .finally(() => { if (active) setLoading(false); });
@@ -47,8 +48,8 @@ export default function NurseReportsScreen() {
   }
   async function savePdf() {
     if (!report) return;
-    setExporting(true); setExportError("");
-    try { await exportReport(report, t, language); }
+    setExporting(true); setExportError(""); setExportSuccess(false);
+    try { setExportSuccess(await exportReport(report, t, language)); }
     catch (cause) { setExportError(nurseMessageOf(cause)); }
     finally { setExporting(false); }
   }
@@ -99,7 +100,8 @@ export default function NurseReportsScreen() {
         </View>
       </>}
       <Button title="Download PDF" loading={exporting} disabled={!report.records.length} onPress={savePdf} />
-      <Text style={[s.body, { fontSize: 11, marginTop: 8, marginBottom: 14 }]}>{Platform.OS === "web" ? "Choose Save as PDF in the print window." : "Save or share the PDF using your phone's share menu."}</Text>
+      <Text style={[s.body, { fontSize: 11, marginTop: 8, marginBottom: 14 }]}>{Platform.OS === "web" ? "Download the report directly as a PDF file." : Platform.OS === "android" ? "Choose a folder to save the PDF report." : "Save or share the PDF using your phone's share menu."}</Text>
+      {exportSuccess && <Text accessibilityRole="alert" style={{ color: C.blue, marginBottom: 12 }}>{Platform.OS === "web" ? "PDF download started." : "PDF saved to your selected folder."}</Text>}
       <ErrorMessage message={exportError} />
       <Text style={[s.title, { fontSize: 18, marginBottom: 12 }]}><Text>Completed records</Text> ({report.records.length})</Text>
       <Text style={[s.body, { fontSize: 11, marginBottom: 14 }]}>Completion times are unavailable for older records.</Text>
