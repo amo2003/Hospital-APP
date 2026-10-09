@@ -1,6 +1,7 @@
-import { View } from "react-native";
+import { useAppTheme } from "@/theme/ThemeProvider";
+import { View } from '@/theme/primitives';
 import { Text, useLanguage } from "../i18n/LanguageProvider";
-import { C, s } from "./ui";
+import { s } from "./ui";
 import { Icon } from "./icons";
 type DateFieldProps = {
   label: string;
@@ -17,6 +18,7 @@ export default function DateField({
   error,
 }: DateFieldProps) {
   const { language, t } = useLanguage();
+  const { mode, colors } = useAppTheme();
   const now = new Date();
   const maximum = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   return (
@@ -55,10 +57,10 @@ export default function DateField({
             outline: "none",
             padding: "13px 0",
             background: "transparent",
-            color: C.navy,
+            color: colors.text,
             fontSize: 13,
             fontFamily: "inherit",
-            colorScheme: "light",
+            colorScheme: mode,
           }}
         />
       </View>
