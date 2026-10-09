@@ -1,6 +1,8 @@
 import { Text } from "../i18n/LanguageProvider";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, AppState, Modal, /* Pressable, StyleSheet, */ View } from "react-native";
+import { View } from "@/theme/primitives";
+import { ActivityIndicator, AppState, Modal, /* Pressable, StyleSheet, */ } from 'react-native';
+
 import { useFocusEffect, router } from "expo-router";
 import { api, messageOf } from "../shared/api";
 import type { Appointment } from "../shared/types";
