@@ -1,14 +1,7 @@
+import ThemeSelector from "@/theme/ThemeSelector";
 import React, { useCallback, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { ActivityIndicator, Modal, RefreshControl, StyleSheet } from 'react-native';
+import { Pressable, ScrollView, View, SafeAreaView } from '@/theme/primitives';
 import { router } from "expo-router";
 import { Text } from "@/features/patient/i18n/LanguageProvider";
 import { C, s } from "@/features/patient/shared/ui";
@@ -631,6 +624,7 @@ export default function DoctorDashboardScreen() {
 
             <View style={styles.rowDivider} />
 
+            <ThemeSelector />
             <Pressable
               accessibilityRole="button"
               style={styles.logoutBtn}

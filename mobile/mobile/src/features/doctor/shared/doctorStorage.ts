@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
-import { Platform } from "react-native";
+import { Platform } from 'react-native';
+
 
 export const DOCTOR_STORAGE_KEYS = {
   DOCTOR_TOKEN: "@careplus/doctorToken",
