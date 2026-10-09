@@ -237,7 +237,7 @@ export default function NurseQueueScreen() {
                 title="Complete Patient"
                 loading={busy}
                 onPress={handleComplete}
-                style={{ backgroundColor: "#15803d", borderColor: "#15803d" }}
+                style={{ borderRadius: 13, overflow: "hidden" }}
               />
             </View>
             <View style={{ flex: 1 }}>
@@ -257,7 +257,7 @@ export default function NurseQueueScreen() {
                 loading={busy}
                 disabled={waitingEntries.length === 0}
                 onPress={handleCallNext}
-                style={{ backgroundColor: "#0c3b6b", borderColor: "#0c3b6b" }}
+                style={{ borderRadius: 13, overflow: "hidden" }}
               />
             </View>
             <View style={{ flex: 1 }}>

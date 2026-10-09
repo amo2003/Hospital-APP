@@ -223,6 +223,7 @@ export function Button({
       onPress={onPress}
       disabled={disabled || loading}
       style={({ pressed }) => [
+        s.buttonWrapper,
         { opacity: disabled || loading ? 0.5 : pressed ? 0.75 : 1 },
         style,
       ]}
@@ -670,6 +671,10 @@ export const s = StyleSheet.create({
     borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
+  },
+  buttonWrapper: {
+    borderRadius: 13,
+    overflow: "hidden",
   },
   buttonText: {
     color: "#fff",
