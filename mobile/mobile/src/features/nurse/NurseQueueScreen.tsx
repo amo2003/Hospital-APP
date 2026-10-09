@@ -1,9 +1,9 @@
 import { Text, useLanguage } from "../patient/i18n/LanguageProvider";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Modal, Pressable, ScrollView, View } from "react-native";
+import { ActivityIndicator, Modal } from 'react-native';
+import { Pressable, ScrollView, View, LinearGradient } from '@/theme/primitives';
 import { router, useFocusEffect } from "expo-router";
 import { Button, C, ErrorMessage, Screen, s } from "../patient/shared/ui";
-import { LinearGradient } from "expo-linear-gradient";
 import { Icon } from "../patient/shared/icons";
 import { nurseApi, nurseMessageOf } from "./api";
 import type { NurseQueueEntry } from "./types";
@@ -27,7 +27,7 @@ export default function NurseQueueScreen() {
     setLoading(true);
     setError("");
     nurseApi
-      .queue()
+      .queue(undefined, true)
       .then((data) => {
         if (active) setEntries(data.entries);
       })
@@ -66,7 +66,7 @@ export default function NurseQueueScreen() {
     setError("");
     try {
       await nurseApi.callNext();
-      const data = await nurseApi.queue();
+      const data = await nurseApi.queue(undefined, true);
       setEntries(data.entries);
       setFilter("serving");
     } catch (e) {
@@ -82,7 +82,7 @@ export default function NurseQueueScreen() {
     setError("");
     try {
       await nurseApi.completeQueue(currentServing.id);
-      const data = await nurseApi.queue();
+      const data = await nurseApi.queue(undefined, true);
       setEntries(data.entries);
       setFilter("waiting");
     } catch (e) {
@@ -99,7 +99,7 @@ export default function NurseQueueScreen() {
     try {
       await nurseApi.cancelQueue(selected.id);
       setSelected(null);
-      const data = await nurseApi.queue();
+      const data = await nurseApi.queue(undefined, true);
       setEntries(data.entries);
     } catch (e) {
       setError(nurseMessageOf(e));
@@ -312,6 +312,7 @@ export default function NurseQueueScreen() {
       </View>
 
       {/* Specialization Filter — horizontal scroll pills */}
+      {filter === "completed" && <Button title="View reports" outline onPress={() => router.push("/nurse/reports")} style={{ marginBottom: 14 }} />}
       {specializations.length > 1 && (
         <ScrollView
           horizontal
