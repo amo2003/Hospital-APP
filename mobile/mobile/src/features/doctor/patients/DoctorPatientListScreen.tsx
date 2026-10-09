@@ -534,9 +534,9 @@ export default function DoctorPatientListScreen() {
         <Pressable
           accessibilityRole="button"
           style={styles.tabItem}
-          onPress={() => setMenuOpen(true)}
+          onPress={() => router.push("/doctor/profile")}
         >
-          <Icon name="menu" color={C.muted} size={20} />
+          <Icon name="user" color={C.muted} size={20} />
           <Text style={styles.tabLabel}>Profile</Text>
         </Pressable>
       </View>

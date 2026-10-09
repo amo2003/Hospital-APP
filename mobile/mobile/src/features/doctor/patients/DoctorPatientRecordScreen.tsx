@@ -619,9 +619,9 @@ export default function DoctorPatientRecordScreen() {
         <Pressable
           accessibilityRole="button"
           style={styles.tabItem}
-          onPress={() => router.replace("/doctor/dashboard")}
+          onPress={() => router.push("/doctor/profile")}
         >
-          <Icon name="menu" color={C.muted} size={20} />
+          <Icon name="user" color={C.muted} size={20} />
           <Text style={styles.tabLabel}>Profile</Text>
         </Pressable>
       </View>
