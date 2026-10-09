@@ -1,44 +1,19 @@
 import { Text, useLanguage } from "../patient/i18n/LanguageProvider";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { ActivityIndicator } from 'react-native';
 import { Pressable, View, LinearGradient } from '@/theme/primitives';
-import { router, useFocusEffect } from "expo-router";
+import { router } from "expo-router";
 import { C, ErrorMessage, Screen, s } from "../patient/shared/ui";
 import { Icon } from "../patient/shared/icons";
-import { nurseApi, nurseMessageOf } from "./api";
+import { useNurseQueue } from "./useNurseQueue";
 import { useNurse } from "./session";
-import type { NurseQueueEntry } from "./types";
 import { ActionCard, NurseTabs } from "./NurseShared";
 
 export default function NurseDashboardScreen() {
   const { t, language } = useLanguage();
   const { nurse } = useNurse();
-  const [entries, setEntries] = useState<NurseQueueEntry[]>([]);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
   const [retry, setRetry] = useState(0);
-
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
-      setLoading(true);
-      setError("");
-      nurseApi
-        .queue(undefined, true)
-        .then((result) => {
-          if (active) setEntries(result.entries);
-        })
-        .catch((e) => {
-          if (active) setError(nurseMessageOf(e));
-        })
-        .finally(() => {
-          if (active) setLoading(false);
-        });
-      return () => {
-        active = false;
-      };
-    }, [retry]),
-  );
+  const { entries, upcomingDates, queueDate, loading, error } = useNurseQueue(undefined, retry);
 
   const waiting = entries.filter((entry) => entry.status === "waiting");
   const serving = entries.find((entry) => entry.status === "serving");
@@ -222,8 +197,24 @@ export default function NurseDashboardScreen() {
             </Pressable>
           </View>
         ) : null}
+        {!!queueDate && <Text translate={false} style={[s.body, { marginTop: 8 }]}>{queueDate}</Text>}
         {loading && <ActivityIndicator color={C.blue} style={{ marginTop: 8 }} />}
       </View>
+
+      {!!upcomingDates.length && (
+        <View style={[s.card, { marginTop: 14 }]}>
+          <Text style={[s.title, { fontSize: 16 }]}>Upcoming approved appointments</Text>
+          <Text style={[s.body, { marginVertical: 8 }]}>Select an appointment date to view its queue.</Text>
+          {upcomingDates.map((item) => (
+            <Pressable key={item.date} accessibilityRole="button"
+              onPress={() => router.push({ pathname: "/nurse/queue", params: { date: item.date } })}
+              style={[s.row, { justifyContent: "space-between", paddingVertical: 10 }]}>
+              <Text translate={false} style={s.link}>{item.date}</Text>
+              <Text translate={false} style={s.link}>{item.count} {t("Doctor approved")} →</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
 
       {/* Quick Actions Grid */}
       <Text style={[s.title, { fontSize: 16, marginTop: 18, marginBottom: 12 }]}>

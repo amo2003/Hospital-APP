@@ -63,12 +63,12 @@ export const nurseApi = {
   patient: (patientId: string) => request<NursePatient>(`/patients/${encodeURIComponent(patientId)}`),
   queue: (date?: string, allDepartments = false) => {
     const query = [date ? `date=${encodeURIComponent(date)}` : "", allDepartments ? "allDepartments=true" : ""].filter(Boolean).join("&");
-    return request<{ date: string; entries: NurseQueueEntry[] }>(`/queue${query ? `?${query}` : ""}`);
+    return request<{ date: string; today: string; entries: NurseQueueEntry[]; upcomingDates: { date: string; count: number }[] }>(`/queue${query ? `?${query}` : ""}`);
   },
   notifications: (type = "all", read = "all") =>
     request<NurseNotification[]>(`/notifications?type=${type}&read=${read}`),
   appointments: () => request<NurseAppointment[]>("/appointments"),
-  callNext: () => request<NurseQueueEntry>("/queue/call-next", "POST"),
+  callNext: (date?: string) => request<NurseQueueEntry>(`/queue/call-next${date ? `?date=${encodeURIComponent(date)}` : ""}`, "POST"),
   completeQueue: (id: string) => request<NurseQueueEntry>(`/queue/${encodeURIComponent(id)}/complete`, "PATCH"),
   cancelQueue: (id: string) => request<{ id: string; token: string; status: string }>(`/queue/${encodeURIComponent(id)}/cancel`, "PATCH"),
 };
