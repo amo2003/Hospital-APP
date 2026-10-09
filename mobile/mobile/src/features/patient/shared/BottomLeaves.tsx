@@ -1,5 +1,6 @@
 import { useId } from "react";
-import { View, type StyleProp, type ViewStyle } from "react-native";
+import { type StyleProp, type ViewStyle } from 'react-native';
+import { View } from '@/theme/primitives';
 import Svg, { ClipPath, Defs, Image, Path } from "react-native-svg";
 
 export function BottomLeaves({ style }: { style: StyleProp<ViewStyle> }) {

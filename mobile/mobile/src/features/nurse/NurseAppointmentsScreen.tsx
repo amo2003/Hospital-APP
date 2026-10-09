@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { ActivityIndicator, ScrollView, TextInput, View } from "react-native";
+import { ActivityIndicator } from 'react-native';
+import { ScrollView, TextInput, View } from '@/theme/primitives';
 import { useFocusEffect, router } from "expo-router";
 import { Text, useLanguage } from "../patient/i18n/LanguageProvider";
 import { C, ErrorMessage, Header, Screen, s } from "../patient/shared/ui";

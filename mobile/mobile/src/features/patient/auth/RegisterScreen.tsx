@@ -1,7 +1,8 @@
 import { filterName, filterNic } from "./validation";
 import { Text } from "../i18n/LanguageProvider";
 import { useState } from "react";
-import { Modal, Pressable, View } from "react-native";
+import { Modal } from 'react-native';
+import { Pressable, View } from '@/theme/primitives';
 import { router, useLocalSearchParams } from "expo-router";
 import { Storage } from "@/utils/storage";
 import { api, messageOf } from "../shared/api";

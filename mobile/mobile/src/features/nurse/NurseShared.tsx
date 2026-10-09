@@ -1,5 +1,5 @@
 import { Text, useLanguage } from "../patient/i18n/LanguageProvider";
-import { Pressable, View } from "react-native";
+import { Pressable, View } from '@/theme/primitives';
 import { router } from "expo-router";
 import { C, s } from "../patient/shared/ui";
 import { Icon } from "../patient/shared/icons";

@@ -1,9 +1,9 @@
 import { Text, useLanguage } from "../patient/i18n/LanguageProvider";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Modal, Pressable, View } from "react-native";
+import { ActivityIndicator, Modal } from 'react-native';
+import { Pressable, ScrollView, View, LinearGradient } from '@/theme/primitives';
 import { router, useFocusEffect } from "expo-router";
 import { Button, C, ErrorMessage, Screen, s } from "../patient/shared/ui";
-import { LinearGradient } from "expo-linear-gradient";
 import { Icon } from "../patient/shared/icons";
 import { nurseApi, nurseMessageOf } from "./api";
 import type { NurseQueueEntry } from "./types";
@@ -17,6 +17,7 @@ export default function NurseQueueScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<(typeof tabs)[number]>("waiting");
+  const [specializationFilter, setSpecializationFilter] = useState<string>("all");
   const [selected, setSelected] = useState<NurseQueueEntry | null>(null);
   const [busy, setBusy] = useState(false);
   const [retry, setRetry] = useState(0);
@@ -26,7 +27,7 @@ export default function NurseQueueScreen() {
     setLoading(true);
     setError("");
     nurseApi
-      .queue()
+      .queue(undefined, true)
       .then((data) => {
         if (active) setEntries(data.entries);
       })
@@ -48,14 +49,24 @@ export default function NurseQueueScreen() {
   const completedEntries = entries.filter((entry) => entry.status === "completed");
   const currentServing = servingEntries[0] || null;
 
-  const filtered = entries.filter((entry) => entry.status === filter);
+  // All unique specializations/departments from queue entries
+  const specializations = [
+    "all",
+    ...Array.from(new Set(entries.map((e) => e.department).filter(Boolean))).sort(),
+  ];
+
+  const filtered = entries.filter(
+    (entry) =>
+      entry.status === filter &&
+      (specializationFilter === "all" || entry.department === specializationFilter),
+  );
 
   async function handleCallNext() {
     setBusy(true);
     setError("");
     try {
       await nurseApi.callNext();
-      const data = await nurseApi.queue();
+      const data = await nurseApi.queue(undefined, true);
       setEntries(data.entries);
       setFilter("serving");
     } catch (e) {
@@ -71,7 +82,7 @@ export default function NurseQueueScreen() {
     setError("");
     try {
       await nurseApi.completeQueue(currentServing.id);
-      const data = await nurseApi.queue();
+      const data = await nurseApi.queue(undefined, true);
       setEntries(data.entries);
       setFilter("waiting");
     } catch (e) {
@@ -88,7 +99,7 @@ export default function NurseQueueScreen() {
     try {
       await nurseApi.cancelQueue(selected.id);
       setSelected(null);
-      const data = await nurseApi.queue();
+      const data = await nurseApi.queue(undefined, true);
       setEntries(data.entries);
     } catch (e) {
       setError(nurseMessageOf(e));
@@ -226,7 +237,7 @@ export default function NurseQueueScreen() {
                 title="Complete Patient"
                 loading={busy}
                 onPress={handleComplete}
-                style={{ backgroundColor: "#15803d", borderColor: "#15803d" }}
+                style={{ borderRadius: 13, overflow: "hidden" }}
               />
             </View>
             <View style={{ flex: 1 }}>
@@ -246,7 +257,7 @@ export default function NurseQueueScreen() {
                 loading={busy}
                 disabled={waitingEntries.length === 0}
                 onPress={handleCallNext}
-                style={{ backgroundColor: "#0c3b6b", borderColor: "#0c3b6b" }}
+                style={{ borderRadius: 13, overflow: "hidden" }}
               />
             </View>
             <View style={{ flex: 1 }}>
@@ -261,8 +272,8 @@ export default function NurseQueueScreen() {
         )}
       </View>
 
-      {/* Filter Tabs */}
-      <View style={[s.row, { gap: 8, marginBottom: 14 }]}>
+      {/* Filter Tabs — Status */}
+      <View style={[s.row, { gap: 8, marginBottom: 10 }]}>
         {tabs.map((item) => {
           const active = filter === item;
           const count =
@@ -299,6 +310,46 @@ export default function NurseQueueScreen() {
           );
         })}
       </View>
+
+      {/* Specialization Filter — horizontal scroll pills */}
+      {filter === "completed" && <Button title="View reports" outline onPress={() => router.push("/nurse/reports")} style={{ marginBottom: 14 }} />}
+      {specializations.length > 1 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ marginBottom: 14, flexGrow: 0 }}
+          contentContainerStyle={{ gap: 6, paddingHorizontal: 2 }}
+        >
+          {specializations.map((spec) => {
+            const active = specializationFilter === spec;
+            return (
+              <Pressable
+                key={spec}
+                onPress={() => setSpecializationFilter(spec)}
+                style={{
+                  backgroundColor: active ? "#086ab9" : "#fff",
+                  borderWidth: 1,
+                  borderColor: active ? "#086ab9" : "#cfe2f7",
+                  borderRadius: 20,
+                  paddingVertical: 10,
+                  paddingHorizontal: 12,
+                }}
+              >
+                <Text
+                  style={{
+                    color: active ? "#fff" : "#086ab9",
+                    fontSize: 11,
+                    fontWeight: "700",
+                    textAlign: "center",
+                  }}
+                >
+                  {spec === "all" ? "All Specializations" : spec}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
 
       <ErrorMessage message={error} />
 

@@ -1,6 +1,7 @@
 import { Text } from "../patient/i18n/LanguageProvider";
 import { useEffect, useState } from "react";
-import { Image, Pressable, View } from "react-native";
+import { Image } from 'react-native';
+import { Pressable, View } from '@/theme/primitives';
 import { router } from "expo-router";
 import { Storage } from "@/utils/storage";
 import { assets, Button, C, ErrorMessage, Field, Leaves, Screen, s, Wave } from "../patient/shared/ui";

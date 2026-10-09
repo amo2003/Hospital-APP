@@ -1,12 +1,7 @@
 import { Text } from "../../patient/i18n/LanguageProvider";
 import React, { useState } from 'react';
-import { Platform,
-  Modal,
-  Pressable,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Platform, Modal, StyleSheet } from 'react-native';
+import { Pressable, TouchableOpacity, View } from '@/theme/primitives';
 import { router } from 'expo-router';
 
 export const SCREEN_ROUTES = [

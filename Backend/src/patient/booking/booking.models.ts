@@ -97,6 +97,7 @@ const queueEntrySchema = new Schema(
     sequence: { type: Number, required: true },
     token: { type: String, required: true },
     status: { type: String, enum: ["waiting", "serving", "completed", "cancelled"], default: "waiting" },
+    completedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );

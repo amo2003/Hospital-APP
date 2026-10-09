@@ -1,15 +1,7 @@
+import ThemeSelector from "@/theme/ThemeSelector";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { ActivityIndicator, Modal, RefreshControl, StyleSheet } from 'react-native';
+import { Pressable, ScrollView, TextInput, View, SafeAreaView } from '@/theme/primitives';
 import { router } from "expo-router";
 import { Text } from "@/features/patient/i18n/LanguageProvider";
 import { C, s } from "@/features/patient/shared/ui";
@@ -185,7 +177,7 @@ export default function DoctorPatientListScreen() {
       <SafeAreaView edges={["top"]} style={styles.safeHeaderArea}>
         {/* ──────────────── 1. HEADER (CarePlus Style) ──────────────── */}
         <View style={styles.headerRow}>
-          <Pressable
+            <Pressable
             accessibilityRole="button"
             accessibilityLabel="Back to dashboard"
             style={styles.backBtn}
@@ -534,9 +526,9 @@ export default function DoctorPatientListScreen() {
         <Pressable
           accessibilityRole="button"
           style={styles.tabItem}
-          onPress={() => setMenuOpen(true)}
+          onPress={() => router.push("/doctor/profile")}
         >
-          <Icon name="menu" color={C.muted} size={20} />
+          <Icon name="user" color={C.muted} size={20} />
           <Text style={styles.tabLabel}>Profile</Text>
         </Pressable>
       </View>
@@ -850,6 +842,7 @@ export default function DoctorPatientListScreen() {
 
             <View style={styles.drawerDivider} />
 
+            <ThemeSelector />
             <Pressable
               accessibilityRole="button"
               style={styles.drawerLogoutBtn}

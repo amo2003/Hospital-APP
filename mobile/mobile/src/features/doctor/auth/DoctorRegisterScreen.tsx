@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
-import { Platform, Pressable, View } from "react-native";
+import { Platform } from 'react-native';
+import { Pressable, View } from '@/theme/primitives';
 import { pickDocument } from "@/utils/document-picker";
 import { router } from "expo-router";
 import { Text } from "@/features/patient/i18n/LanguageProvider";

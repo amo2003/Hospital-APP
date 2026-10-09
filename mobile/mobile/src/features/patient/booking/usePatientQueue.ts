@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { AppState } from "react-native";
+import { AppState } from 'react-native';
+
 import { useFocusEffect } from "expo-router";
 import { api, messageOf } from "../shared/api";
 import type { PatientQueue } from "../shared/types";

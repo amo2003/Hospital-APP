@@ -1,6 +1,7 @@
 // Legacy names retained for other group members.
 
-import { Image } from "react-native";
+import { Image } from 'react-native';
+
 import { assets } from "@/features/patient/shared/ui";
 import { BottomLeaves } from "@/features/patient/shared/BottomLeaves";
 export function TopLeftLeaves() {

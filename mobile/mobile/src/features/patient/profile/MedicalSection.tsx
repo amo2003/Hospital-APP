@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View } from "react-native";
+import { View } from '@/theme/primitives';
 import { Text } from "../i18n/LanguageProvider";
 import {
   Button,

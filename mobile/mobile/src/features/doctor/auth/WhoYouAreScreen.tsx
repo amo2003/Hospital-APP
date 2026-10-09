@@ -1,5 +1,5 @@
 import React from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, View } from '@/theme/primitives';
 import { router } from "expo-router";
 import { Text } from "@/features/patient/i18n/LanguageProvider";
 import { Button, C, Leaves, s, Wave } from "@/features/patient/shared/ui";

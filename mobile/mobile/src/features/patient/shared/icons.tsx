@@ -1,3 +1,5 @@
+import { useAppTheme } from "@/theme/ThemeProvider";
+import { themeColor } from "@/theme/palette";
 import Svg, { Path, Circle, Rect } from "react-native-svg";
 export type IconName =
   | "user"
@@ -64,6 +66,8 @@ export function Icon({
   size?: number;
   color?: string;
 }) {
+  const { mode } = useAppTheme();
+  color = themeColor(color, "text", mode);
   return (
     <Svg
       width={size}

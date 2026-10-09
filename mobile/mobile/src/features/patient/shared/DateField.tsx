@@ -1,5 +1,7 @@
+import { useAppTheme } from "@/theme/ThemeProvider";
 import { useState } from "react";
-import { Modal, Platform, Pressable, View } from "react-native";
+import { Modal, Platform } from 'react-native';
+import { Pressable, View } from '@/theme/primitives';
 import DateTimePicker, {
   DateTimePickerAndroid,
 } from "@react-native-community/datetimepicker";
@@ -23,6 +25,7 @@ export default function DateField({
   error,
 }: DateFieldProps) {
   const { language, t } = useLanguage();
+  const { mode } = useAppTheme();
   const [open, setOpen] = useState(false);
   const selected =
     value && !isNaN(new Date(value).getTime())
@@ -98,7 +101,7 @@ export default function DateField({
               onChange={(_event, date) => {
                 if (date) setDraft(date);
               }}
-              themeVariant="light"
+              themeVariant={mode}
             />
             <Button
               title="Done"

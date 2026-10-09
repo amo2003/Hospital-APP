@@ -1,6 +1,7 @@
 import type { MedicalDetails } from "@/features/patient/shared/types";
 import Constants from "expo-constants";
-import { Platform } from "react-native";
+import { Platform } from 'react-native';
+
 import { DoctorStorage } from "./doctorStorage";
 
 const configuredBase = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "");
@@ -250,6 +251,12 @@ export const doctorApi = {
     }>("/login", "POST", { identifier, password }, false),
 
   me: () => request<{ doctor: DoctorProfile }>("/me"),
+
+  updateProfile: (data: Partial<DoctorProfile>) =>
+    request<{ message: string; doctor: DoctorProfile }>("/profile", "PATCH", data),
+
+  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+    request<{ message: string }>("/change-password", "POST", data),
 
   getNotifications: () => request<DoctorNotification[]>("/notifications"),
 

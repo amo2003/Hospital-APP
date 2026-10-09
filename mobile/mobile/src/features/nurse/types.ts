@@ -79,3 +79,15 @@ export type NurseAppointment = {
   patient: { patientId: string; fullName: string; phone: string } | null;
   doctor: { name: string; specialty: string } | null;
 };
+
+export type NurseReport = {
+  from: string; to: string; generatedAt: string; hospital: string; department: string;
+  summary: { completed: number; patients: number; doctors: number; averagePerDay: number };
+  daily: { date: string; count: number }[];
+  byDoctor: { id: string; name: string | null; count: number }[];
+  records: {
+    id: string; token: string; date: string; department: string;
+    patientId: string | null; patientName: string | null; appointmentId: string | null;
+    time: string | null; doctorId: string | null; doctorName: string | null; completedAt: string | null;
+  }[];
+};

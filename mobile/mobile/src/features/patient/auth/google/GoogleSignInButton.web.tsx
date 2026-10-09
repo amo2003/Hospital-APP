@@ -1,5 +1,7 @@
+import { useAppTheme } from "@/theme/ThemeProvider";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator } from 'react-native';
+import { View } from '@/theme/primitives';
 import { useLanguage } from "../../i18n/LanguageProvider";
 import GoogleButtonView, { type GoogleButtonProps } from "./GoogleButtonView";
 import { messageOf } from "../../shared/api";
@@ -85,6 +87,7 @@ export default function GoogleSignInButton({
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const { language } = useLanguage();
+  const { mode } = useAppTheme();
   const clientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim();
   useEffect(() => {
     handlers.current = { onCredential, onError, disabled };
@@ -134,7 +137,7 @@ export default function GoogleSignInButton({
         host.current.replaceChildren();
         google.renderButton(host.current, {
           type: "standard",
-          theme: "outline",
+          theme: mode === "dark" ? "filled_black" : "outline",
           size: "large",
           text: "continue_with",
           shape: "pill",
@@ -154,7 +157,7 @@ export default function GoogleSignInButton({
         window.careplusGoogleIdentity!.onResponse = undefined;
       }
     };
-  }, [clientId, language, attempt]);
+  }, [clientId, language, attempt, mode]);
   if (!clientId)
     return (
       <GoogleButtonView

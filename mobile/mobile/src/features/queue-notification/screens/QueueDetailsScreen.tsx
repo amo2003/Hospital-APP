@@ -1,11 +1,7 @@
 import { Text } from "../../patient/i18n/LanguageProvider";
 import React from 'react';
-import { Platform,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
+import { ScrollView, TouchableOpacity, View } from '@/theme/primitives';
 import { router } from 'expo-router';
 import { QueueHeader } from '../components/QueueHeader';
 import { QueueBottomWaves } from '../components/QueueBottomWaves';

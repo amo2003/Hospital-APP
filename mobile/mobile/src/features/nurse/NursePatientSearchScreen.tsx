@@ -1,9 +1,9 @@
 import { Text, useLanguage } from "../patient/i18n/LanguageProvider";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Pressable, TextInput, View } from "react-native";
+import { ActivityIndicator } from 'react-native';
+import { Pressable, TextInput, View, LinearGradient } from '@/theme/primitives';
 import { router, useFocusEffect } from "expo-router";
 import { C, ErrorMessage, Screen, s } from "../patient/shared/ui";
-import { LinearGradient } from "expo-linear-gradient";
 import { Icon } from "../patient/shared/icons";
 import { nurseApi, nurseMessageOf } from "./api";
 import type { NursePatient } from "./types";

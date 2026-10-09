@@ -974,6 +974,11 @@ body {
   color: #0369a1;
 }
 
+.metric-trend-badge.neutral {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
 .summary-card-dark {
   background: #102e57;
   border-radius: 16px;

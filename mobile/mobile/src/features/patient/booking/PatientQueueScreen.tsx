@@ -1,4 +1,5 @@
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator } from 'react-native';
+import { View } from '@/theme/primitives';
 import { router, useLocalSearchParams } from "expo-router";
 import { Text } from "../i18n/LanguageProvider";
 import {

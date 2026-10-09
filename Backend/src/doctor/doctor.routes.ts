@@ -166,6 +166,112 @@ doctorRoutes.get("/me", authenticateDoctor, async (req, res) => {
   res.json({ doctor: publicDoctor(req.doctor) });
 });
 
+// PATCH /api/doctor/profile (update personal and professional details)
+doctorRoutes.patch("/profile", authenticateDoctor, async (req, res, next) => {
+  try {
+    const doctor = req.doctor!;
+    const updateSchema = z.object({
+      fullName: z.string().trim().min(2, "Full name must be at least 2 characters.").optional(),
+      dob: z.string().trim().min(8, "Date of birth is required.").optional(),
+      gender: z.enum(["Male", "Female", "Other"]).optional(),
+      nic: z
+        .string()
+        .trim()
+        .min(10, "NIC must be at least 10 characters.")
+        .max(12, "NIC must be at most 12 characters.")
+        .optional(),
+      phone: z.string().trim().min(9, "Valid phone number is required.").optional(),
+      email: z.string().trim().email("Valid email address is required.").toLowerCase().optional(),
+      slmcNo: z.string().trim().min(3, "SLMC registration number is required.").optional(),
+      specialty: z.string().trim().min(2, "Medical specialty is required.").optional(),
+      qualifications: z.string().trim().min(2, "Qualifications are required.").optional(),
+      experience: z.union([z.string(), z.number()]).transform((v) => String(v).trim()).optional(),
+      hospital: z.string().trim().min(2, "Hospital name is required.").optional(),
+    });
+
+    const data = updateSchema.parse(req.body);
+
+    if (data.email && data.email !== doctor.email) {
+      const emailConflict = await DoctorAccount.findOne({ email: data.email, _id: { $ne: doctor._id } });
+      if (emailConflict) throw new ApiError(409, "Email address is already in use by another account.");
+      doctor.email = data.email;
+    }
+
+    if (data.phone && data.phone !== doctor.phone) {
+      const phoneConflict = await DoctorAccount.findOne({ phone: data.phone, _id: { $ne: doctor._id } });
+      if (phoneConflict) throw new ApiError(409, "Phone number is already in use by another account.");
+      doctor.phone = data.phone;
+    }
+
+    if (data.nic && data.nic.toUpperCase() !== doctor.nic) {
+      const nicConflict = await DoctorAccount.findOne({ nic: data.nic.toUpperCase(), _id: { $ne: doctor._id } });
+      if (nicConflict) throw new ApiError(409, "NIC is already in use by another account.");
+      doctor.nic = data.nic.toUpperCase();
+    }
+
+    if (data.slmcNo && data.slmcNo.toUpperCase() !== doctor.slmcNo) {
+      const slmcConflict = await DoctorAccount.findOne({ slmcNo: data.slmcNo.toUpperCase(), _id: { $ne: doctor._id } });
+      if (slmcConflict) throw new ApiError(409, "SLMC number is already in use by another account.");
+      doctor.slmcNo = data.slmcNo.toUpperCase();
+    }
+
+    if (data.fullName) doctor.fullName = data.fullName;
+    if (data.dob) doctor.dob = data.dob;
+    if (data.gender) doctor.gender = data.gender;
+    if (data.specialty) doctor.specialty = data.specialty;
+    if (data.qualifications) doctor.qualifications = data.qualifications;
+    if (data.experience !== undefined) doctor.experience = data.experience;
+    if (data.hospital) doctor.hospital = data.hospital;
+
+    await doctor.save();
+
+    // Synchronize catalog doctor entry if linked
+    if (doctor.doctorCatalogId) {
+      const { Doctor } = await import("../patient/booking/booking.models.js");
+      await Doctor.findByIdAndUpdate(doctor.doctorCatalogId, {
+        ...(data.fullName ? { name: data.fullName } : {}),
+        ...(data.specialty ? { specialty: data.specialty } : {}),
+      });
+    }
+
+    res.json({
+      message: "Doctor profile updated successfully.",
+      doctor: publicDoctor(doctor),
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/doctor/change-password
+doctorRoutes.post("/change-password", authenticateDoctor, async (req, res, next) => {
+  try {
+    const doctorWithPassword = await DoctorAccount.findById(req.doctor!._id).select("+passwordHash");
+    if (!doctorWithPassword) throw new ApiError(404, "Doctor account not found.");
+
+    const { currentPassword, newPassword } = z
+      .object({
+        currentPassword: z.string().min(1, "Current password is required."),
+        newPassword: z.string().min(8, "New password must be at least 8 characters."),
+      })
+      .parse(req.body);
+
+    const matches = await bcrypt.compare(currentPassword, doctorWithPassword.passwordHash);
+    if (!matches) {
+      throw new ApiError(400, "Current password is incorrect.");
+    }
+
+    doctorWithPassword.passwordHash = await bcrypt.hash(newPassword, 12);
+    doctorWithPassword.tokenVersion = (doctorWithPassword.tokenVersion || 0) + 1;
+    await doctorWithPassword.save();
+
+    res.json({ message: "Password updated successfully." });
+  } catch (error) {
+    next(error);
+  }
+});
+
+
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, "Invalid appointment ID.");
 
 const getTodayDate = () =>
@@ -705,7 +811,7 @@ doctorRoutes.patch(
       if (status === "completed") {
         await QueueEntry.updateMany(
           { appointmentId: appointment._id, status: { $in: ["waiting", "serving"] } },
-          { $set: { status: "completed" } },
+          { $set: { status: "completed", completedAt: new Date() } },
         );
       } else if (status === "cancelled") {
         await QueueEntry.updateMany(

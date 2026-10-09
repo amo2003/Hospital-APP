@@ -1,6 +1,7 @@
 import { Text } from "../i18n/LanguageProvider";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { ActivityIndicator } from 'react-native';
+import { Pressable, View } from '@/theme/primitives';
 import { router } from "expo-router";
 import { api, messageOf } from "../shared/api";
 import type { Appointment, Doctor, Hospital, Slot } from "../shared/types";

@@ -1,3 +1,4 @@
+import ThemeSelector from "@/theme/ThemeSelector";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -9,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Text } from "@/features/patient/i18n/LanguageProvider";
 import { C, s } from "@/features/patient/shared/ui";
 import { Icon } from "@/features/patient/shared/icons";
@@ -108,8 +109,17 @@ const getWeekDays = (referenceDateStr: string) => {
 type FilterType = "all" | "confirmed" | "completed";
 
 export default function DoctorAppointmentsScreen() {
+  const { date: paramDate } = useLocalSearchParams<{ date?: string }>();
   const todayStr = useMemo(() => getTodayDateStr(), []);
-  const [selectedDate, setSelectedDate] = useState(todayStr);
+  const [selectedDate, setSelectedDate] = useState(() =>
+    typeof paramDate === "string" && paramDate ? paramDate : todayStr,
+  );
+
+  useEffect(() => {
+    if (typeof paramDate === "string" && paramDate && paramDate !== selectedDate) {
+      setSelectedDate(paramDate);
+    }
+  }, [paramDate]);
   const weekDays = useMemo(() => getWeekDays(selectedDate), [selectedDate]);
   const [appointments, setAppointments] = useState<DoctorAppointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -581,7 +591,7 @@ export default function DoctorAppointmentsScreen() {
         <Pressable
           accessibilityRole="button"
           style={styles.tabItem}
-          onPress={() => setMenuOpen(true)}
+          onPress={() => router.push("/doctor/profile")}
         >
           <Icon name="user" color={C.muted} size={20} />
           <Text style={styles.tabLabel}>Profile</Text>
@@ -866,6 +876,7 @@ export default function DoctorAppointmentsScreen() {
               </Text>
             </View>
 
+            <ThemeSelector />
             <View style={{ height: 1, backgroundColor: "#f0f4f9", marginVertical: 8 }} />
 
             <Pressable

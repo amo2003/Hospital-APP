@@ -1,6 +1,7 @@
 import { Text } from "../../patient/i18n/LanguageProvider";
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { TouchableOpacity, View } from '@/theme/primitives';
 import { router } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 

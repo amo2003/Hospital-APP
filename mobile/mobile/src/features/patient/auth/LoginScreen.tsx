@@ -1,6 +1,7 @@
 import { Text } from "../i18n/LanguageProvider";
 import { useEffect, useState } from "react";
-import { Image, Modal, Pressable, View } from "react-native";
+import { Image, Modal } from 'react-native';
+import { Pressable, View } from '@/theme/primitives';
 import { router } from "expo-router";
 
 import { loginErrors } from "./validation";

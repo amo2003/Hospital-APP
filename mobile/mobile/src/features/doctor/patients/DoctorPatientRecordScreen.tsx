@@ -1,16 +1,7 @@
 import PatientMedicalDetails from "./PatientMedicalDetails";
 import React, { useCallback, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { ActivityIndicator, Modal, RefreshControl, StyleSheet } from 'react-native';
+import { Pressable, ScrollView, TextInput, View, SafeAreaView } from '@/theme/primitives';
 import { router, useLocalSearchParams } from "expo-router";
 import { Text } from "@/features/patient/i18n/LanguageProvider";
 import { C, s } from "@/features/patient/shared/ui";
@@ -619,9 +610,9 @@ export default function DoctorPatientRecordScreen() {
         <Pressable
           accessibilityRole="button"
           style={styles.tabItem}
-          onPress={() => router.replace("/doctor/dashboard")}
+          onPress={() => router.push("/doctor/profile")}
         >
-          <Icon name="menu" color={C.muted} size={20} />
+          <Icon name="user" color={C.muted} size={20} />
           <Text style={styles.tabLabel}>Profile</Text>
         </Pressable>
       </View>
