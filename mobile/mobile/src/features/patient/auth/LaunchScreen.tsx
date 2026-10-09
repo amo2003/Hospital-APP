@@ -1,5 +1,5 @@
 import { Text } from "../i18n/LanguageProvider";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Image } from 'react-native';
 import { Pressable, View } from '@/theme/primitives';
 import { router } from "expo-router";
@@ -10,30 +10,18 @@ import { HeartMark } from "../shared/icons";
 export default function LaunchScreen() {
   const [error, setError] = useState("");
   const navigated = useRef(false);
-  const start = useCallback(async () => {
+  async function start() {
     if (navigated.current) return;
+    navigated.current = true;
     try {
       await Storage.clearSession();
       await Storage.clearNurseSession();
-      const path = await Storage.getUserPath();
-      navigated.current = true;
-      router.replace(
-        path === "patient"
-          ? "/login"
-          : path === "staff"
-            ? "/who-you-are"
-            : "/what-you-need",
-      );
+      router.replace("/what-you-need");
     } catch {
-      setError("Unable to read your saved choice. Tap to try again.");
+      navigated.current = false;
+      setError("Please try again.");
     }
-  }, []);
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      void start();
-    }, 2200);
-    return () => clearTimeout(timer);
-  }, [start]);
+  }
   return (
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
       <Wave top pale />
