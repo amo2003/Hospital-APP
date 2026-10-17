@@ -2,6 +2,12 @@
 import { reportTranslations } from "./reports/translations";
 export const nurseTranslations: Record<string, readonly [string, string]> = {
   ...reportTranslations,
+  "Upcoming approved appointments": ["ඉදිරි අනුමත හමුවීම්", "வரவிருக்கும் அங்கீகரிக்கப்பட்ட சந்திப்புகள்"],
+  "Select an appointment date to view its queue.": ["පෝලිම බැලීමට හමුවීමේ දිනය තෝරන්න.", "வரிசையைப் பார்க்க சந்திப்பு தேதியைத் தேர்ந்தெடுக்கவும்."],
+  "Queue date": ["පෝලිමේ දිනය", "வரிசை தேதி"],
+  "Patients can be called on their appointment date.": ["රෝගීන් කැඳවිය හැක්කේ ඔවුන්ගේ හමුවීමේ දිනයේදීය.", "நோயாளிகளை அவர்களின் சந்திப்பு தேதியில் அழைக்கலாம்."],
+  "Doctor approved": ["වෛද්‍යවරයා අනුමත කළා", "மருத்துவர் அங்கீகரித்தார்"],
+  "Awaiting doctor approval": ["වෛද්‍ය අනුමැතිය බලාපොරොත්තුවෙන්", "மருத்துவர் அங்கீகாரத்திற்காகக் காத்திருக்கிறது"],
   waiting: ["බලා සිටින", "காத்திருப்போர்"],
   serving: ["සේවය ලබන", "சேவை பெறுவோர்"],
   completed: ["අවසන් කළ", "முடிந்தவை"],

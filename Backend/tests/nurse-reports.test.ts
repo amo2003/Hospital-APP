@@ -44,10 +44,29 @@ before(async () => {
   await entry("2026-01-02", "completed", { dept: "Cardiology" });
   await entry("2025-12-31", "completed");
   await entry("2026-01-04", "completed", { missing: true });
+  await entry("2099-01-12", "waiting", { dept: "Cardiology" });
+  await entry("2099-01-12", "waiting", { dept: "Cardiology" });
+  await entry("2099-01-12", "waiting", { other: true });
+  await entry("2099-01-13", "cancelled");
+  const pending = await entry("2099-01-12", "waiting");
+  await Appointment.updateOne({ _id: pending.appointment._id }, { $set: { doctorDecision: "pending" } });
 });
 after(async () => { await mongoose.disconnect(); await db?.stop(); });
 
 const getReport = (query = "from=2026-01-01&to=2026-01-03") => request(app).get(`/api/nurse/reports/completed?${query}`).auth(token, { type: "bearer" });
+
+test("future approved appointments are discoverable separately from today's queue", async () => {
+  const current = await request(app).get("/api/nurse/queue?allDepartments=true").auth(token, { type: "bearer" }).expect(200);
+  assert.equal(current.body.date, current.body.today);
+  assert.ok(current.body.entries.every((entry: { date: string }) => entry.date === current.body.today));
+  assert.deepEqual(current.body.upcomingDates, [{ date: "2099-01-12", count: 2 }]);
+  const future = await request(app).get("/api/nurse/queue?date=2099-01-12&allDepartments=true").auth(token, { type: "bearer" }).expect(200);
+  assert.equal(future.body.entries.length, 2);
+  assert.ok(future.body.entries.every((entry: { status: string; department: string }) => entry.status === "waiting" && entry.department === "Cardiology"));
+  await request(app).post("/api/nurse/queue/call-next?date=2099-01-12").auth(token, { type: "bearer" }).expect(409);
+  const scoped = await request(app).get("/api/nurse/queue").auth(token, { type: "bearer" }).expect(200);
+  assert.deepEqual(scoped.body.upcomingDates, []);
+});
 
 test("report includes completed visits across hospital departments, regardless of completion timestamp", async () => {
   const { body, headers } = await getReport().expect(200);

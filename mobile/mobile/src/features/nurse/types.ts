@@ -47,6 +47,8 @@ export type NursePatient = {
 };
 
 export type NurseQueueEntry = {
+  createdAt?: string;
+  updatedAt?: string;
   id: string;
   token: string;
   sequence: number;

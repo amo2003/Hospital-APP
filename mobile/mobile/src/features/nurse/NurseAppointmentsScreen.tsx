@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { ActivityIndicator } from 'react-native';
-import { ScrollView, TextInput, View } from '@/theme/primitives';
+import { Pressable, ScrollView, TextInput, View } from '@/theme/primitives';
 import { useFocusEffect, router } from "expo-router";
 import { Text, useLanguage } from "../patient/i18n/LanguageProvider";
 import { C, ErrorMessage, Header, Screen, s } from "../patient/shared/ui";
@@ -17,7 +17,8 @@ export default function NurseAppointmentsScreen() {
   useFocusEffect(
     useCallback(() => {
       let active = true;
-      nurseApi.appointments()
+      let timer: ReturnType<typeof setTimeout>;
+      const refresh = () => nurseApi.appointments()
         .then((result) => {
           if (active) {
             setAppointments(result);
@@ -25,8 +26,14 @@ export default function NurseAppointmentsScreen() {
           }
         })
         .catch((reason) => active && setError(nurseMessageOf(reason)))
-        .finally(() => active && setLoading(false));
-      return () => { active = false; };
+        .finally(() => {
+          if (active) {
+            setLoading(false);
+            timer = setTimeout(refresh, 8000);
+          }
+        });
+      void refresh();
+      return () => { active = false; clearTimeout(timer); };
     }, []),
   );
   const query = search.trim().toLowerCase();
@@ -60,6 +67,16 @@ export default function NurseAppointmentsScreen() {
             <Text style={[s.body, { marginTop: 5 }]}>{appointment.doctor?.name || "Doctor"} · {appointment.department}</Text>
             <Text style={s.body}>{appointment.date} · {appointment.time}</Text>
             <Text style={s.body}>Reference: {appointment.appointmentId}</Text>
+            {appointment.status === "confirmed" && (
+              <Text style={[s.link, { marginTop: 8 }]}>
+                {appointment.doctorDecision === "accepted" ? "Doctor approved" : appointment.doctorDecision === "rejected" ? "Rejected" : "Awaiting doctor approval"}
+              </Text>
+            )}
+            {appointment.status === "confirmed" && appointment.doctorDecision === "accepted" && (
+              <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/nurse/queue", params: { date: appointment.date } })} style={{ paddingVertical: 12 }}>
+                <Text style={s.link}>View queue</Text>
+              </Pressable>
+            )}
           </View>
         ))}
       </ScrollView>

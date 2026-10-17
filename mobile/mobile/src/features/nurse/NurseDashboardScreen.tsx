@@ -1,47 +1,26 @@
 import { Text, useLanguage } from "../patient/i18n/LanguageProvider";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { ActivityIndicator } from 'react-native';
-import { Pressable, TextInput, View, LinearGradient } from '@/theme/primitives';
-import { router, useFocusEffect } from "expo-router";
+import { Pressable, View, LinearGradient } from '@/theme/primitives';
+import { router } from "expo-router";
 import { C, ErrorMessage, Screen, s } from "../patient/shared/ui";
 import { Icon } from "../patient/shared/icons";
-import { nurseApi, nurseMessageOf } from "./api";
+import { useNurseQueue } from "./useNurseQueue";
 import { useNurse } from "./session";
-import type { NurseQueueEntry } from "./types";
 import { ActionCard, NurseTabs } from "./NurseShared";
 
 export default function NurseDashboardScreen() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { nurse } = useNurse();
-  const [entries, setEntries] = useState<NurseQueueEntry[]>([]);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
   const [retry, setRetry] = useState(0);
-
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
-      setLoading(true);
-      setError("");
-      nurseApi
-        .queue()
-        .then((result) => {
-          if (active) setEntries(result.entries);
-        })
-        .catch((e) => {
-          if (active) setError(nurseMessageOf(e));
-        })
-        .finally(() => {
-          if (active) setLoading(false);
-        });
-      return () => {
-        active = false;
-      };
-    }, [retry]),
-  );
+  const { entries, upcomingDates, queueDate, loading, error } = useNurseQueue(undefined, retry);
 
   const waiting = entries.filter((entry) => entry.status === "waiting");
   const serving = entries.find((entry) => entry.status === "serving");
+  const recentEntries = [...entries].sort((a, b) =>
+    (Date.parse(b.updatedAt || b.createdAt || "") || 0) -
+    (Date.parse(a.updatedAt || a.createdAt || "") || 0) || b.sequence - a.sequence,
+  ).slice(0, 4);
 
   const actions = [
     { label: "Patient Search", icon: "search" as const, path: "/nurse/patients" as const },
@@ -90,7 +69,7 @@ export default function NurseDashboardScreen() {
 
         {/* Staff Greeting Row */}
         <View style={[s.row, { justifyContent: "space-between", marginBottom: 18 }]}>
-          <View style={[s.row, { gap: 12 }]}>
+          <View style={[s.row, { gap: 12, flex: 1, minWidth: 0, marginRight: 12 }]}>
             <View
               style={{
                 width: 48,
@@ -108,10 +87,10 @@ export default function NurseDashboardScreen() {
             >
               <Icon name="user" size={26} color="#0c3b6b" />
             </View>
-            <View>
+            <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={{ color: "#d6e8fa", fontSize: 12 }}>{greeting}</Text>
-              <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700", marginTop: 2 }}>
-                {nurse?.fullName ? <><Text>Nurse</Text> <Text translate={false}>{nurse.fullName}</Text></> : "CarePlus Staff"}
+              <Text translate={false} style={{ color: "#fff", fontSize: 16, fontWeight: "700", marginTop: 2 }}>
+                {nurse?.fullName ? `${t("Nurse")} ${nurse.fullName}` : t("CarePlus Staff")}
               </Text>
             </View>
           </View>
@@ -218,8 +197,24 @@ export default function NurseDashboardScreen() {
             </Pressable>
           </View>
         ) : null}
+        {!!queueDate && <Text translate={false} style={[s.body, { marginTop: 8 }]}>{queueDate}</Text>}
         {loading && <ActivityIndicator color={C.blue} style={{ marginTop: 8 }} />}
       </View>
+
+      {!!upcomingDates.length && (
+        <View style={[s.card, { marginTop: 14 }]}>
+          <Text style={[s.title, { fontSize: 16 }]}>Upcoming approved appointments</Text>
+          <Text style={[s.body, { marginVertical: 8 }]}>Select an appointment date to view its queue.</Text>
+          {upcomingDates.map((item) => (
+            <Pressable key={item.date} accessibilityRole="button"
+              onPress={() => router.push({ pathname: "/nurse/queue", params: { date: item.date } })}
+              style={[s.row, { justifyContent: "space-between", paddingVertical: 10 }]}>
+              <Text translate={false} style={s.link}>{item.date}</Text>
+              <Text translate={false} style={s.link}>{item.count} {t("Doctor approved")} →</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
 
       {/* Quick Actions Grid */}
       <Text style={[s.title, { fontSize: 16, marginTop: 18, marginBottom: 12 }]}>
@@ -256,7 +251,7 @@ export default function NurseDashboardScreen() {
         </Pressable>
       </View>
 
-      {!entries.length && !loading ? (
+      {!entries.length && !loading && !error ? (
         <View
           style={[
             s.card,
@@ -275,7 +270,7 @@ export default function NurseDashboardScreen() {
           </Text>
         </View>
       ) : (
-        entries.slice(0, 4).map((entry, idx) => {
+        recentEntries.map((entry) => {
           const initials =
             entry.patient?.fullName
               .split(/\s+/)
@@ -318,15 +313,18 @@ export default function NurseDashboardScreen() {
                 </Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: C.navy, fontSize: 13, fontWeight: "700" }}>
-                  {t("{name} checked in", { name: entry.patient?.fullName || t("Patient") })}
+                <Text translate={false} style={{ color: C.navy, fontSize: 13, fontWeight: "700" }}>
+                  {entry.patient?.fullName || t("Patient")}
                 </Text>
+                <Text style={{ color: C.blue, fontSize: 11, marginTop: 2 }}>{entry.status}</Text>
                 <Text style={[s.body, { fontSize: 11, color: "#64748b", marginTop: 2 }]}>
                   <Text>Token</Text> <Text translate={false}>{entry.token}</Text> · <Text>{entry.department}</Text>
                 </Text>
               </View>
               <Text style={{ color: "#94a3b8", fontSize: 11 }}>
-                {idx === 0 ? "Just now" : `${(idx + 1) * 4}m ago`}
+                {entry.updatedAt && Number.isFinite(Date.parse(entry.updatedAt))
+                  ? new Date(entry.updatedAt).toLocaleTimeString(language === "en" ? "en-GB" : `${language}-LK`, { timeZone: "Asia/Colombo", hour: "2-digit", minute: "2-digit" })
+                  : ""}
               </Text>
             </Pressable>
           );
