@@ -1,5 +1,7 @@
 // English source copy -> Sinhala and Tamil. Patient-entered names and identifiers remain unchanged.
 export const translations: Record<string, readonly [string, string]> = {
+  "This doctor's time slot has already been booked. Please choose another available slot.": ["මෙම වෛද්‍යවරයාගේ මෙම වේලාව දැනටමත් වෙන් කර ඇත. වෙනත් ලබාගත හැකි වේලාවක් තෝරන්න.", "இந்த மருத்துவரின் இந்த நேரம் ஏற்கனவே முன்பதிவு செய்யப்பட்டுள்ளது. வேறு கிடைக்கும் நேரத்தைத் தேர்ந்தெடுக்கவும்."],
+  "Bookings are available every day, including weekends.": ["සති අන්තය ඇතුළුව සෑම දිනකම හමුවීම් වෙන් කරගත හැක.", "வார இறுதி உட்பட ஒவ்வொரு நாளும் சந்திப்புகளை முன்பதிவு செய்யலாம்."],
   "Appearance": ["පෙනුම", "தோற்றம்"],
   "Light theme": ["ආලෝක තේමාව", "ஒளி தீம்"],
   "Dark theme": ["අඳුරු තේමාව", "இருண்ட தீம்"],

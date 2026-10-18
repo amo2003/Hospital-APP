@@ -1,6 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 import { randomUUID } from "node:crypto";
-import { OPD_SLOTS } from "./booking.service.js";
+import { OPD_SLOTS, OPD_WEEKDAYS } from "./booking.service.js";
 export const Hospital = mongoose.model(
   "Hospital",
   new Schema({
@@ -19,7 +19,7 @@ export const Doctor = mongoose.model(
       ref: "Hospital",
       required: true,
     },
-    weekdays: [Number],
+    weekdays: { type: [Number], default: () => [...OPD_WEEKDAYS] },
     feeLkr: { type: Number, min: 0, default: 0 },
     paymentInstructions: { type: String, default: "" },
     paymentRevision: { type: Number, default: 0 },
@@ -74,10 +74,8 @@ schema.index(
   { doctorId: 1, date: 1, time: 1 },
   { unique: true, partialFilterExpression: { status: "confirmed" } },
 );
-schema.index(
-  { patientId: 1, date: 1, time: 1 },
-  { unique: true, partialFilterExpression: { status: "confirmed" } },
-);
+// A patient may book multiple doctors, even at the same time. Availability is
+// constrained by the doctor's slot, not by a patient-wide appointment limit.
 export const Appointment = mongoose.model("Appointment", schema);
 
 // Separate doctor/day numbering from the department queue used by staff.

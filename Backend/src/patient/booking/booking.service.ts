@@ -1,4 +1,6 @@
 import { ApiError } from "../shared/errors.js";
+// Government OPD accepts bookings every day, including weekends.
+export const OPD_WEEKDAYS = [0, 1, 2, 3, 4, 5, 6];
 // OPD sessions use 15-minute appointments; closing times are not start times.
 // Shared by availability and booking validation, including existing doctors.
 export const OPD_SLOTS = [9, 17, 18].flatMap((hour) =>

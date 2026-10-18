@@ -6,6 +6,7 @@ import { Patient } from "./patient/auth/patient.model.js";
 import { Appointment, DoctorQueueCounter, QueueEntry, QueueCounter } from "./patient/booking/booking.models.js";
 import { Nurse } from "./nurse/auth/nurse.model.js";
 import { connectDatabase } from "./config/database.js";
+import { migratePatientBookingIndex } from "./patient/booking/booking.indexes.js";
 import { startWelcomeEmailWorker } from "./patient/notifications/welcome-email.worker.js";
 import { AppointmentEmail, startAppointmentEmailWorker } from "./patient/notifications/appointment-email.js";
 import { Notification } from "./patient/notifications/notification.model.js";
@@ -14,6 +15,7 @@ async function start() {
   const config = getConfig();
   await connectDatabase();
   await Promise.all([Patient.init(), Appointment.init(), DoctorQueueCounter.init(), Nurse.init(), QueueEntry.init(), QueueCounter.init(), PaymentSlip.init(), AppointmentEmail.init(), Notification.init()]);
+  await migratePatientBookingIndex();
   const stopEmailWorker = startWelcomeEmailWorker();
   const stopAppointmentEmails = startAppointmentEmailWorker();
   const server = app.listen(config.port, "0.0.0.0", () =>

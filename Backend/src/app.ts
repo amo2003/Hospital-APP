@@ -102,7 +102,9 @@ app.use(
         .status(409)
         .json({
           message:
-            "These account details already exist, or the appointment slot has just been booked. Please check and try again.",
+            error.keyPattern?.doctorId && error.keyPattern?.date && error.keyPattern?.time
+              ? "This doctor's time slot has already been booked. Please choose another available slot."
+              : "These account details already exist, or the appointment slot has just been booked. Please check and try again.",
         });
       return;
     }

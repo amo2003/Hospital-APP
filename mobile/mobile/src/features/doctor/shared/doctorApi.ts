@@ -1,21 +1,7 @@
 import type { MedicalDetails } from "@/features/patient/shared/types";
-import Constants from "expo-constants";
-import { Platform } from 'react-native';
+import { apiBaseUrl as base } from "@/utils/api-url";
 
 import { DoctorStorage } from "./doctorStorage";
-
-const configuredBase = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "");
-const devHost =
-  Constants.expoConfig?.hostUri?.split(":")[0] ||
-  (Platform.OS === "web" && typeof window !== "undefined"
-    ? window.location.hostname
-    : undefined);
-const base =
-  configuredBase && !configuredBase.includes("YOUR_")
-    ? configuredBase
-    : __DEV__ && devHost
-      ? `http://${devHost}:4000/api`
-      : "http://localhost:4000/api";
 
 export class DoctorApiError extends Error {
   constructor(

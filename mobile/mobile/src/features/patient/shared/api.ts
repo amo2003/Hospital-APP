@@ -1,9 +1,8 @@
 import { router } from "expo-router";
-import Constants from "expo-constants";
+import { apiBaseUrl as base } from "@/utils/api-url";
 // Government OPD: upload integration preserved but disabled.
 // import type { DocumentPickerAsset } from "expo-document-picker";
 // import { uploadPaymentSlip } from "../payments/upload-payment-slip";
-import { Platform } from 'react-native';
 
 import { Storage } from "@/utils/storage";
 import type {
@@ -17,19 +16,6 @@ import type {
   PatientQueue,
 } from "./types";
 import type { PatientNotificationRecord } from "../../queue-notification/types";
-const configuredBase = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "");
-// Expo Go exposes the Metro host. Use it only for an unconfigured development build.
-const devHost =
-  Constants.expoConfig?.hostUri?.split(":")[0] ||
-  (Platform.OS === "web" && typeof window !== "undefined"
-    ? window.location.hostname
-    : undefined);
-const base =
-  configuredBase && !configuredBase.includes("YOUR_")
-    ? configuredBase
-    : __DEV__ && devHost
-      ? `http://${devHost}:4000/api`
-      : undefined;
 export class ApiError extends Error {
   constructor(
     message: string,

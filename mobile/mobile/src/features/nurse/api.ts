@@ -1,16 +1,8 @@
 import { router } from "expo-router";
-import Constants from "expo-constants";
-import { Platform } from 'react-native';
+import { apiBaseUrl as base } from "@/utils/api-url";
 
 import { Storage } from "@/utils/storage";
 import type { Nurse, NurseAppointment, NurseNotification, NursePatient, NurseQueueEntry, NurseRegistration, NurseReport } from "./types";
-
-const configuredBase = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "");
-const devHost = Constants.expoConfig?.hostUri?.split(":")[0] ||
-  (Platform.OS === "web" && typeof window !== "undefined" ? window.location.hostname : undefined);
-const base = configuredBase && !configuredBase.includes("YOUR_")
-  ? configuredBase
-  : __DEV__ && devHost ? `http://${devHost}:4000/api` : undefined;
 
 export class NurseApiError extends Error {
   constructor(message: string, public status = 0) {

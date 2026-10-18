@@ -3,7 +3,7 @@ import { z } from "zod";
 import { Appointment, Doctor, Hospital, QueueEntry } from "./booking.models.js";
 import { Patient } from "../auth/patient.model.js";
 import { ApiError } from "../shared/errors.js";
-import { OPD_SLOTS, localToday, slotIsFuture, validateBookingDate, resolveDoctorDecision } from "./booking.service.js";
+import { OPD_SLOTS, OPD_WEEKDAYS, localToday, slotIsFuture, validateBookingDate, resolveDoctorDecision } from "./booking.service.js";
 import { patientQueue } from "./patient-queue.js";
 // Government OPD: payment implementation preserved but disabled.
 // import { PaymentSlip } from "../payments/payment.models.js";
@@ -18,11 +18,11 @@ bookingRoutes.get("/doctors", async (req, res) => {
   const { hospitalId, department } = z
     .object({ hospitalId: objectId, department: z.string().min(1).max(100) })
     .parse(req.query);
-  res.json(
-    await Doctor.find({ hospitalId, specialty: department, active: true })
+  const doctors = await Doctor.find({ hospitalId, specialty: department, active: true })
       .populate("hospitalId", "name")
-      .sort({ name: 1 }),
-  );
+      .sort({ name: 1 }).lean();
+  // Apply the seven-day OPD policy to existing catalogue records as well.
+  res.json(doctors.map((doctor) => ({ ...doctor, weekdays: OPD_WEEKDAYS })));
 });
 bookingRoutes.get("/slots", async (req, res) => {
   const { doctorId, date } = z
@@ -36,17 +36,12 @@ bookingRoutes.get("/slots", async (req, res) => {
     date,
     status: "confirmed",
   }).select("time");
-  const working = doctor.weekdays.includes(
-    new Date(`${date}T12:00:00+05:30`).getUTCDay(),
-  );
   res.json(
-    working
-      ? OPD_SLOTS.map((time) => ({
+    OPD_SLOTS.map((time) => ({
           time,
           available:
             slotIsFuture(date, time) && !busy.some((a) => a.time === time),
-        }))
-      : [],
+        })),
   );
 });
 bookingRoutes.get("/appointments", async (req, res) => {
@@ -122,9 +117,6 @@ bookingRoutes.post("/appointments", async (req, res) => {
   if (
     !doctor ||
     !hospital ||
-    !doctor.weekdays.includes(
-      new Date(`${data.date}T12:00:00+05:30`).getUTCDay(),
-    ) ||
     !OPD_SLOTS.includes(data.time) ||
     !slotIsFuture(data.date, data.time)
   )

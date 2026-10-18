@@ -9,6 +9,7 @@ import { Doctor, Hospital, Appointment } from "../patient/booking/booking.models
 import { Patient } from "../patient/auth/patient.model.js";
 import { ApiError } from "../patient/shared/errors.js";
 import { authenticateAdmin } from "./admin.middleware.js";
+import { OPD_WEEKDAYS } from "../patient/booking/booking.service.js";
 
 export const adminRoutes = Router();
 
@@ -259,7 +260,7 @@ adminRoutes.patch(
             name: doctor.fullName,
             specialty: doctor.specialty,
             hospitalId: hospital._id,
-            weekdays: [1, 2, 3, 4, 5],
+            weekdays: OPD_WEEKDAYS,
             slots: standardSlots,
             active: true,
           });

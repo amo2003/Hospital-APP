@@ -2,7 +2,7 @@ import "dotenv/config";
 import mongoose from "mongoose";
 import { connectDatabase } from "../../config/database.js";
 import { Hospital, Doctor } from "./booking.models.js";
-import { OPD_SLOTS } from "./booking.service.js";
+import { OPD_SLOTS, OPD_WEEKDAYS } from "./booking.service.js";
 // Explicit demo catalogue, replaceable by the staff scheduling module later.
 async function seed() {
   await connectDatabase();
@@ -33,7 +33,7 @@ async function seed() {
       {
         $setOnInsert: {
           specialty,
-          weekdays: [1, 2, 3, 4, 5],
+          weekdays: OPD_WEEKDAYS,
           slots: OPD_SLOTS,
           active: true,
         },

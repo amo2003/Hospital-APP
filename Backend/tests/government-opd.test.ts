@@ -14,6 +14,8 @@ import { PaymentSlip } from "../src/patient/payments/payment.models.js";
 import { AppointmentEmail, deliverNextAppointmentEmail } from "../src/patient/notifications/appointment-email.js";
 import { mailDelivery } from "../src/patient/notifications/mail.service.js";
 import { DoctorAccount } from "../src/doctor/doctor.model.js";
+import { localToday, OPD_SLOTS } from "../src/patient/booking/booking.service.js";
+import { migratePatientBookingIndex } from "../src/patient/booking/booking.indexes.js";
 
 let db: MongoMemoryReplSet;
 let token: string, otherToken: string, adminToken: string, doctorId: string, hospitalId: string, date: string;
@@ -136,4 +138,48 @@ test("booking then doctor confirmation sends two distinct emails; repeated accep
   assert.equal(rejectedQueue.body.startsAt, null);
   assert.equal(await QueueEntry.countDocuments({ appointmentId: rejected.body._id }), 0);
   sender.mock.restore();
+});
+
+
+test("all seven OPD days are bookable for legacy weekday-only doctors", async () => {
+  const legacy = await Doctor.create({ name: "Weekend Test", specialty: "General Medicine", hospitalId, weekdays: [1,2,3,4,5] });
+  const catalogue = await request(app).get(root + "/booking/doctors").query({ hospitalId, department: "General Medicine" }).set(auth(token)).expect(200);
+  assert.deepEqual(catalogue.body.find((d: any) => d._id === String(legacy._id)).weekdays, [0,1,2,3,4,5,6]);
+  for (let offset = 1; offset <= 7; offset++) {
+    const day = new Date(localToday() + "T12:00:00Z");
+    day.setUTCDate(day.getUTCDate() + offset);
+    const date = day.toISOString().slice(0,10);
+    const query = { doctorId: String(legacy._id), date };
+    const slots = await request(app).get(root + "/booking/slots").query(query).set(auth(token)).expect(200);
+    assert.deepEqual(slots.body.map((s: any) => s.time), OPD_SLOTS);
+    assert.ok(slots.body.every((s: any) => s.available));
+    const body = { ...query, hospitalId, department: "General Medicine", time: "18:30" };
+    await request(app).post(root + "/booking/appointments").set(auth(otherToken)).send(body).expect(201);
+    const booked = await request(app).get(root + "/booking/slots").query(query).set(auth(token)).expect(200);
+    assert.equal(booked.body.find((s: any) => s.time === "18:30").available, false);
+    await request(app).post(root + "/booking/appointments").set(auth(token)).send(body).expect(409);
+  }
+});
+
+
+test("migration allows one patient to book multiple doctors at the same time while protecting doctor slots", async () => {
+  await Appointment.collection.createIndex({ patientId: 1, date: 1, time: 1 }, { unique: true, partialFilterExpression: { status: "confirmed" } });
+  await migratePatientBookingIndex();
+  await migratePatientBookingIndex();
+  const indexes = await Appointment.collection.indexes();
+  assert.ok(!indexes.some((i) => i.unique && i.key.patientId && i.key.date && i.key.time));
+  assert.ok(indexes.some((i) => i.unique && i.key.doctorId && i.key.date && i.key.time));
+  const doctors = await Doctor.create([
+    { name: "Multiple Booking One", specialty: "General Medicine", hospitalId },
+    { name: "Multiple Booking Two", specialty: "General Medicine", hospitalId },
+  ]);
+  const later = new Date(localToday() + "T12:00:00Z"); later.setUTCDate(later.getUTCDate() + 12);
+  const day = later.toISOString().slice(0,10);
+  const send = (id: string, time: string) => request(app).post(root + "/booking/appointments").set(auth(token)).send({ doctorId: id, hospitalId, department: "General Medicine", date: day, time });
+  const results = await Promise.all(doctors.map((d) => send(String(d._id), "17:00")));
+  assert.deepEqual(results.map((r) => r.status), [201, 201]);
+  await send(String(doctors[0]._id), "17:15").expect(201);
+  const collision = await send(String(doctors[0]._id), "17:00").expect(409);
+  assert.match(collision.body.message, /doctor's time slot/);
+  assert.equal(await Appointment.countDocuments({ date: day }), 3);
 });

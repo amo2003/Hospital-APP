@@ -411,6 +411,7 @@ export default function BookingScreen() {
             }}
             weekdays={doctor?.weekdays || []}
           />
+          <Text style={[s.body, { marginTop: 12 }]}>Bookings are available every day, including weekends.</Text>
           <Text style={[s.label, { marginTop: 20, marginBottom: 4 }]}>
             Available Time Slots
           </Text>
@@ -721,7 +722,7 @@ function Calendar({
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={key}
-                  accessibilityState={{ selected: value === key, disabled }}
+                  accessibilityState={{ selected: value === key && !disabled, disabled }}
                   disabled={disabled}
                   onPress={() => onChange(key)}
                   style={{
@@ -731,7 +732,7 @@ function Calendar({
                     alignItems: "center",
                     justifyContent: "center",
                     backgroundColor:
-                      value === key
+                      value === key && !disabled
                         ? C.blue
                         : key === minimum
                           ? "#dbecff"
@@ -741,7 +742,7 @@ function Calendar({
                 >
                   <Text
                     style={{
-                      color: value === key ? "#fff" : "#20262c",
+                      color: value === key && !disabled ? "#fff" : "#20262c",
                       fontSize: 15,
                     }}
                   >

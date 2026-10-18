@@ -283,6 +283,8 @@ export default function NurseQueueScreen() {
           return (
             <Pressable
               key={item}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
               onPress={() => setFilter(item)}
               style={{
                 flex: 1,
@@ -295,6 +297,7 @@ export default function NurseQueueScreen() {
               }}
             >
               <Text
+                translate={false}
                 style={{
                   color: active ? "#fff" : "#64748b",
                   fontSize: 11,
@@ -302,7 +305,7 @@ export default function NurseQueueScreen() {
                   textTransform: "capitalize", textAlign: "center", paddingHorizontal: 3,
                 }}
               >
-                <Text>{item}</Text> ({count})
+                {`${t(item)} (${count})`}
               </Text>
             </Pressable>
           );
